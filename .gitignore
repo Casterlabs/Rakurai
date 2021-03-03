@@ -1,0 +1,14 @@
+# IntelliJ
+*.iml
+.idea/
+
+# Eclipse
+.settings/
+.project
+.classpath
+
+# Common
+*target/
+
+# Misc
+src/main/java/co/casterlabs/rakurai/Test.java
