@@ -113,9 +113,7 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                 exchange.setReasonPhrase(response.getStatus().getDescription());
 
                 for (Map.Entry<String, String> entry : response.getAllHeaders().entrySet()) {
-                    if (!entry.getKey().equalsIgnoreCase("content-type")) {
-                        exchange.getResponseHeaders().add(HttpString.tryFromString(entry.getKey()), entry.getValue());
-                    }
+                    exchange.getResponseHeaders().add(HttpString.tryFromString(entry.getKey()), entry.getValue());
                 }
 
                 if (response.getMode() == TransferEncoding.FIXED_LENGTH) {
@@ -128,7 +126,14 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                 InputStream in = response.getResponseStream();
                 OutputStream out = exchange.getOutputStream();
 
-                IOUtil.writeInputStreamToOutputStream(in, out);
+                exchange.dispatch(() -> {
+                    try {
+                        IOUtil.writeInputStreamToOutputStream(in, out);
+
+                        in.close();
+                        out.close();
+                    } catch (IOException ignored) {}
+                });
             }
         } catch (DropConnectionException e) {
             exchange.getConnection().close();
