@@ -16,7 +16,7 @@ import lombok.experimental.Accessors;
 @Accessors(chain = true)
 public class SSLConfiguration {
     private @NonNull TLSVersion[] enabledTlsVersions = TLSVersion.values();
-    private @Setter @Nullable List<String> enabledCipherSuites;
+    private @Nullable List<String> enabledCipherSuites;
     private @Setter int DHSize = 2048;
 
     private int port;
@@ -35,7 +35,7 @@ public class SSLConfiguration {
         return this;
     }
 
-    public SSLConfiguration setEnabledCipherSuitesVersions(@Nullable String... enabledCipherSuites) {
+    public SSLConfiguration setEnabledCipherSuites(@Nullable String... enabledCipherSuites) {
         this.enabledCipherSuites = Arrays.asList(enabledCipherSuites);
 
         return this;
