@@ -116,17 +116,27 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                     exchange.getResponseHeaders().add(HttpString.tryFromString(entry.getKey()), entry.getValue());
                 }
 
-                if (response.getMode() == TransferEncoding.FIXED_LENGTH) {
-                    exchange.setResponseContentLength(response.getLength());
-                }
-
                 double time = (System.currentTimeMillis() - start) / 1000d;
                 this.logger.debug("Served HTTP %s %s %s (%.2fs)", session.getMethod().name(), session.getRemoteIpAddress(), session.getHost() + session.getUri(), time);
 
                 InputStream in = response.getResponseStream();
                 OutputStream out = exchange.getOutputStream();
 
-                IOUtil.writeInputStreamToOutputStream(in, out);
+                if (response.getMode() == TransferEncoding.FIXED_LENGTH) {
+                    exchange.setResponseContentLength(response.getLength());
+
+                    //@formatter:off
+                    IOUtil.writeInputStreamToOutputStream(
+                            in, 
+                            out, 
+                            response.getLength(), 
+                            IOUtil.DEFAULT_BUFFER_SIZE
+                    );
+                    //@formatter:on
+                } else {
+                    IOUtil.writeInputStreamToOutputStream(in, out);
+                }
+
             }
         } catch (Exception e) {
             /*if (!(e instanceof DropConnectionException)) {

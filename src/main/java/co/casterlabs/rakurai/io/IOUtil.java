@@ -14,7 +14,7 @@ import co.casterlabs.rakurai.DataSize;
 import lombok.NonNull;
 
 public class IOUtil {
-    public static int BUFFER_DEFAULT_SIZE = (int) DataSize.MEGABYTE.toBytes(10);
+    public static int DEFAULT_BUFFER_SIZE = (int) DataSize.MEGABYTE.toBytes(10);
 
     public static void safeClose(@Nullable Closeable... closeables) {
         if (closeables != null) {
@@ -27,7 +27,7 @@ public class IOUtil {
     }
 
     public static void writeInputStreamToOutputStream(@NonNull InputStream source, @NonNull OutputStream dest) throws IOException {
-        writeInputStreamToOutputStream(source, dest, BUFFER_DEFAULT_SIZE);
+        writeInputStreamToOutputStream(source, dest, DEFAULT_BUFFER_SIZE);
     }
 
     public static void writeInputStreamToOutputStream(@NonNull InputStream source, @NonNull OutputStream dest, int bufferSize) throws IOException {
@@ -36,9 +36,19 @@ public class IOUtil {
 
         while ((read = source.read(buffer)) != -1) {
             dest.write(buffer, 0, read);
+            dest.flush();
         }
 
         source.close();
+        dest.close();
+    }
+
+    public static void writeInputStreamToOutputStream(@NonNull InputStream source, @NonNull OutputStream dest, long length, int maxBufferSize) throws IOException {
+        // Buffer allocation can be taxing, so we cheat and will only
+        // allocate the required buffer size if possible.
+        int bufferSize = (length > maxBufferSize) ? maxBufferSize : (int) length;
+
+        writeInputStreamToOutputStream(source, dest, bufferSize);
     }
 
     public static byte[] readInputStreamBytes(@NonNull InputStream source) throws IOException {
