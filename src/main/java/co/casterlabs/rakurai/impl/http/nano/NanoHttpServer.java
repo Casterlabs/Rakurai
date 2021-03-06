@@ -68,11 +68,7 @@ public class NanoHttpServer extends NanoWSD implements HttpServer {
     @Override
     public Response serve(IHTTPSession nanoSession) {
         if (this.isWebsocketRequested(nanoSession)) {
-            try {
-                return super.serve(nanoSession);
-            } catch (NullPointerException e) { // Happens when nothing sets the websocket response listener.
-                throw new DropConnectionException();
-            }
+            return super.serve(nanoSession);
         } else {
             long start = System.currentTimeMillis();
             NanoHttpSession session = new NanoHttpSession(nanoSession, logger, this.getListeningPort());
@@ -122,7 +118,7 @@ public class NanoHttpServer extends NanoWSD implements HttpServer {
             return new NanoWebsocketWrapper(nanoSession, listener);
         } else {
             logger.debug("Dropped websocket %s %s", session.getRemoteIpAddress(), session.getHost() + session.getUri());
-            return null;
+            throw new DropConnectionException();
         }
     }
 
