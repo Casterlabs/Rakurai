@@ -67,7 +67,6 @@ public abstract class HttpSession {
         sb.append("\n    host=").append(this.getHost());
         sb.append("\n    remoteIpAddress=").append(this.getRemoteIpAddress());
         sb.append("\n    headers=").append(this.getHeaders());
-
         sb.append("\n    uri=").append(this.getUri()).append(this.getQueryString());
 
         sb.append("\n)");
