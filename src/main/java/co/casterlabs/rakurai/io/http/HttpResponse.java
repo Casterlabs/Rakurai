@@ -88,11 +88,15 @@ public class HttpResponse {
     }
 
     public static HttpResponse newFixedLengthResponse(@NonNull HttpStatus status, @NonNull InputStream responseStream, long length) {
-        HttpResponse response = new HttpResponse(responseStream, TransferEncoding.FIXED_LENGTH, status);
+        if (length > Integer.MAX_VALUE) {
+            return newChunkedResponse(status, responseStream);
+        } else {
+            HttpResponse response = new HttpResponse(responseStream, TransferEncoding.FIXED_LENGTH, status);
 
-        response.length = length;
+            response.length = length;
 
-        return response;
+            return response;
+        }
     }
 
     public static HttpResponse newFixedLengthFileResponse(@NonNull HttpStatus status, @NonNull File file) throws FileNotFoundException {
