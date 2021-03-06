@@ -1,17 +1,30 @@
 package co.casterlabs.rakurai.io;
 
 import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
+import org.jetbrains.annotations.Nullable;
+
 import co.casterlabs.rakurai.DataSize;
 import lombok.NonNull;
 
 public class IOUtil {
     public static int BUFFER_DEFAULT_SIZE = (int) DataSize.MEGABYTE.toBytes(10);
+
+    public static void safeClose(@Nullable Closeable... closeables) {
+        if (closeables != null) {
+            for (Closeable closeable : closeables) {
+                try {
+                    closeable.close();
+                } catch (Exception ignored) {}
+            }
+        }
+    }
 
     public static void writeInputStreamToOutputStream(@NonNull InputStream source, @NonNull OutputStream dest) throws IOException {
         writeInputStreamToOutputStream(source, dest, BUFFER_DEFAULT_SIZE);
