@@ -7,15 +7,16 @@ import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
+import co.casterlabs.rakurai.collections.HeaderMap;
 import lombok.NonNull;
 
 public abstract class HttpSession {
 
     // Request headers
-    public abstract Map<String, String> getHeaders();
+    public abstract HeaderMap getHeaders();
 
     public final @Nullable String getHeader(@NonNull String header) {
-        return this.getHeaders().get(header.toLowerCase());
+        return this.getHeaders().getSingle(header);
     }
 
     // URI
@@ -65,6 +66,7 @@ public abstract class HttpSession {
         sb.append("\n    port=").append(this.getPort());
         sb.append("\n    host=").append(this.getHost());
         sb.append("\n    remoteIpAddress=").append(this.getRemoteIpAddress());
+        sb.append("\n    headers=").append(this.getHeaders());
 
         sb.append("\n    uri=").append(this.getUri()).append(this.getQueryString());
 

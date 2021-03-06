@@ -7,33 +7,39 @@ import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
+import co.casterlabs.rakurai.collections.HeaderMap;
 import co.casterlabs.rakurai.io.http.HttpMethod;
 import co.casterlabs.rakurai.io.http.HttpSession;
 import co.casterlabs.rakurai.io.http.HttpVersion;
 import fi.iki.elonen.NanoHTTPD.IHTTPSession;
 import fi.iki.elonen.NanoHTTPD.ResponseException;
-import fi.iki.elonen.NanoWSD.WebSocket;
 import lombok.Getter;
-import lombok.Setter;
 import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
 public class NanoHttpSession extends HttpSession {
     private @Getter IHTTPSession nanoSession;
+    private HeaderMap headers;
     private int port;
 
     private byte[] body;
 
-    private @Getter @Setter WebSocket websocketResponse;
-
     public NanoHttpSession(IHTTPSession nanoSession, FastLogger logger, int port) {
         this.port = port;
         this.nanoSession = nanoSession;
+
+        HeaderMap.Builder builder = new HeaderMap.Builder();
+
+        for (Map.Entry<String, String> entry : this.nanoSession.getHeaders().entrySet()) {
+            builder.put(entry.getKey(), entry.getValue());
+        }
+
+        this.headers = builder.build();
     }
 
     // Request headers
     @Override
-    public Map<String, String> getHeaders() {
-        return this.nanoSession.getHeaders();
+    public HeaderMap getHeaders() {
+        return this.headers;
     }
 
     // URI
