@@ -22,4 +22,19 @@ public class StringUtil {
         }
     }
 
+    public static String prettifyHeader(String header) {
+        char[] chars = header.toLowerCase().toCharArray();
+
+        chars[0] = Character.toUpperCase(chars[0]);
+
+        // Go ahead and start at 1, since we already replaced char[0].
+        for (int i = 1; i < chars.length; i++) {
+            if ((chars[i] == '-') && ((i + 1) < chars.length)) {
+                chars[i + 1] = Character.toUpperCase(chars[i + 1]);
+            }
+        }
+
+        return new String(chars);
+    }
+
 }
