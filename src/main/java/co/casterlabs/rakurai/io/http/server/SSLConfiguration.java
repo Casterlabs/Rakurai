@@ -19,7 +19,7 @@ public class SSLConfiguration {
     private @Nullable List<String> enabledCipherSuites;
     private @Setter int DHSize = 2048;
 
-    private int port;
+    private @Setter int port;
 
     private File keystoreLocation;
     private char[] keystorePassword;
