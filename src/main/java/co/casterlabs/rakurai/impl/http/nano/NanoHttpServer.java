@@ -40,8 +40,8 @@ public class NanoHttpServer extends NanoWSD implements HttpServer {
         }
     }
 
-    public NanoHttpServer(HttpListener server, int port) {
-        super(port);
+    public NanoHttpServer(HttpListener server, String hostname, int port) {
+        super(hostname, port);
 
         this.setAsyncRunner(new NanoRunner());
 
@@ -49,8 +49,8 @@ public class NanoHttpServer extends NanoWSD implements HttpServer {
         this.server = server;
     }
 
-    public NanoHttpServer(HttpListener server, int port, WrappedSSLSocketFactory factory, String[] tls) {
-        super(port);
+    public NanoHttpServer(HttpListener server, String hostname, int port, WrappedSSLSocketFactory factory, String[] tls) {
+        super(hostname, port);
 
         this.makeSecure(factory, tls);
         this.setAsyncRunner(new NanoRunner());

@@ -15,7 +15,7 @@ import lombok.NonNull;
 @Data
 public abstract class HttpServerBuilder {
     /* General */
-    // protected @NonNull String hostname = "0.0.0.0";
+    protected @NonNull String hostname = "0.0.0.0";
 
     protected int port = 80;
 

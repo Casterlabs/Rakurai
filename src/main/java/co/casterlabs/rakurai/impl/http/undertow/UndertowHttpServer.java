@@ -56,7 +56,7 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
     }
 
     @SuppressWarnings("deprecation")
-    public UndertowHttpServer(HttpListener server, int port, HttpServerBuilder builder) {
+    public UndertowHttpServer(HttpListener server, String hostname, int port, HttpServerBuilder builder) {
         //@formatter:off
         this.undertow = Undertow.builder()
                 .setServerOption(UndertowOptions.ENABLE_SPDY, builder.isSPDYEnabled())
@@ -65,7 +65,7 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                 .setServerOption(UndertowOptions.ALWAYS_SET_KEEP_ALIVE, false)
 
                 .setHandler(new BlockingHandler(Handlers.websocket(this, this)))
-                .addHttpListener(port, "0.0.0.0")
+                .addHttpListener(port, hostname)
                 .build();
         //@formatter:on
 
@@ -74,7 +74,7 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
     }
 
     @SuppressWarnings("deprecation")
-    public UndertowHttpServer(HttpListener server, int port, KeyManager[] keyManagers, TrustManager[] trustManagers, String[] tls, List<String> cipherSuites, HttpServerBuilder builder) {
+    public UndertowHttpServer(HttpListener server, String hostname, int port, KeyManager[] keyManagers, TrustManager[] trustManagers, String[] tls, List<String> cipherSuites, HttpServerBuilder builder) {
         //@formatter:off
         this.undertow = Undertow.builder()
                 .setSocketOption(Options.SSL_ENABLED_CIPHER_SUITES, Sequence.of(cipherSuites))
@@ -86,7 +86,7 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                 .setServerOption(UndertowOptions.ALWAYS_SET_KEEP_ALIVE, false)
 
                 .setHandler(new BlockingHandler(Handlers.websocket(this, this)))
-                .addHttpsListener(port, "0.0.0.0", keyManagers, trustManagers)
+                .addHttpsListener(port, hostname, keyManagers, trustManagers)
                 .build();
         //@formatter:on
 

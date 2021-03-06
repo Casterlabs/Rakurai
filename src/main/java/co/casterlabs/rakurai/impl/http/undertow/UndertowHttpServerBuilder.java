@@ -21,7 +21,7 @@ public class UndertowHttpServerBuilder extends HttpServerBuilder {
 
     @Override
     public HttpServer build(@NonNull HttpListener listener) {
-        return new UndertowHttpServer(listener, this.port, this);
+        return new UndertowHttpServer(listener, this.hostname, this.port, this);
     }
 
     @Override
@@ -40,6 +40,7 @@ public class UndertowHttpServerBuilder extends HttpServerBuilder {
         //@formatter:off
         return new UndertowHttpServer(
                 listener, 
+                this.hostname, 
                 this.ssl.getPort(), 
                 managerFactory.getKeyManagers(), 
                 trustManagerFactory.getTrustManagers(), 

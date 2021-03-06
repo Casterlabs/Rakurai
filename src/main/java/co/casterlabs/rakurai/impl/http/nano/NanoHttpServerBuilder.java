@@ -22,7 +22,7 @@ public class NanoHttpServerBuilder extends HttpServerBuilder {
 
     @Override
     public HttpServer build(@NonNull HttpListener listener) throws IOException {
-        return new NanoHttpServer(listener, this.port);
+        return new NanoHttpServer(listener, this.hostname, this.port);
     }
 
     @Override
@@ -37,7 +37,7 @@ public class NanoHttpServerBuilder extends HttpServerBuilder {
 
         SSLServerSocketFactory factory = NanoHTTPD.makeSSLSocketFactory(keystore, managerFactory);
 
-        return new NanoHttpServer(listener, this.ssl.getPort(), new WrappedSSLSocketFactory(factory, this.ssl), this.convertTLS());
+        return new NanoHttpServer(listener, this.hostname, this.ssl.getPort(), new WrappedSSLSocketFactory(factory, this.ssl), this.convertTLS());
     }
 
     @Override
