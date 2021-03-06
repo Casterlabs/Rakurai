@@ -14,7 +14,6 @@ import org.xnio.Options;
 import org.xnio.Sequence;
 
 import co.casterlabs.rakurai.io.IOUtil;
-import co.casterlabs.rakurai.io.http.DropConnectionException;
 import co.casterlabs.rakurai.io.http.HttpResponse;
 import co.casterlabs.rakurai.io.http.HttpResponse.TransferEncoding;
 import co.casterlabs.rakurai.io.http.HttpSession;
@@ -130,9 +129,9 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                 IOUtil.writeInputStreamToOutputStream(in, out);
             }
         } catch (Exception e) {
-            if (!(e instanceof DropConnectionException)) {
+            /*if (!(e instanceof DropConnectionException)) {
                 e.printStackTrace();
-            }
+            }*/
 
             IOUtil.safeClose(exchange.getConnection());
         }
