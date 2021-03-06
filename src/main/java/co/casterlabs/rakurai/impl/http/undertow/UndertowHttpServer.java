@@ -97,47 +97,45 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
 
     @Override
     public void handleRequest(HttpServerExchange exchange) throws Exception {
-        exchange.dispatch(() -> {
-            try {
-                long start = System.currentTimeMillis();
+        try {
+            long start = System.currentTimeMillis();
 
-                HttpSession session = new UndertowHttpSessionWrapper(exchange, this.port);
-                HttpResponse response = this.server.serveSession(session.getHost(), session, this.secure);
+            HttpSession session = new UndertowHttpSessionWrapper(exchange, this.port);
+            HttpResponse response = this.server.serveSession(session.getHost(), session, this.secure);
 
-                if (response == null) {
-                    exchange.setStatusCode(StandardHttpStatus.NOT_IMPLEMENTED.getStatusCode());
-                    exchange.setReasonPhrase(StandardHttpStatus.NOT_IMPLEMENTED.getDescription());
-                } else if (response.getStatus() == StandardHttpStatus.NO_RESPONSE) {
-                    IOUtil.safeClose(exchange.getConnection());
-                    return;
-                } else {
-                    exchange.setStatusCode(response.getStatus().getStatusCode());
-                    exchange.setReasonPhrase(response.getStatus().getDescription());
+            if (response == null) {
+                exchange.setStatusCode(StandardHttpStatus.NOT_IMPLEMENTED.getStatusCode());
+                exchange.setReasonPhrase(StandardHttpStatus.NOT_IMPLEMENTED.getDescription());
+            } else if (response.getStatus() == StandardHttpStatus.NO_RESPONSE) {
+                IOUtil.safeClose(exchange.getConnection());
+                return;
+            } else {
+                exchange.setStatusCode(response.getStatus().getStatusCode());
+                exchange.setReasonPhrase(response.getStatus().getDescription());
 
-                    for (Map.Entry<String, String> entry : response.getAllHeaders().entrySet()) {
-                        exchange.getResponseHeaders().add(HttpString.tryFromString(entry.getKey()), entry.getValue());
-                    }
-
-                    if (response.getMode() == TransferEncoding.FIXED_LENGTH) {
-                        exchange.setResponseContentLength(response.getLength());
-                    }
-
-                    double time = (System.currentTimeMillis() - start) / 1000d;
-                    this.logger.debug("Served HTTP %s %s %s (%.2fs)", session.getMethod().name(), session.getRemoteIpAddress(), session.getHost() + session.getUri(), time);
-
-                    InputStream in = response.getResponseStream();
-                    OutputStream out = exchange.getOutputStream();
-
-                    IOUtil.writeInputStreamToOutputStream(in, out);
+                for (Map.Entry<String, String> entry : response.getAllHeaders().entrySet()) {
+                    exchange.getResponseHeaders().add(HttpString.tryFromString(entry.getKey()), entry.getValue());
                 }
-            } catch (Exception e) {
-                if (!(e instanceof DropConnectionException)) {
-                    e.printStackTrace();
+
+                if (response.getMode() == TransferEncoding.FIXED_LENGTH) {
+                    exchange.setResponseContentLength(response.getLength());
                 }
+
+                double time = (System.currentTimeMillis() - start) / 1000d;
+                this.logger.debug("Served HTTP %s %s %s (%.2fs)", session.getMethod().name(), session.getRemoteIpAddress(), session.getHost() + session.getUri(), time);
+
+                InputStream in = response.getResponseStream();
+                OutputStream out = exchange.getOutputStream();
+
+                IOUtil.writeInputStreamToOutputStream(in, out);
+            }
+        } catch (Exception e) {
+            if (!(e instanceof DropConnectionException)) {
+                e.printStackTrace();
             }
 
             IOUtil.safeClose(exchange.getConnection());
-        });
+        }
     }
 
     @Override
