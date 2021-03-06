@@ -24,6 +24,7 @@ public class HttpResponse {
      */
     public static final HttpResponse NO_RESPONSE = HttpResponse.newFixedLengthResponse(StandardHttpStatus.NO_RESPONSE, new byte[0]);
     public static final HttpResponse INTERNAL_ERROR = HttpResponse.newFixedLengthResponse(StandardHttpStatus.INTERNAL_ERROR, new byte[0]);
+    public static final byte[] EMPTY_BODY = new byte[0];
 
     private @Getter(AccessLevel.NONE) Map<String, String> headers = new HashMap<>();
     private @NonNull @Setter HttpStatus status;
@@ -73,6 +74,10 @@ public class HttpResponse {
     /* ---------------- */
     /* Creating         */
     /* ---------------- */
+
+    public static HttpResponse newFixedLengthResponse(@NonNull HttpStatus status) {
+        return newFixedLengthResponse(status, EMPTY_BODY);
+    }
 
     public static HttpResponse newFixedLengthResponse(@NonNull HttpStatus status, @NonNull String body) {
         return newFixedLengthResponse(status, body.getBytes(StandardCharsets.UTF_8));
