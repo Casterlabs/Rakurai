@@ -162,6 +162,7 @@ public class MimeTypes {
         mimeTypes.put("jpg", "image/jpeg");
         mimeTypes.put("jps", "image/x-jps");
         mimeTypes.put("js", "application/javascript");
+        mimeTypes.put("json", "application/json");
         mimeTypes.put("jut", "image/jutvision");
         mimeTypes.put("kar", "music/x-karaoke");
         mimeTypes.put("ksh", "application/x-ksh");
