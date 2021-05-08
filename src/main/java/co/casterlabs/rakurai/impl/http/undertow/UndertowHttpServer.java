@@ -14,6 +14,8 @@ import org.xnio.Options;
 import org.xnio.Sequence;
 
 import co.casterlabs.rakurai.StringUtil;
+import co.casterlabs.rakurai.impl.http.BinaryWebsocketFrame;
+import co.casterlabs.rakurai.impl.http.TextWebsocketFrame;
 import co.casterlabs.rakurai.io.IOUtil;
 import co.casterlabs.rakurai.io.http.HttpResponse;
 import co.casterlabs.rakurai.io.http.HttpResponse.TransferEncoding;
@@ -125,9 +127,6 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                         exchange.getResponseHeaders().add(HttpString.tryFromString(key), value);
                     }
 
-                    double time = (System.currentTimeMillis() - start) / 1000d;
-                    this.logger.debug("Served HTTP %s %s %s (%.2fs)", session.getMethod().name(), session.getRemoteIpAddress(), session.getHost() + session.getUri(), time);
-
                     InputStream in = response.getResponseStream();
                     OutputStream out = exchange.getOutputStream();
 
@@ -145,6 +144,10 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                     } else {
                         IOUtil.writeInputStreamToOutputStream(in, out);
                     }
+
+                    double time = (System.currentTimeMillis() - start) / 1000d;
+
+                    this.logger.debug("Served HTTP %s %s %s (%.2fs)", session.getMethod().name(), session.getRemoteIpAddress(), session.getHost() + session.getUri(), time);
 
                     exchange.endExchange();
 
@@ -175,14 +178,14 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
 
                 @Override
                 protected void onFullTextMessage(WebSocketChannel channel, BufferedTextMessage message) {
-                    listener.onText(websocket, message.getData());
+                    listener.onFrame(websocket, new TextWebsocketFrame(message.getData()));
                 }
 
                 @SuppressWarnings("deprecation")
                 @Override
                 protected void onFullBinaryMessage(WebSocketChannel channel, BufferedBinaryMessage message) {
                     for (ByteBuffer buffer : message.getData().getResource()) {
-                        listener.onBinary(websocket, buffer.array());
+                        listener.onFrame(websocket, new BinaryWebsocketFrame(buffer.array()));
                     }
                 }
 

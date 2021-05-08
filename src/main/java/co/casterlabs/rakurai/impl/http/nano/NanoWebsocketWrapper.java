@@ -1,15 +1,14 @@
 package co.casterlabs.rakurai.impl.http.nano;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import co.casterlabs.rakurai.impl.http.BinaryWebsocketFrame;
+import co.casterlabs.rakurai.impl.http.TextWebsocketFrame;
 import co.casterlabs.rakurai.io.http.websocket.Websocket;
 import co.casterlabs.rakurai.io.http.websocket.WebsocketCloseCode;
-import co.casterlabs.rakurai.io.http.websocket.WebsocketFrame;
-import co.casterlabs.rakurai.io.http.websocket.WebsocketFrameType;
 import co.casterlabs.rakurai.io.http.websocket.WebsocketListener;
 import fi.iki.elonen.NanoHTTPD.IHTTPSession;
 import fi.iki.elonen.NanoWSD.WebSocket;
@@ -56,51 +55,9 @@ public class NanoWebsocketWrapper extends WebSocket {
     @Override
     protected void onMessage(WebSocketFrame frame) {
         if (frame.getOpCode() == OpCode.Binary) {
-            this.listener.onFrame(this.katanaWebsocket, new WebsocketFrame() {
-                @Override
-                public WebsocketFrameType getFrameType() {
-                    return WebsocketFrameType.BINARY;
-                }
-
-                @Override
-                public String getAsText() {
-                    return new String(this.getBytes(), StandardCharsets.UTF_8);
-                }
-
-                @Override
-                public byte[] getBytes() {
-                    return frame.getBinaryPayload();
-                }
-
-                @Override
-                public int getSize() {
-                    return this.getBytes().length;
-                }
-            });
+            this.listener.onFrame(this.katanaWebsocket, new BinaryWebsocketFrame(frame.getBinaryPayload()));
         } else if (frame.getOpCode() == OpCode.Text) {
-            this.listener.onFrame(this.katanaWebsocket, new WebsocketFrame() {
-
-                @Override
-                public WebsocketFrameType getFrameType() {
-                    return WebsocketFrameType.TEXT;
-                }
-
-                @Override
-                public String getAsText() {
-                    return frame.getTextPayload();
-                }
-
-                @Override
-                public byte[] getBytes() {
-                    return this.getAsText().getBytes(StandardCharsets.UTF_8);
-                }
-
-                @Override
-                public int getSize() {
-                    return this.getBytes().length;
-                }
-
-            });
+            this.listener.onFrame(this.katanaWebsocket, new TextWebsocketFrame(frame.getTextPayload()));
         }
     }
 
