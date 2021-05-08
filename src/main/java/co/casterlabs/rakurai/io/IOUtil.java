@@ -36,8 +36,9 @@ public class IOUtil {
 
         while ((read = source.read(buffer)) != -1) {
             dest.write(buffer, 0, read);
-            dest.flush();
         }
+
+        dest.flush();
 
         source.close();
         dest.close();
