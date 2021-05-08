@@ -37,18 +37,16 @@ public class UndertowHttpServerBuilder extends HttpServerBuilder {
         TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         trustManagerFactory.init(keystore);
 
-        //@formatter:off
         return new UndertowHttpServer(
-                listener, 
-                this.hostname, 
-                this.ssl.getPort(), 
-                managerFactory.getKeyManagers(), 
-                trustManagerFactory.getTrustManagers(), 
-                this.convertTLS(), 
-                this.ssl.getEnabledCipherSuites(), 
-                this
+            listener,
+            this.hostname,
+            this.ssl.getPort(),
+            managerFactory.getKeyManagers(),
+            trustManagerFactory.getTrustManagers(),
+            this.convertTLS(),
+            this.ssl.getEnabledCipherSuites(),
+            this
         );
-        //@formatter:on
     }
 
     @Override

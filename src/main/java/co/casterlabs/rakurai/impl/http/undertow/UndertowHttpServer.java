@@ -60,17 +60,15 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
 
     @SuppressWarnings("deprecation")
     public UndertowHttpServer(HttpListener server, String hostname, int port, HttpServerBuilder builder) {
-        //@formatter:off
         this.undertow = Undertow.builder()
-                .setServerOption(UndertowOptions.ENABLE_SPDY, builder.isSPDYEnabled())
-                .setServerOption(UndertowOptions.ENABLE_HTTP2, builder.isHttp2Enabled())
+            .setServerOption(UndertowOptions.ENABLE_SPDY, builder.isSPDYEnabled())
+            .setServerOption(UndertowOptions.ENABLE_HTTP2, builder.isHttp2Enabled())
 
-                .setServerOption(UndertowOptions.ALWAYS_SET_KEEP_ALIVE, false)
+            .setServerOption(UndertowOptions.ALWAYS_SET_KEEP_ALIVE, false)
 
-                .setHandler(new BlockingHandler(Handlers.websocket(this, this)))
-                .addHttpListener(port, hostname)
-                .build();
-        //@formatter:on
+            .setHandler(new BlockingHandler(Handlers.websocket(this, this)))
+            .addHttpListener(port, hostname)
+            .build();
 
         this.port = port;
         this.server = server;
@@ -78,20 +76,18 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
 
     @SuppressWarnings("deprecation")
     public UndertowHttpServer(HttpListener server, String hostname, int port, KeyManager[] keyManagers, TrustManager[] trustManagers, String[] tls, List<String> cipherSuites, HttpServerBuilder builder) {
-        //@formatter:off
         this.undertow = Undertow.builder()
-                .setSocketOption(Options.SSL_ENABLED_CIPHER_SUITES, Sequence.of(cipherSuites))
-                .setSocketOption(Options.SSL_ENABLED_PROTOCOLS, Sequence.of(tls))
+            .setSocketOption(Options.SSL_ENABLED_CIPHER_SUITES, Sequence.of(cipherSuites))
+            .setSocketOption(Options.SSL_ENABLED_PROTOCOLS, Sequence.of(tls))
 
-                .setServerOption(UndertowOptions.ENABLE_SPDY, builder.isSPDYEnabled())
-                .setServerOption(UndertowOptions.ENABLE_HTTP2, builder.isHttp2Enabled())
+            .setServerOption(UndertowOptions.ENABLE_SPDY, builder.isSPDYEnabled())
+            .setServerOption(UndertowOptions.ENABLE_HTTP2, builder.isHttp2Enabled())
 
-                .setServerOption(UndertowOptions.ALWAYS_SET_KEEP_ALIVE, false)
+            .setServerOption(UndertowOptions.ALWAYS_SET_KEEP_ALIVE, false)
 
-                .setHandler(new BlockingHandler(Handlers.websocket(this, this)))
-                .addHttpsListener(port, hostname, keyManagers, trustManagers)
-                .build();
-        //@formatter:on
+            .setHandler(new BlockingHandler(Handlers.websocket(this, this)))
+            .addHttpsListener(port, hostname, keyManagers, trustManagers)
+            .build();
 
         this.port = port;
         this.secure = true;
