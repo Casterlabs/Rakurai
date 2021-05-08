@@ -97,57 +97,65 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
 
     @Override
     public void handleRequest(HttpServerExchange exchange) throws Exception {
-        try {
-            long start = System.currentTimeMillis();
+        if (exchange.isInIoThread()) {
+            exchange.dispatch(this);
+        } else {
+            try {
+                long start = System.currentTimeMillis();
 
-            HttpSession session = new UndertowHttpSessionWrapper(exchange, this.port);
-            HttpResponse response = this.server.serveSession(session.getHost(), session, this.secure);
+                exchange.startBlocking();
 
-            if (response == null) {
-                exchange.setStatusCode(StandardHttpStatus.NOT_IMPLEMENTED.getStatusCode());
-                exchange.setReasonPhrase(StandardHttpStatus.NOT_IMPLEMENTED.getDescription());
-            } else if (response.getStatus() == StandardHttpStatus.NO_RESPONSE) {
-                IOUtil.safeClose(exchange.getConnection());
-                return;
-            } else {
-                exchange.setStatusCode(response.getStatus().getStatusCode());
-                exchange.setReasonPhrase(response.getStatus().getDescription());
+                HttpSession session = new UndertowHttpSessionWrapper(exchange, this.port);
+                HttpResponse response = this.server.serveSession(session.getHost(), session, this.secure);
 
-                for (Map.Entry<String, String> entry : response.getAllHeaders().entrySet()) {
-                    String key = StringUtil.prettifyHeader(entry.getKey());
-                    String value = entry.getValue();
-
-                    exchange.getResponseHeaders().add(HttpString.tryFromString(key), value);
-                }
-
-                double time = (System.currentTimeMillis() - start) / 1000d;
-                this.logger.debug("Served HTTP %s %s %s (%.2fs)", session.getMethod().name(), session.getRemoteIpAddress(), session.getHost() + session.getUri(), time);
-
-                InputStream in = response.getResponseStream();
-                OutputStream out = exchange.getOutputStream();
-
-                if (response.getMode() == TransferEncoding.FIXED_LENGTH) {
-                    exchange.setResponseContentLength(response.getLength());
-
-                    //@formatter:off
-                    IOUtil.writeInputStreamToOutputStream(
-                            in, 
-                            out, 
-                            response.getLength(), 
-                            IOUtil.DEFAULT_BUFFER_SIZE
-                    );
-                    //@formatter:on
+                if (response == null) {
+                    exchange.setStatusCode(StandardHttpStatus.NOT_IMPLEMENTED.getStatusCode());
+                    exchange.setReasonPhrase(StandardHttpStatus.NOT_IMPLEMENTED.getDescription());
+                } else if (response.getStatus() == StandardHttpStatus.NO_RESPONSE) {
+                    IOUtil.safeClose(exchange.getConnection());
+                    return;
                 } else {
-                    IOUtil.writeInputStreamToOutputStream(in, out);
+                    exchange.setStatusCode(response.getStatus().getStatusCode());
+                    exchange.setReasonPhrase(response.getStatus().getDescription());
+
+                    for (Map.Entry<String, String> entry : response.getAllHeaders().entrySet()) {
+                        String key = StringUtil.prettifyHeader(entry.getKey());
+                        String value = entry.getValue();
+
+                        exchange.getResponseHeaders().add(HttpString.tryFromString(key), value);
+                    }
+
+                    double time = (System.currentTimeMillis() - start) / 1000d;
+                    this.logger.debug("Served HTTP %s %s %s (%.2fs)", session.getMethod().name(), session.getRemoteIpAddress(), session.getHost() + session.getUri(), time);
+
+                    InputStream in = response.getResponseStream();
+                    OutputStream out = exchange.getOutputStream();
+
+                    if (response.getMode() == TransferEncoding.FIXED_LENGTH) {
+                        exchange.setResponseContentLength(response.getLength());
+
+                        //@formatter:off
+                        IOUtil.writeInputStreamToOutputStream(
+                                in, 
+                                out, 
+                                response.getLength(), 
+                                IOUtil.DEFAULT_BUFFER_SIZE
+                        );
+                        //@formatter:on
+                    } else {
+                        IOUtil.writeInputStreamToOutputStream(in, out);
+                    }
+
+                    exchange.endExchange();
+
                 }
-
-            }
-        } catch (Exception e) {
-            /*if (!(e instanceof DropConnectionException)) {
+            } catch (Exception e) {
+                /*if (!(e instanceof DropConnectionException)) {
                 e.printStackTrace();
-            }*/
+                }*/
 
-            IOUtil.safeClose(exchange.getConnection());
+                IOUtil.safeClose(exchange.getConnection());
+            }
         }
     }
 
