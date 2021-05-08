@@ -13,6 +13,7 @@ import javax.net.ssl.TrustManager;
 import org.xnio.Options;
 import org.xnio.Sequence;
 
+import co.casterlabs.rakurai.StringUtil;
 import co.casterlabs.rakurai.io.IOUtil;
 import co.casterlabs.rakurai.io.http.HttpResponse;
 import co.casterlabs.rakurai.io.http.HttpResponse.TransferEncoding;
@@ -113,7 +114,10 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                 exchange.setReasonPhrase(response.getStatus().getDescription());
 
                 for (Map.Entry<String, String> entry : response.getAllHeaders().entrySet()) {
-                    exchange.getResponseHeaders().add(HttpString.tryFromString(entry.getKey()), entry.getValue());
+                    String key = StringUtil.prettifyHeader(entry.getKey());
+                    String value = entry.getValue();
+
+                    exchange.getResponseHeaders().add(HttpString.tryFromString(key), value);
                 }
 
                 double time = (System.currentTimeMillis() - start) / 1000d;

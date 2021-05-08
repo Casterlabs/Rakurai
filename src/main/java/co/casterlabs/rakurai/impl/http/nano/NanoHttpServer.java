@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import co.casterlabs.rakurai.StringUtil;
 import co.casterlabs.rakurai.io.http.DropConnectionException;
 import co.casterlabs.rakurai.io.http.HttpResponse;
 import co.casterlabs.rakurai.io.http.HttpResponse.TransferEncoding;
@@ -91,8 +92,12 @@ public class NanoHttpServer extends NanoWSD implements HttpServer {
                 //@formatter:on
 
                 for (Map.Entry<String, String> header : response.getAllHeaders().entrySet()) {
+                    // Check prevents duplicate headers
                     if (!header.getKey().equalsIgnoreCase("content-type") && !header.getKey().equalsIgnoreCase("content-length")) {
-                        nanoResponse.addHeader(header.getKey(), header.getValue()); // Check prevents duplicate headers
+                        String key = StringUtil.prettifyHeader(header.getKey());
+                        String value = header.getValue();
+
+                        nanoResponse.addHeader(key, value);
                     }
                 }
 
