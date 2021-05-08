@@ -5,7 +5,7 @@ import co.casterlabs.rakurai.io.http.websocket.WebsocketFrameType;
 import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
-public class TextWebsocketFrame implements WebsocketFrame {
+public class TextWebsocketFrame extends WebsocketFrame {
     private String text;
 
     @Override

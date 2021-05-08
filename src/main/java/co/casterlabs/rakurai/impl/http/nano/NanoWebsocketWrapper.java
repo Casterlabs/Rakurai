@@ -9,6 +9,7 @@ import co.casterlabs.rakurai.impl.http.BinaryWebsocketFrame;
 import co.casterlabs.rakurai.impl.http.TextWebsocketFrame;
 import co.casterlabs.rakurai.io.http.websocket.Websocket;
 import co.casterlabs.rakurai.io.http.websocket.WebsocketCloseCode;
+import co.casterlabs.rakurai.io.http.websocket.WebsocketFrame;
 import co.casterlabs.rakurai.io.http.websocket.WebsocketListener;
 import fi.iki.elonen.NanoHTTPD.IHTTPSession;
 import fi.iki.elonen.NanoWSD.WebSocket;
@@ -21,7 +22,7 @@ public class NanoWebsocketWrapper extends WebSocket {
     private WebsocketListener listener;
 
     private WebSocket instance = this;
-    private RakuraiWebsocket katanaWebsocket = new RakuraiWebsocket();
+    private RakuraiWebsocket rakWebsocket = new RakuraiWebsocket();
 
     public NanoWebsocketWrapper(IHTTPSession nanoSession, WebsocketListener listener) {
         super(nanoSession);
@@ -42,23 +43,27 @@ public class NanoWebsocketWrapper extends WebSocket {
             }
         }).start();
 
-        this.listener.onOpen(this.katanaWebsocket);
+        this.listener.onOpen(this.rakWebsocket);
     }
 
     @Override
     protected void onClose(CloseCode code, String reason, boolean remote) {
         if (remote) {
-            this.listener.onClose(this.katanaWebsocket);
+            this.listener.onClose(this.rakWebsocket);
         }
     }
 
     @Override
     protected void onMessage(WebSocketFrame frame) {
+        WebsocketFrame rakFrame = null;
+
         if (frame.getOpCode() == OpCode.Binary) {
-            this.listener.onFrame(this.katanaWebsocket, new BinaryWebsocketFrame(frame.getBinaryPayload()));
+            rakFrame = new BinaryWebsocketFrame(frame.getBinaryPayload());
         } else if (frame.getOpCode() == OpCode.Text) {
-            this.listener.onFrame(this.katanaWebsocket, new TextWebsocketFrame(frame.getTextPayload()));
+            rakFrame = new TextWebsocketFrame(frame.getTextPayload());
         }
+
+        this.listener.onFrame(this.rakWebsocket, rakFrame);
     }
 
     @Override

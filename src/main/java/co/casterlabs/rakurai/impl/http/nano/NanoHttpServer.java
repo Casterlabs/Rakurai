@@ -23,7 +23,7 @@ import fi.iki.elonen.NanoWSD;
 import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
 public class NanoHttpServer extends NanoWSD implements HttpServer {
-    private FastLogger logger = new FastLogger();
+    private FastLogger logger = new FastLogger("Rakurai NanoHttpServer");
     private HttpListener server;
     private boolean secure;
 

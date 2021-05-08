@@ -26,6 +26,7 @@ import co.casterlabs.rakurai.io.http.server.HttpServer;
 import co.casterlabs.rakurai.io.http.server.HttpServerBuilder;
 import co.casterlabs.rakurai.io.http.server.HttpServerImplementation;
 import co.casterlabs.rakurai.io.http.websocket.Websocket;
+import co.casterlabs.rakurai.io.http.websocket.WebsocketFrame;
 import co.casterlabs.rakurai.io.http.websocket.WebsocketListener;
 import co.casterlabs.rakurai.io.http.websocket.WebsocketSession;
 import io.undertow.Handlers;
@@ -45,7 +46,7 @@ import io.undertow.websockets.spi.WebSocketHttpExchange;
 import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
 public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketConnectionCallback {
-    private FastLogger logger = new FastLogger();
+    private FastLogger logger = new FastLogger("Rakurai UndertowHttpServer");
     private Undertow undertow;
     private HttpListener server;
     private int port;
@@ -178,14 +179,22 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
 
                 @Override
                 protected void onFullTextMessage(WebSocketChannel channel, BufferedTextMessage message) {
-                    listener.onFrame(websocket, new TextWebsocketFrame(message.getData()));
+                    WebsocketFrame frame = new TextWebsocketFrame(message.getData());
+
+                    logger.debug("WebsocketFrame (%s):\n%s", websocket.getRemoteIpAddress(), frame);
+
+                    listener.onFrame(websocket, frame);
                 }
 
                 @SuppressWarnings("deprecation")
                 @Override
                 protected void onFullBinaryMessage(WebSocketChannel channel, BufferedBinaryMessage message) {
                     for (ByteBuffer buffer : message.getData().getResource()) {
-                        listener.onFrame(websocket, new BinaryWebsocketFrame(buffer.array()));
+                        WebsocketFrame frame = new BinaryWebsocketFrame(buffer.array());
+
+                        logger.debug("WebsocketFrame (%s):\n%s", websocket.getRemoteIpAddress(), frame);
+
+                        listener.onFrame(websocket, frame);
                     }
                 }
 

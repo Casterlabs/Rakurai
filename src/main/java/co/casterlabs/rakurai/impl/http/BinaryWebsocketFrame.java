@@ -7,7 +7,7 @@ import co.casterlabs.rakurai.io.http.websocket.WebsocketFrameType;
 import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
-public class BinaryWebsocketFrame implements WebsocketFrame {
+public class BinaryWebsocketFrame extends WebsocketFrame {
     private byte[] bytes;
 
     @Override
