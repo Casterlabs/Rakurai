@@ -2,17 +2,14 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>co.casterlabs</groupId>
-	<artifactId>Rakurai</artifactId>
-	<version>1.1.0</version>
-	<packaging>pom</packaging>
+	<artifactId>Util</artifactId>
 
-	<modules>
-		<module>Http-Server</module>
-		<module>Json</module>
-		<module>Char-Strings</module>
-		<module>Util</module>
-	</modules>
+	<parent>
+		<groupId>co.casterlabs</groupId>
+		<artifactId>Rakurai</artifactId>
+		<version>1.1.0</version>
+		<relativePath>../pom.xml</relativePath>
+	</parent>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -21,6 +18,24 @@
 
 	<build>
 		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>3.2.1</version>
+				<executions>
+					<execution>
+						<id>shade</id>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<shadedArtifactAttached>true</shadedArtifactAttached>
+					<finalName>${project.name}</finalName>
+				</configuration>
+			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -49,19 +64,11 @@
 		</plugins>
 	</build>
 
-    <!-- Used across all of Rakurai -->
-	<dependencies>
-		<dependency>
-			<groupId>org.projectlombok</groupId>
-			<artifactId>lombok</artifactId>
-			<version>1.18.12</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency> <!-- For Eclipse users -->
-			<groupId>org.jetbrains</groupId>
-			<artifactId>annotations</artifactId>
-			<version>20.1.0</version>
-			<scope>provided</scope>
-		</dependency>
-	</dependencies>
+	<repositories>
+		<repository>
+			<id>jitpack.io</id>
+			<url>https://jitpack.io</url>
+		</repository>
+	</repositories>
+
 </project>

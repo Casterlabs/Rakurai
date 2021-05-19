@@ -1,4 +1,4 @@
-package co.casterlabs.rakurai.json;
+package co.casterlabs.rakurai.json.annotating;
 
 import static java.lang.annotation.ElementType.*;
 import static java.lang.annotation.RetentionPolicy.*;

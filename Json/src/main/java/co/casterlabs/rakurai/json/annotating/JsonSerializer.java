@@ -1,4 +1,4 @@
-package co.casterlabs.rakurai.json;
+package co.casterlabs.rakurai.json.annotating;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -6,6 +6,7 @@ import java.lang.reflect.InvocationTargetException;
 
 import org.jetbrains.annotations.Nullable;
 
+import co.casterlabs.rakurai.json.Rson;
 import co.casterlabs.rakurai.json.element.JsonElement;
 import co.casterlabs.rakurai.json.element.JsonObject;
 import co.casterlabs.rakurai.json.serialization.JsonParseException;

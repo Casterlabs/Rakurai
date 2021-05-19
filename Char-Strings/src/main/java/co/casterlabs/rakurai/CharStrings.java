@@ -1,16 +1,18 @@
 package co.casterlabs.rakurai;
 
+import lombok.NonNull;
+
 public class CharStrings {
 
-    public static void strcpy(char[] source, char[] dest) {
+    public static void strcpy(@NonNull char[] source, @NonNull char[] dest) {
         System.arraycopy(source, 0, dest, 0, dest.length);
     }
 
-    public static void strcpy(char[] source, char[] dest, int skip) {
+    public static void strcpy(@NonNull char[] source, @NonNull char[] dest, int skip) {
         System.arraycopy(source, skip, dest, 0, dest.length);
     }
 
-    public static boolean strcontainsany(char[] str, char[] seek) {
+    public static boolean strcontainsany(@NonNull char[] str, @NonNull char[] seek) {
         for (int idx = 0; idx < str.length; idx++) {
             for (int skidx = 0; skidx < seek.length; skidx++) {
                 if (str[idx] == seek[skidx]) {
@@ -22,7 +24,7 @@ public class CharStrings {
         return false;
     }
 
-    public static boolean strequals(char[] s1, char[] s2) {
+    public static boolean strequals(@NonNull char[] s1, @NonNull char[] s2) {
         if (s1.length == s2.length) {
             for (int idx = 0; idx < s1.length; idx++) {
                 if (s1[idx] != s2[idx]) {
@@ -36,7 +38,7 @@ public class CharStrings {
         }
     }
 
-    public static boolean strcontainsonly(char[] str, char[] valid) {
+    public static boolean strcontainsonly(@NonNull char[] str, @NonNull char[] valid) {
         for (int idx = 0; idx < str.length; idx++) {
             if (strfindex(valid, str[idx]) == -1) {
                 return false;
@@ -46,7 +48,7 @@ public class CharStrings {
         return true;
     }
 
-    public static char[] strdropchars(char[] str, char[] drop) {
+    public static char[] strdropchars(@NonNull char[] str, @NonNull char[] drop) {
         char[] buf = new char[str.length];
         int bufLen = 0;
 
@@ -66,11 +68,11 @@ public class CharStrings {
         return result;
     }
 
-    public static int strfindex(char[] str, char seek) {
+    public static int strfindex(@NonNull char[] str, char seek) {
         return strfindex(str, seek, 0);
     }
 
-    public static int strfindex(char[] str, char seek, int skip) {
+    public static int strfindex(@NonNull char[] str, char seek, int skip) {
         for (int idx = skip; idx < str.length; idx++) {
             if (str[idx] == seek) {
                 return idx;
@@ -80,7 +82,7 @@ public class CharStrings {
         return -1;
     }
 
-    public static int strlindex(char[] str, char seek) {
+    public static int strlindex(@NonNull char[] str, char seek) {
         for (int idx = str.length - 1; idx >= 0; idx--) {
             if (str[idx] == seek) {
                 return idx;
