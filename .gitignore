@@ -11,4 +11,4 @@
 *target/
 
 # Misc
-src/main/java/co/casterlabs/rakurai/Test.java
+*Test.java
