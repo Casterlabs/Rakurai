@@ -11,8 +11,10 @@ import co.casterlabs.rakurai.impl.http.undertow.UndertowHttpServerBuilder;
 import co.casterlabs.rakurai.io.http.TLSVersion;
 import lombok.Data;
 import lombok.NonNull;
+import lombok.experimental.Accessors;
 
 @Data
+@Accessors(chain = true)
 public abstract class HttpServerBuilder {
     /* General */
     protected @NonNull String hostname = "0.0.0.0";
