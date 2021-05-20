@@ -207,7 +207,7 @@ public class Rson {
             if (e.getClass() == expected) {
                 return (T) e;
             } else {
-                throw new JsonParseException(String.format("Expected a %s but got a %s", expected.getSimpleName(), e.getClass().getSimpleName()));
+                throw new JsonParseException(String.format("Expected a %s but got a %s\n%s", expected.getSimpleName(), e.getClass().getSimpleName(), e));
             }
         } else {
             TypeResolver<T> resolver = (TypeResolver<T>) resolvers.get(expected);
@@ -220,7 +220,7 @@ public class Rson {
                     boolean isArray = expected.isArray();
 
                     if ((isCollection || isArray) != e.isJsonArray()) {
-                        throw new JsonParseException(String.format("Expected a %s but got a %s", expected.getSimpleName(), e.getClass().getSimpleName()));
+                        throw new JsonParseException(String.format("Expected a %s but got a %s\n%s", expected.getSimpleName(), e.getClass().getSimpleName(), e));
                     } else {
                         if (isCollection || isArray) {
                             JsonArray array = e.getAsArray();
