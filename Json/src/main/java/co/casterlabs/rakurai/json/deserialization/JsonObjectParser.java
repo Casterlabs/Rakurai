@@ -107,7 +107,7 @@ public class JsonObjectParser extends JsonParser {
             }
         }
 
-        return new ParsedTokenPair(object, sectionLength - 1);
+        return new ParsedTokenPair(object, sectionLength);
     }
 
 }

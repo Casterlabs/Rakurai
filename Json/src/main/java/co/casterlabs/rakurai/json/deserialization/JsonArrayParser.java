@@ -75,7 +75,7 @@ public class JsonArrayParser extends JsonParser {
             }
         }
 
-        return new ParsedTokenPair(array, sectionLength - 1);
+        return new ParsedTokenPair(array, sectionLength);
     }
 
 }
