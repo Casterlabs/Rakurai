@@ -10,6 +10,10 @@ import java.lang.annotation.Target;
 @Target(TYPE)
 public @interface JsonClass {
 
-    Class<? extends JsonSerializer<?>> serializer() default JsonSerializer.DefaultJsonSerializer.class;
+    Class<? extends JsonSerializer<?>> serializer() default DefaultJsonSerializer.class;
+
+    boolean exposeAll() default false;
+
+    boolean exposeSuper() default false;
 
 }

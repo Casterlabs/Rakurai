@@ -75,7 +75,8 @@ public class Test {
 
     @ToString
     public static class TestObject {
-        // Fields must be exposed via @JsonField, or they will be left out entirely.
+        // Fields must be exposed via @JsonField or @JsonClass(exposeAll = true),
+        // otherwise they will be left out entirely.
         @JsonField
         private int number = 1234;
 

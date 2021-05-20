@@ -163,7 +163,7 @@ public class Rson {
 
                     // Create the serializer, or supply a default.
                     {
-                        JsonClass classData = clazz.getDeclaredAnnotation(JsonClass.class);
+                        JsonClass classData = clazz.getAnnotation(JsonClass.class);
 
                         if (classData != null) {
                             Class<? extends JsonSerializer<?>> serializerClass = classData.serializer();
@@ -229,7 +229,7 @@ public class Rson {
 
                             // Create the deserializer, or supply a default.
                             {
-                                JsonClass classData = expected.getDeclaredAnnotation(JsonClass.class);
+                                JsonClass classData = expected.getAnnotation(JsonClass.class);
 
                                 if (classData != null) {
                                     Class<? extends JsonSerializer<?>> serializerClass = classData.serializer();
