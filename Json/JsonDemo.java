@@ -18,11 +18,24 @@ import co.casterlabs.rakurai.json.serialization.JsonParseException;
 import lombok.NonNull;
 import lombok.ToString;
 
-public class Test {
+public class JsonDemo {
 
     public static void main(String[] args) throws Exception {
+        // We do a false run to allow the JVM to warm up.
         demoSerialization();
         demoDeserialization();
+
+        System.out.println("\n\nIgnore the previous text, that was a warmup.\n\n");
+
+        long serStart = System.currentTimeMillis();
+        demoSerialization();
+        long serEnd = System.currentTimeMillis();
+
+        long deserStart = System.currentTimeMillis();
+        demoDeserialization();
+        long deserEnd = System.currentTimeMillis();
+
+        System.out.printf("\n\n Serialization demo took %d ms, Deserialization demo took %d ms.", serEnd - serStart, deserEnd - deserStart);
     }
 
     public static void demoSerialization() throws Exception {

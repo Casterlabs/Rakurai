@@ -120,4 +120,7 @@ Test.TestObject(number=1234, myString=My String, deux=Test.TestObjectDeux(str=My
 Deserializing into arrays also works.
 [{"my_string": "My String","my_string_two": "My String Two"}]
 [Test.TestObject(number=1234, myString=My String, deux=Test.TestObjectDeux(str=My String Two))]
+
+
+ Serialization demo took 3 ms, Deserialization demo took 2 ms.
 ```
