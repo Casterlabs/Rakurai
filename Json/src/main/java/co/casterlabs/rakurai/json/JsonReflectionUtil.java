@@ -8,7 +8,9 @@ import org.jetbrains.annotations.Nullable;
 public class JsonReflectionUtil {
 
     public static @Nullable Class<?> getCollectionComponent(Class<?> clazz) throws ClassNotFoundException {
-        if (Collection.class.isAssignableFrom(clazz)) {
+        if (clazz.isArray()) {
+            return clazz.getComponentType();
+        } else if (Collection.class.isAssignableFrom(clazz)) {
             return Class.forName(clazz.getTypeParameters()[0].getBounds()[0].getTypeName());
         } else {
             return null;
@@ -18,7 +20,9 @@ public class JsonReflectionUtil {
     public static @Nullable Class<?> getCollectionComponentForField(Field field) throws ClassNotFoundException {
         Class<?> type = field.getType();
 
-        if (Collection.class.isAssignableFrom(type)) {
+        if (type.isArray()) {
+            return type.getComponentType();
+        } else if (Collection.class.isAssignableFrom(type)) {
             String parameter = field.getGenericType().toString();
 
             parameter = parameter.substring(parameter.indexOf('<') + 1, parameter.length() - 1);
