@@ -23,6 +23,7 @@ import co.casterlabs.rakurai.json.element.JsonArray;
 import co.casterlabs.rakurai.json.element.JsonElement;
 import co.casterlabs.rakurai.json.element.JsonNull;
 import co.casterlabs.rakurai.json.element.JsonObject;
+import co.casterlabs.rakurai.json.element.JsonString;
 import co.casterlabs.rakurai.json.serialization.JsonParseException;
 import co.casterlabs.rakurai.json.serialization.JsonSerializationContext;
 import co.casterlabs.rakurai.json.serialization.JsonSerializeException;
@@ -73,6 +74,7 @@ public class Rson {
 
                     boolean isCollection = Collection.class.isAssignableFrom(clazz);
                     boolean isMap = Map.class.isAssignableFrom(clazz);
+                    boolean isEnum = Enum.class.isAssignableFrom(clazz);
 
                     if (isCollection) {
                         JsonArray result = new JsonArray();
@@ -126,6 +128,10 @@ public class Rson {
                         }
 
                         return result;
+                    } else if (isEnum) {
+                        Enum<?> en = (Enum<?>) o;
+
+                        return new JsonString(en.name());
                     } else {
                         JsonSerializer<?> serializer;
 
@@ -218,6 +224,7 @@ public class Rson {
                 try {
                     boolean isCollection = Collection.class.isAssignableFrom(expected);
                     boolean isArray = expected.isArray();
+                    boolean isEnum = Enum.class.isAssignableFrom(expected);
 
                     if ((isCollection || isArray) != e.isJsonArray()) {
                         throw new JsonParseException(String.format("Expected a %s but got a %s\n%s", expected.getSimpleName(), e.getClass().getSimpleName(), e));
@@ -260,6 +267,18 @@ public class Rson {
 
                                 return (T) coll;
                             }
+                        } else if (isEnum) {
+                            String name = e.getAsString();
+
+                            for (Object enC : expected.getEnumConstants()) {
+                                Enum<?> en = (Enum<?>) enC;
+
+                                if (en.name().equals(name)) {
+                                    return (T) en;
+                                }
+                            }
+
+                            throw new JsonParseException(String.format("Cannot deserialize enum (%s) from %s.", expected, name));
                         } else {
                             JsonSerializer<?> serializer;
 
