@@ -9,6 +9,7 @@
 
 # Common
 *target/
+*pom.xml.versionsBackup
 
 # Misc
 *Test.java
