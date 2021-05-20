@@ -157,7 +157,7 @@ public class DefaultJsonSerializer implements JsonSerializer<Object> {
                 throw new JsonParseException(e);
             }
         } else {
-            throw new JsonParseException("Expected a JsonObject but got " + value.getClass().getSimpleName());
+            throw new JsonParseException(String.format("Expected a JsonObject but got %s for %s", value.getClass().getSimpleName(), type));
         }
     }
 
