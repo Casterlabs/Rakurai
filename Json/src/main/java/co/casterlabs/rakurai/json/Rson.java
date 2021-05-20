@@ -3,9 +3,16 @@ package co.casterlabs.rakurai.json;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Queue;
+import java.util.Stack;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -153,8 +160,47 @@ public class Rson {
         return this.fromJson(e, expected);
     }
 
-    @SuppressWarnings("unchecked")
     public <T> T fromJson(@NonNull JsonElement e, @NonNull Class<T> expected) throws JsonParseException {
+        Class<?> componentType;
+
+        boolean isArray = expected.isArray();
+
+        if (isArray) {
+            componentType = expected.getComponentType();
+        } else {
+            componentType = Object.class;
+        }
+
+        return this.fromJson(e, expected, componentType);
+    }
+
+    public <T> T fromJson(@NonNull JsonElement e, @NonNull TypeToken<T> token) throws JsonParseException {
+        Class<?> expected = token.getTokenClass();
+        Class<?> componentType;
+
+        boolean isCollection = Collection.class.isAssignableFrom(expected);
+        boolean isArray = expected.isArray();
+
+        if (isArray) {
+            componentType = expected.getComponentType();
+        } else if (isCollection) {
+            try {
+                componentType = Class.forName(token.getTokenParameters());
+            } catch (ClassNotFoundException ex) {
+                throw new JsonParseException(ex);
+            }
+        } else {
+            componentType = Object.class;
+        }
+
+        return this.fromJson(e, expected, componentType);
+    }
+
+    @SuppressWarnings({
+            "unchecked"
+    })
+    @Deprecated
+    public <T> T fromJson(JsonElement e, Class<?> expected, @Nullable Class<?> componentType) throws JsonParseException {
         if (e.isJsonNull()) {
             return null;
         } else if (JsonElement.class.isAssignableFrom(expected)) {
@@ -170,22 +216,50 @@ public class Rson {
                 return resolver.resolve(e, expected);
             } else {
                 try {
-                    if (expected.isArray() != e.isJsonArray()) {
+                    boolean isCollection = Collection.class.isAssignableFrom(expected);
+                    boolean isArray = expected.isArray();
+
+                    if ((isCollection || isArray) != e.isJsonArray()) {
                         throw new JsonParseException(String.format("Expected a %s but got a %s", expected.getSimpleName(), e.getClass().getSimpleName()));
                     } else {
-                        if (e.isJsonArray()) {
+                        if (isCollection || isArray) {
                             JsonArray array = e.getAsArray();
 
-                            Class<?> type = expected.getComponentType();
-                            Object result = Array.newInstance(type, array.size());
+                            Object result = Array.newInstance(componentType, array.size());
 
                             for (int i = 0; i < array.size(); i++) {
-                                Object item = this.fromJson(array.get(i), type);
+                                Class<?> itemComponent = JsonReflectionUtil.getCollectionComponent(componentType);
+
+                                Object item = this.fromJson(array.get(i), componentType, itemComponent);
 
                                 Array.set(result, i, item);
                             }
 
-                            return (T) result;
+                            if (isArray) {
+                                return (T) result;
+                            } else {
+                                // stacks, queues, deques, lists and trees
+                                Collection<Object> coll;
+
+                                if (Stack.class.isAssignableFrom(expected)) {
+                                    coll = new Stack<>();
+                                } else if (Queue.class.isAssignableFrom(expected)) {
+                                    coll = new PriorityQueue<>();
+                                } else if (Deque.class.isAssignableFrom(expected)) {
+                                    coll = new ArrayDeque<>();
+                                } else if (List.class.isAssignableFrom(expected)) {
+                                    coll = new ArrayList<>();
+                                } else {
+                                    throw new JsonParseException("Cannot create a matching collection.");
+                                }
+
+                                for (int i = 0; i < Array.getLength(result); i++) {
+                                    Object item = Array.get(result, i);
+                                    coll.add(item);
+                                }
+
+                                return (T) coll;
+                            }
                         } else {
                             JsonSerializer<?> serializer;
 
@@ -208,7 +282,7 @@ public class Rson {
                             return (T) serializer.deserialize(e, expected, this);
                         }
                     }
-                } catch (IllegalArgumentException | NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | InvocationTargetException ex) {
+                } catch (IllegalArgumentException | NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | InvocationTargetException | ClassNotFoundException ex) {
                     throw new JsonSerializeException(ex);
                 }
             }

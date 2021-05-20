@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import co.casterlabs.rakurai.json.JsonReflectionUtil;
 import co.casterlabs.rakurai.json.Rson;
 import co.casterlabs.rakurai.json.element.JsonElement;
 import co.casterlabs.rakurai.json.element.JsonObject;
@@ -103,6 +104,7 @@ public class DefaultJsonSerializer implements JsonSerializer<Object> {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public Object deserialize(@NonNull JsonElement value, @NonNull Class<?> type, @NonNull Rson rson) throws JsonParseException {
         if (value.isJsonObject()) {
@@ -141,7 +143,9 @@ public class DefaultJsonSerializer implements JsonSerializer<Object> {
                                 field.set(o, null);
                             }
                         } else {
-                            Object converted = rson.fromJson(e, fieldType);
+                            Class<?> fieldComponent = JsonReflectionUtil.getCollectionComponentForField(field);
+
+                            Object converted = rson.fromJson(e, fieldType, fieldComponent);
 
                             field.set(o, converted);
                         }
@@ -149,7 +153,7 @@ public class DefaultJsonSerializer implements JsonSerializer<Object> {
                 }
 
                 return o;
-            } catch (IllegalAccessException | InstantiationException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
+            } catch (IllegalAccessException | InstantiationException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException | ClassNotFoundException e) {
                 throw new JsonParseException(e);
             }
         } else {
