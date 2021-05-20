@@ -3,6 +3,7 @@ package co.casterlabs.rakurai;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
+import java.util.UUID;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -10,6 +11,10 @@ import co.casterlabs.rakurai.json.JsonClass;
 import co.casterlabs.rakurai.json.JsonField;
 import co.casterlabs.rakurai.json.JsonSerializer;
 import co.casterlabs.rakurai.json.Rson;
+import co.casterlabs.rakurai.json.TypeResolver;
+import co.casterlabs.rakurai.json.Test.TestObject;
+import co.casterlabs.rakurai.json.Test.TestObjectDeux;
+import co.casterlabs.rakurai.json.Test.TestObjectDeuxSerializer;
 import co.casterlabs.rakurai.json.element.JsonArray;
 import co.casterlabs.rakurai.json.element.JsonElement;
 import co.casterlabs.rakurai.json.element.JsonObject;
@@ -19,6 +24,19 @@ import lombok.NonNull;
 import lombok.ToString;
 
 public class JsonDemo {
+    private static final Rson RSON = new Rson.Builder()
+        .registerTypeResolver(new TypeResolver<UUID>() {
+            @Override
+            public @Nullable UUID resolve(@NonNull JsonElement value, @NonNull Class<?> type) {
+                return UUID.fromString(value.getAsString());
+            }
+
+            @Override
+            public @Nullable JsonElement writeOut(@NonNull UUID value, @NonNull Class<?> type) {
+                return new JsonString(value.toString());
+            }
+        }, UUID.class)
+        .build();
 
     public static void main(String[] args) throws Exception {
         // We do a false run to allow the JVM to warm up.
@@ -43,13 +61,13 @@ public class JsonDemo {
 
         TestObject test = new TestObject();
 
-        System.out.println(Rson.DEFAULT.toJson(test));
+        System.out.println(RSON.toJson(test));
 
         //
 
         System.out.println("\nIt even works for arrays and collections...");
 
-        System.out.println(Rson.DEFAULT.toJson(Arrays.asList(test)));
+        System.out.println(RSON.toJson(Arrays.asList(test)));
 
         //
 
@@ -57,7 +75,7 @@ public class JsonDemo {
 
         Map<String, TestObject> test3 = Collections.singletonMap("test3", test);
 
-        System.out.println(Rson.DEFAULT.toJson(test3));
+        System.out.println(RSON.toJson(test3));
     }
 
     public static void demoDeserialization() throws Exception {
@@ -65,11 +83,11 @@ public class JsonDemo {
 
         // It can also handle missing values, a non present value won't do anything.
         // A null value will set the field to null (or 0 or false, for primitives)
-        String json = "{\"my_string\": \"My String\",\"my_string_two\": \"My String Two\"}";
+        String json = "{\"my_string\": \"My String\",\"my_string_two\": \"My String Two\", \"uuid\": \"d8f68c5e-deff-41d6-8acb-37d1cdebdaeb\"}";
 
         System.out.println(json);
 
-        TestObject deser_test = Rson.DEFAULT.fromJson(json, TestObject.class);
+        TestObject deser_test = RSON.fromJson(json, TestObject.class);
 
         System.out.println(deser_test);
 
@@ -77,11 +95,11 @@ public class JsonDemo {
 
         System.out.println("\nDeserializing into arrays also works.");
 
-        String json2 = "[{\"my_string\": \"My String\",\"my_string_two\": \"My String Two\"}]";
+        String json2 = "[{\"my_string\": \"My String\",\"my_string_two\": \"My String Two\", \"uuid\": \"d8f68c5e-deff-41d6-8acb-37d1cdebdaeb\"}]";
 
         System.out.println(json2);
 
-        TestObject[] deser_test2 = Rson.DEFAULT.fromJson(json2, TestObject[].class);
+        TestObject[] deser_test2 = RSON.fromJson(json2, TestObject[].class);
 
         System.out.println(Arrays.toString(deser_test2));
     }
@@ -92,6 +110,10 @@ public class JsonDemo {
         // otherwise they will be left out entirely.
         @JsonField
         private int number = 1234;
+
+        // You can register type adapters to serialize types.
+        @JsonField
+        private UUID uuid = UUID.randomUUID();
 
         // You can construct the annotation with a preferred name,
         // it'll be respected during serialization and deserialization.

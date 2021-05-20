@@ -9,4 +9,6 @@ public interface TypeResolver<T> {
 
     public @Nullable T resolve(@NonNull JsonElement value, @NonNull Class<?> type);
 
+    public @Nullable JsonElement writeOut(@NonNull T value, @NonNull Class<?> type);
+
 }
