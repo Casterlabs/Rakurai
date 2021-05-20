@@ -5,7 +5,9 @@ import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
+import co.casterlabs.rakurai.json.element.JsonBoolean;
 import co.casterlabs.rakurai.json.element.JsonElement;
+import co.casterlabs.rakurai.json.element.JsonNull;
 import co.casterlabs.rakurai.json.element.JsonNumber;
 import co.casterlabs.rakurai.json.element.JsonString;
 import lombok.NonNull;
@@ -137,6 +139,34 @@ public class DefaultTypeResolvers {
                 return new JsonString(value);
             }
         }, String.class);
+
+        register(new TypeResolver<Boolean>() {
+            @Override
+            public @Nullable Boolean resolve(@NonNull JsonElement value, @NonNull Class<?> type) {
+                if (value.isJsonNull()) {
+                    return null;
+                } else {
+                    return value.getAsBoolean();
+                }
+            }
+
+            @Override
+            public @Nullable JsonElement writeOut(@NonNull Boolean value, @NonNull Class<?> type) {
+                return new JsonBoolean(value);
+            }
+        }, Boolean.class, boolean.class);
+
+        register(new TypeResolver<Void>() {
+            @Override
+            public @Nullable Void resolve(@NonNull JsonElement value, @NonNull Class<?> type) {
+                return null;
+            }
+
+            @Override
+            public @Nullable JsonElement writeOut(@NonNull Void value, @NonNull Class<?> type) {
+                return JsonNull.INSTANCE;
+            }
+        }, Void.class, void.class);
     }
 
     private static void register(TypeResolver<?> resolver, Class<?>... types) {
