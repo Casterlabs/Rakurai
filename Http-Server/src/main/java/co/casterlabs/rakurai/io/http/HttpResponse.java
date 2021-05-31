@@ -10,6 +10,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+import co.casterlabs.rakurai.json.element.JsonArray;
+import co.casterlabs.rakurai.json.element.JsonElement;
+import co.casterlabs.rakurai.json.element.JsonObject;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
@@ -81,6 +84,19 @@ public class HttpResponse {
 
     public static HttpResponse newFixedLengthResponse(@NonNull HttpStatus status, @NonNull String body) {
         return newFixedLengthResponse(status, body.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public static HttpResponse newFixedLengthResponse(@NonNull HttpStatus status, @NonNull JsonElement json) {
+        if ((json instanceof JsonObject) || (json instanceof JsonArray)) {
+            byte[] body = json
+                .toString(false)
+                .getBytes(StandardCharsets.UTF_8);
+
+            return newFixedLengthResponse(status, body)
+                .setMimeType("application/json");
+        } else {
+            throw new IllegalArgumentException("Json must be an Object or Array.");
+        }
     }
 
     public static HttpResponse newFixedLengthResponse(@NonNull HttpStatus status, @NonNull byte[] body) {
