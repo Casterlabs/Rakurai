@@ -14,6 +14,8 @@ public class JsonObjectParser extends JsonParser {
         boolean startFound = false;
 
         int level = 0;
+        boolean inString = false;
+        char lastChar = '_';
         while (true) {
             int pos = sectionLength + skip;
 
@@ -28,21 +30,29 @@ public class JsonObjectParser extends JsonParser {
 
                 sectionLength++;
 
-                if ((c == '[') && !startFound) {
-                    // We've stumbled on an array.
-                    throw new JsonLexException();
-                } else if (c == '{') {
-                    level++;
-                    startFound = true;
-                } else if (!startFound && (strfindex(JsonParser.JSON_WHITESPACE, c) == -1)) {
-                    throw new JsonLexException();
-                } else if (c == '}') {
-                    level--;
+                boolean isQuote = (c == '"') || (json5Enabled && (c == '\''));
 
-                    if (level == 0) {
-                        break;
+                if (isQuote && (lastChar != '\\')) {
+                    inString = !inString;
+                } else if (!inString) {
+                    if ((c == '[') && !startFound) {
+                        // We've stumbled on an array.
+                        throw new JsonLexException();
+                    } else if (c == '{') {
+                        level++;
+                        startFound = true;
+                    } else if (!startFound && (strfindex(JsonParser.JSON_WHITESPACE, c) == -1)) {
+                        throw new JsonLexException();
+                    } else if (c == '}') {
+                        level--;
+
+                        if (level == 0) {
+                            break;
+                        }
                     }
                 }
+
+                lastChar = c;
             }
         }
 
