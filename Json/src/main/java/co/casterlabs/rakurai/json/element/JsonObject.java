@@ -128,7 +128,7 @@ public class JsonObject implements JsonElement, Iterable<Map.Entry<String, JsonE
     }
 
     public boolean containsKey(@NonNull String key) {
-        return this.containsKey(key);
+        return this.contents.containsKey(key);
     }
 
     public boolean containsValue(@Nullable JsonElement value) {
