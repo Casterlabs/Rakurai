@@ -6,7 +6,6 @@ import co.casterlabs.rakurai.json.element.JsonObject;
 import co.casterlabs.rakurai.json.serialization.JsonParseException;
 
 public class JsonObjectParser extends JsonParser {
-    private static final JsonStringParser keyParser = new JsonStringParser();
 
     @Override
     public ParsedTokenPair readToken(char[] in, int skip, boolean json5Enabled) throws JsonParseException, JsonLexException {
@@ -14,8 +13,8 @@ public class JsonObjectParser extends JsonParser {
         boolean startFound = false;
 
         int level = 0;
+        boolean isStringEscaped = false;
         boolean inString = false;
-        char lastChar = '_';
         while (true) {
             int pos = sectionLength + skip;
 
@@ -30,9 +29,15 @@ public class JsonObjectParser extends JsonParser {
 
                 sectionLength++;
 
+                if (isStringEscaped) {
+                    isStringEscaped = false;
+                } else if (c == '\\') {
+                    isStringEscaped = true;
+                }
+
                 boolean isQuote = (c == '"') || (json5Enabled && (c == '\''));
 
-                if (isQuote && (lastChar != '\\')) {
+                if (isQuote && !isStringEscaped) {
                     inString = !inString;
                 } else if (!inString) {
                     if ((c == '[') && !startFound) {
@@ -51,8 +56,6 @@ public class JsonObjectParser extends JsonParser {
                         }
                     }
                 }
-
-                lastChar = c;
             }
         }
 
@@ -94,7 +97,7 @@ public class JsonObjectParser extends JsonParser {
                 String key;
 
                 try {
-                    key = keyParser.readToken(keyContents, 0, json5Enabled, true).getElement().getAsString();
+                    key = JsonStringParser.readObjectKey(keyContents, json5Enabled);
                 } catch (JsonLexException e) {
                     if (json5Enabled) {
                         if (!strcontainsany(keyContents, JsonStringParser.NEEDS_ESCAPE)) {
