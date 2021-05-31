@@ -66,7 +66,7 @@ public class DefaultJsonSerializer implements JsonSerializer<Object> {
                             JsonField fieldAnnotation = field.getAnnotation(JsonField.class);
 
                             if (!fieldAnnotation.value().isEmpty()) {
-                                fieldName = field.getName();
+                                fieldName = fieldAnnotation.value();
                             }
                         }
 
