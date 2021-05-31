@@ -33,12 +33,6 @@ public class JsonStringParser extends JsonParser {
         while (true) {
             char c = in[sectionLength + skip];
 
-            if (escaped) {
-                escaped = false;
-            } else if (c == '\\') {
-                escaped = true;
-            }
-
             sectionLength++;
 
             if ((sectionLength > sectionSkip) && !escaped && (c == quote)) {
@@ -47,6 +41,12 @@ public class JsonStringParser extends JsonParser {
                 if (sectionLength + skip == in.length) {
                     break;
                 }
+            }
+
+            if (escaped) {
+                escaped = false;
+            } else if (c == '\\') {
+                escaped = true;
             }
         }
 
