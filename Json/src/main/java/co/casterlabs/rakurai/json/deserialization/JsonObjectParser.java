@@ -29,12 +29,6 @@ public class JsonObjectParser extends JsonParser {
 
                 sectionLength++;
 
-                if (isStringEscaped) {
-                    isStringEscaped = false;
-                } else if (c == '\\') {
-                    isStringEscaped = true;
-                }
-
                 boolean isQuote = (c == '"') || (json5Enabled && (c == '\''));
 
                 if (isQuote && !isStringEscaped) {
@@ -55,6 +49,12 @@ public class JsonObjectParser extends JsonParser {
                             break;
                         }
                     }
+                }
+
+                if (isStringEscaped) {
+                    isStringEscaped = false;
+                } else if (c == '\\') {
+                    isStringEscaped = true;
                 }
             }
         }

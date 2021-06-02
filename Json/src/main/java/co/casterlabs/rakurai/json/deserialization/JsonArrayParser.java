@@ -13,8 +13,8 @@ public class JsonArrayParser extends JsonParser {
         boolean startFound = false;
 
         int level = 0;
+        boolean isStringEscaped = false;
         boolean inString = false;
-        char lastChar = '_';
         while (true) {
             int pos = sectionLength + skip;
 
@@ -31,7 +31,7 @@ public class JsonArrayParser extends JsonParser {
 
                 boolean isQuote = (c == '"') || (json5Enabled && (c == '\''));
 
-                if (isQuote && (lastChar != '\\')) {
+                if (isQuote && !isStringEscaped) {
                     inString = !inString;
                 } else if (!inString) {
                     if ((c == '{') && !startFound) {
@@ -51,7 +51,11 @@ public class JsonArrayParser extends JsonParser {
                     }
                 }
 
-                lastChar = c;
+                if (isStringEscaped) {
+                    isStringEscaped = false;
+                } else if (c == '\\') {
+                    isStringEscaped = true;
+                }
             }
         }
 
