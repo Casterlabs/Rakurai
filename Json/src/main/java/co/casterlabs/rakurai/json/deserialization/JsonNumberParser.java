@@ -2,15 +2,17 @@ package co.casterlabs.rakurai.json.deserialization;
 
 import static co.casterlabs.rakurai.CharStrings.*;
 
+import co.casterlabs.rakurai.json.Rson.RsonConfig;
 import co.casterlabs.rakurai.json.element.JsonNumber;
 import co.casterlabs.rakurai.json.serialization.JsonParseException;
+import lombok.NonNull;
 
 public class JsonNumberParser extends JsonParser {
     private static final char[] VALID = "+-0123456789.eE".toCharArray();
     private static final char[] NAN = "NaN".toCharArray();
 
     @Override
-    public ParsedTokenPair readToken(char[] in, int skip, boolean json5Enabled) throws JsonParseException, JsonLexException {
+    public ParsedTokenPair readToken(char[] in, int skip, @NonNull RsonConfig settings) throws JsonParseException, JsonLexException {
         int length = 0;
 
         while (true) {
@@ -37,9 +39,9 @@ public class JsonNumberParser extends JsonParser {
         } else {
             Number value;
 
-            if (json5Enabled && strequals(read, NAN)) {
+            if (settings.areJson5FeaturesEnabled() && strequals(read, NAN)) {
                 value = Double.NaN;
-            } else if (read[0] == '+' && !json5Enabled) {
+            } else if (read[0] == '+' && !settings.areJson5FeaturesEnabled()) {
                 // Leading + is a JSON5 feature.
                 throw new JsonLexException();
             } else if (strcontainsonly(read, VALID)) {

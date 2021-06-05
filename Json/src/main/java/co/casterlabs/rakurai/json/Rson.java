@@ -51,8 +51,7 @@ public class Rson {
         JsonElement e = this.toJson(o);
 
         JsonSerializationContext ctx = new JsonSerializationContext()
-            .setPrettyPrinting(this.settings.prettyPrintingEnabled)
-            .setJson5Enabled(this.settings.json5FeaturesEnabled);
+            .setConfig(this.settings);
 
         e.serializeToArray(ctx);
 
@@ -161,7 +160,7 @@ public class Rson {
     }
 
     public <T> T fromJson(@NonNull String json, @NonNull Class<T> expected) throws JsonParseException {
-        JsonElement e = JsonParser.parseString(json, this.settings.json5FeaturesEnabled);
+        JsonElement e = JsonParser.parseString(json, this.settings);
 
         return this.fromJson(e, expected);
     }
@@ -308,15 +307,10 @@ public class Rson {
         }
     }
 
-    @Data
-    @Accessors(chain = true)
-    public static class Builder {
+    public static class Builder extends RsonConfig {
         @Getter(AccessLevel.NONE)
         @Setter(AccessLevel.NONE)
         private Map<Class<?>, TypeResolver<?>> resolvers = DefaultTypeResolvers.get();
-
-        private boolean json5FeaturesEnabled = false;
-        private boolean prettyPrintingEnabled = false;
 
         public Builder registerTypeResolver(TypeResolver<?> resolver, Class<?>... types) {
             for (Class<?> type : types) {
@@ -329,6 +323,24 @@ public class Rson {
         public Rson build() {
             return new Rson(this);
         }
+
+    }
+
+    @Data
+    @Accessors(chain = true)
+    public static class RsonConfig {
+        @Getter(AccessLevel.NONE)
+        private boolean json5FeaturesEnabled = false;
+
+        // Make it more fluent. :^)
+        public boolean areJson5FeaturesEnabled() {
+            return this.json5FeaturesEnabled;
+        }
+
+        private boolean prettyPrintingEnabled = false;
+
+        @Accessors(fluent = false)
+        private String tabCharacter = "";
 
     }
 

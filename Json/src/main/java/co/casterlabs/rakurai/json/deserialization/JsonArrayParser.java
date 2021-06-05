@@ -2,13 +2,15 @@ package co.casterlabs.rakurai.json.deserialization;
 
 import static co.casterlabs.rakurai.CharStrings.*;
 
+import co.casterlabs.rakurai.json.Rson.RsonConfig;
 import co.casterlabs.rakurai.json.element.JsonArray;
 import co.casterlabs.rakurai.json.serialization.JsonParseException;
+import lombok.NonNull;
 
 public class JsonArrayParser extends JsonParser {
 
     @Override
-    public ParsedTokenPair readToken(char[] in, int skip, boolean json5Enabled) throws JsonParseException, JsonLexException {
+    public ParsedTokenPair readToken(char[] in, int skip, @NonNull RsonConfig settings) throws JsonParseException, JsonLexException {
         int sectionLength = 0;
         boolean startFound = false;
 
@@ -29,7 +31,7 @@ public class JsonArrayParser extends JsonParser {
 
                 sectionLength++;
 
-                boolean isQuote = (c == '"') || (json5Enabled && (c == '\''));
+                boolean isQuote = (c == '"') || (settings.areJson5FeaturesEnabled() && (c == '\''));
 
                 if (isQuote && !isStringEscaped) {
                     inString = !inString;
@@ -73,10 +75,10 @@ public class JsonArrayParser extends JsonParser {
 
         int read = 0;
         while (read < arrayContentsLen - 1) {
-            ParsedTokenPair pair = JsonParser.parseElement(arrayContents, read, json5Enabled);
+            ParsedTokenPair pair = JsonParser.parseElement(arrayContents, read, settings);
 
             if (pair == null) {
-                if (json5Enabled) {
+                if (settings.areJson5FeaturesEnabled()) {
                     // Was a dud.
                     read++;
                 } else {

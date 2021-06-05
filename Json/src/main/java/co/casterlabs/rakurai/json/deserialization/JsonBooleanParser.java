@@ -2,15 +2,17 @@ package co.casterlabs.rakurai.json.deserialization;
 
 import static co.casterlabs.rakurai.CharStrings.*;
 
+import co.casterlabs.rakurai.json.Rson.RsonConfig;
 import co.casterlabs.rakurai.json.element.JsonBoolean;
 import co.casterlabs.rakurai.json.serialization.JsonParseException;
+import lombok.NonNull;
 
 public class JsonBooleanParser extends JsonParser {
     private static final char[] TRUE = "true".toCharArray();
     private static final char[] FALSE = "false".toCharArray();
 
     @Override
-    public ParsedTokenPair readToken(char[] in, int skip, boolean json5Enabled) throws JsonParseException, JsonLexException {
+    public ParsedTokenPair readToken(char[] in, int skip, @NonNull RsonConfig settings) throws JsonParseException, JsonLexException {
         int length = 0;
 
         while (true) {

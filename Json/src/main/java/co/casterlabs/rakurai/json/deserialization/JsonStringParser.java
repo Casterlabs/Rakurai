@@ -3,15 +3,17 @@ package co.casterlabs.rakurai.json.deserialization;
 import static co.casterlabs.rakurai.CharStrings.*;
 
 import co.casterlabs.rakurai.json.JsonUtil;
+import co.casterlabs.rakurai.json.Rson.RsonConfig;
 import co.casterlabs.rakurai.json.element.JsonString;
 import co.casterlabs.rakurai.json.serialization.JsonParseException;
+import lombok.NonNull;
 
 public class JsonStringParser extends JsonParser {
     public static final char[] NEEDS_ESCAPE = "\b\f\n\r\t\u000b".toCharArray();
     private static final char[] QUOTES = "\"'".toCharArray();
 
     @Override
-    public ParsedTokenPair readToken(char[] in, int skip, boolean json5Enabled) throws JsonParseException, JsonLexException {
+    public ParsedTokenPair readToken(char[] in, int skip, @NonNull RsonConfig settings) throws JsonParseException, JsonLexException {
         int sectionSkip = -1;
         int sectionLength = 0;
         char quote = '_';
@@ -53,7 +55,7 @@ public class JsonStringParser extends JsonParser {
         char[] section = new char[sectionLength];
         strcpy(in, section, skip);
 
-        if ((quote == '_') || ((quote == '\'') && !json5Enabled)) {
+        if ((quote == '_') || ((quote == '\'') && !settings.areJson5FeaturesEnabled())) {
             throw new JsonLexException();
         } else {
             int endOfStr = strlindex(section, quote);
@@ -93,10 +95,10 @@ public class JsonStringParser extends JsonParser {
         }
     }
 
-    public static String readObjectKey(char[] section, boolean json5Enabled) throws JsonParseException, JsonLexException {
+    public static String readObjectKey(char[] section, @NonNull RsonConfig settings) throws JsonParseException, JsonLexException {
         char quote = section[0];
 
-        if ((quote == '_') || ((quote == '\'') && !json5Enabled)) {
+        if ((quote == '_') || ((quote == '\'') && !settings.areJson5FeaturesEnabled())) {
             throw new JsonLexException();
         } else {
             int endOfStr = strlindex(section, quote);

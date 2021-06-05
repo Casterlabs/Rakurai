@@ -1,5 +1,6 @@
 package co.casterlabs.rakurai.json.element;
 
+import co.casterlabs.rakurai.json.Rson.RsonConfig;
 import co.casterlabs.rakurai.json.serialization.JsonSerializationContext;
 import lombok.NonNull;
 
@@ -65,9 +66,11 @@ public interface JsonElement {
 
     default String toString(boolean prettyPrinting) {
         JsonSerializationContext ctx = new JsonSerializationContext()
-            .setPrettyPrinting(true);
+            .setConfig(
+                new RsonConfig()
+                    .setPrettyPrintingEnabled(true)
+            );
 
-        // Functionally the same
         this.serialize(ctx);
 
         return ctx.toString();

@@ -1,6 +1,7 @@
 package co.casterlabs.rakurai.json.serialization;
 
 import co.casterlabs.rakurai.json.JsonUtil;
+import co.casterlabs.rakurai.json.Rson.RsonConfig;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
@@ -15,9 +16,7 @@ public class JsonSerializationContext {
     private boolean addedContent = false;
     private boolean indentIfNotDangle = false;
 
-    private @Setter @Getter boolean prettyPrinting = false;
-    private @Setter @Getter boolean json5Enabled = false;
-    private @Setter @Getter String tabCharacter = "    ";
+    private @Setter @Getter RsonConfig config = new RsonConfig();
 
     /* Object */
 
@@ -213,7 +212,7 @@ public class JsonSerializationContext {
     }
 
     private String getFieldName(String field) {
-        if (this.json5Enabled && JsonUtil.isValidJson5FieldName(field)) {
+        if (this.config.areJson5FeaturesEnabled() && JsonUtil.isValidJson5FieldName(field)) {
             return field;
         } else {
             return String.format("\"%s\"", JsonUtil.jsonEscape(field));
@@ -229,12 +228,12 @@ public class JsonSerializationContext {
     }
 
     public void indent(boolean dangling) {
-        if (this.prettyPrinting) {
+        if (this.config.isPrettyPrintingEnabled()) {
             if (this.needsComma || this.addedContent || (this.indentIfNotDangle && !dangling)) {
                 this.sb.append('\n');
 
                 for (int i = 0; i < this.indentLevel; i++) {
-                    this.sb.append(this.tabCharacter);
+                    this.sb.append(this.config.getTabCharacter());
                 }
             }
         }
@@ -243,7 +242,7 @@ public class JsonSerializationContext {
     }
 
     private String getOptionalSpace() {
-        return this.prettyPrinting ? " " : "";
+        return this.config.isPrettyPrintingEnabled() ? " " : "";
     }
 
     @Override

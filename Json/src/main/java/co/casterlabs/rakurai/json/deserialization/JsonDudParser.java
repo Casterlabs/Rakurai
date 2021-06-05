@@ -2,13 +2,15 @@ package co.casterlabs.rakurai.json.deserialization;
 
 import static co.casterlabs.rakurai.CharStrings.*;
 
+import co.casterlabs.rakurai.json.Rson.RsonConfig;
 import co.casterlabs.rakurai.json.serialization.JsonParseException;
+import lombok.NonNull;
 
 // This is here for empty statements (e.g [123,] contains a second element that is an empty statement)
 public class JsonDudParser extends JsonParser {
 
     @Override
-    public ParsedTokenPair readToken(char[] in, int skip, boolean json5Enabled) throws JsonParseException, JsonLexException {
+    public ParsedTokenPair readToken(char[] in, int skip, @NonNull RsonConfig settings) throws JsonParseException, JsonLexException {
         int length = 0;
 
         while (true) {
@@ -31,7 +33,7 @@ public class JsonDudParser extends JsonParser {
         read = strdropchars(read, JsonParser.JSON_WHITESPACE);
 
         // Trailing commas is a JSON5 feature.
-        if ((read.length == 0) && json5Enabled) {
+        if ((read.length == 0) && settings.areJson5FeaturesEnabled()) {
             return null;
         } else {
             throw new JsonLexException();
