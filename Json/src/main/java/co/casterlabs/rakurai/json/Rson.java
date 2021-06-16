@@ -339,8 +339,7 @@ public class Rson {
 
         private boolean prettyPrintingEnabled = false;
 
-        @Accessors(fluent = false)
-        private String tabCharacter = "";
+        private String tabCharacter = "    ";
 
     }
 

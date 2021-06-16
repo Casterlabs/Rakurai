@@ -68,7 +68,7 @@ public interface JsonElement {
         JsonSerializationContext ctx = new JsonSerializationContext()
             .setConfig(
                 new RsonConfig()
-                    .setPrettyPrintingEnabled(true)
+                    .setPrettyPrintingEnabled(prettyPrinting)
             );
 
         this.serialize(ctx);
