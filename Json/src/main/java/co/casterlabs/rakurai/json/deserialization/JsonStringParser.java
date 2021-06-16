@@ -95,43 +95,74 @@ public class JsonStringParser extends JsonParser {
         }
     }
 
-    public static String readObjectKey(char[] section, @NonNull RsonConfig settings) throws JsonParseException, JsonLexException {
-        char quote = section[0];
+    public static String readObjectKey(char[] in, @NonNull RsonConfig settings) throws JsonParseException, JsonLexException {
+        int sectionSkip = -1;
+        int sectionLength = 0;
+        char quote = '_';
+
+        for (int i = 0; i < in.length; i++) {
+            char c = in[i];
+
+            if (strfindex(QUOTES, c) != -1) {
+                sectionSkip = i + 1;
+                sectionLength = i;
+                quote = c;
+                break;
+            }
+        }
+
+        boolean escaped = false;
+        while (true) {
+            char c = in[sectionLength];
+
+            sectionLength++;
+
+            if ((sectionLength > sectionSkip) && !escaped && (c == quote)) {
+                break;
+            } else {
+                if (sectionLength == in.length) {
+                    break;
+                }
+            }
+
+            if (escaped) {
+                escaped = false;
+            } else if (c == '\\') {
+                escaped = true;
+            }
+        }
+
+        sectionLength -= sectionSkip + 1;
+
+        char[] contents = new char[sectionLength];
+        strcpy(in, contents, sectionSkip);
 
         if ((quote == '_') || ((quote == '\'') && !settings.areJson5FeaturesEnabled())) {
             throw new JsonLexException();
         } else {
-            int endOfStr = strlindex(section, quote);
-            int contentsLength = endOfStr - 1; // Skip the trailing quote
+            int contentsLength = contents.length;
 
-            if (contentsLength < 0) {
-                throw new JsonLexException();
+            // Check for trailing junk after quote.
+            for (int i = contentsLength + 1; i < contents.length; i++) {
+                if (strfindex(JsonParser.JSON_WHITESPACE, contents[i]) == -1) {
+                    throw new JsonLexException();
+                }
+            }
+
+            if (contents.length > 0) {
+                char last = contents[contents.length - 1];
+                char secondToLast = (contents.length > 1) ? contents[contents.length - 2] : ' ';
+
+                if ((last == '\\') && (secondToLast != '\\')) {
+                    throw new JsonParseException("Cannot find end of string: " + new String(contents));
+                }
+            }
+
+            // Need to re-do escape logic.
+            if (strcontainsany(contents, NEEDS_ESCAPE)) {
+                throw new JsonParseException("Unescaped characters in string: " + new String(contents));
             } else {
-                // Check for trailing junk after quote.
-                for (int i = endOfStr + 1; i < section.length; i++) {
-                    if (strfindex(JsonParser.JSON_WHITESPACE, section[i]) == -1) {
-                        throw new JsonLexException();
-                    }
-                }
-
-                char[] contents = new char[contentsLength];
-                strcpy(section, contents, 1); // We skip the leading quote
-
-                if (contents.length > 0) {
-                    char last = contents[contents.length - 1];
-                    char secondToLast = (contents.length > 1) ? contents[contents.length - 2] : ' ';
-
-                    if ((last == '\\') && (secondToLast != '\\')) {
-                        throw new JsonParseException("Cannot find end of string: " + new String(section));
-                    }
-                }
-
-                // Need to re-do escape logic.
-                if (strcontainsany(contents, NEEDS_ESCAPE)) {
-                    throw new JsonParseException("Unescaped characters in string: " + new String(contents));
-                } else {
-                    return JsonUtil.jsonUnescape(new String(contents));
-                }
+                return JsonUtil.jsonUnescape(new String(contents));
             }
         }
     }

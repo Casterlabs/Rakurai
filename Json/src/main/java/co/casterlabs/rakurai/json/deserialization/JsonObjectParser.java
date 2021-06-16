@@ -78,12 +78,7 @@ public class JsonObjectParser extends JsonParser {
             int colonLocation = strfindex(objectContents, ':', read);
 
             if (colonLocation == -1) {
-                if (settings.areJson5FeaturesEnabled()) {
-                    // Was a dud.
-                    read++;
-                } else {
-                    throw new JsonParseException("Empty entry: " + new String(objectContents));
-                }
+                break;
             } else {
                 int keyLen = colonLocation - read;
 
