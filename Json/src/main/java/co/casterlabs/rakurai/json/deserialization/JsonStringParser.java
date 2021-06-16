@@ -18,8 +18,8 @@ public class JsonStringParser extends JsonParser {
         int sectionLength = 0;
         char quote = '_';
 
-        for (int i = 0; i < in.length; i++) {
-            char c = in[i + skip];
+        for (int i = skip; i < in.length; i++) {
+            char c = in[i];
 
             if (strfindex(QUOTES, c) != -1) {
                 sectionSkip = i + 1;

@@ -68,13 +68,14 @@ public class JsonArrayParser extends JsonParser {
         int dLen = strlindex(section, ']') + 1;
 
         int arrayContentsLen = dLen - dSkip;
-        char[] arrayContents = new char[arrayContentsLen];
+        char[] arrayContents = new char[arrayContentsLen - 1];
         strcpy(section, arrayContents, dSkip);
 
         JsonArray array = new JsonArray();
 
         int read = 0;
-        while (read < arrayContentsLen - 1) {
+        boolean end = false;
+        while ((read < arrayContentsLen) && !end) {
             ParsedTokenPair pair = JsonParser.parseElement(arrayContents, read, settings);
 
             if (pair == null) {
@@ -88,6 +89,13 @@ public class JsonArrayParser extends JsonParser {
                 read += pair.getRead() + 1; // Returned value will always be one less
 
                 array.add(pair.getElement());
+            }
+
+            for (int i = read; i < arrayContentsLen; i++) {
+                if (strfindex(JSON_WHITESPACE, arrayContents[i]) != -1) {
+                    end = true;
+                    break;
+                }
             }
         }
 

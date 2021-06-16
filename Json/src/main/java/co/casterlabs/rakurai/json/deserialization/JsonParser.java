@@ -9,7 +9,7 @@ import lombok.NonNull;
 
 public abstract class JsonParser {
     protected static final char[] JSON_END_TOKENS = ",}]".toCharArray();
-    protected static final char[] JSON_WHITESPACE = "\n\t ".toCharArray();
+    protected static final char[] JSON_WHITESPACE = "\n\t\r ".toCharArray();
 
     private static final JsonParser[] tokenizers = new JsonParser[] {
             new JsonDudParser(),

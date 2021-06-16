@@ -103,22 +103,22 @@ public class JsonUtil {
                     }
 
                     case 'r': {
-                        builder.append('\n');
+                        builder.append('\r');
                         break;
                     }
 
                     case 't': {
-                        builder.append('\n');
+                        builder.append('\t');
                         break;
                     }
 
                     case 'b': {
-                        builder.append('\n');
+                        builder.append('\b');
                         break;
                     }
 
                     case 'f': {
-                        builder.append('\n');
+                        builder.append('\f');
                         break;
                     }
 
