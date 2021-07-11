@@ -22,7 +22,7 @@ public class JsonStringParser extends JsonParser {
             char c = in[i];
 
             if (strfindex(QUOTES, c) != -1) {
-                sectionSkip = i + 1;
+                sectionSkip = (i + 1) - skip;
                 sectionLength = i;
                 quote = c;
                 break;
