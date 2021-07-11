@@ -110,7 +110,7 @@ public class JsonObjectParser extends JsonParser {
                 if (pair == null) {
                     read++; // Was a dud.
                 } else {
-                    read += pair.getRead() + 1; // Returned value will always be one less
+                    read += pair.getRead();
 
                     object.put(key, pair.getElement());
                 }

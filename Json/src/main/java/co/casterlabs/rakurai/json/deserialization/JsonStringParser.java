@@ -23,7 +23,6 @@ public class JsonStringParser extends JsonParser {
 
             if (strfindex(QUOTES, c) != -1) {
                 sectionSkip = (i + 1) - skip;
-                sectionLength = i;
                 quote = c;
                 break;
             } else if (strfindex(JsonParser.JSON_WHITESPACE, c) == -1) {
@@ -105,7 +104,6 @@ public class JsonStringParser extends JsonParser {
 
             if (strfindex(QUOTES, c) != -1) {
                 sectionSkip = i + 1;
-                sectionLength = i;
                 quote = c;
                 break;
             }
