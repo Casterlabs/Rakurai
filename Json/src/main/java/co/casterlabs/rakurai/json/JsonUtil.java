@@ -58,9 +58,7 @@ public class JsonUtil {
 
                 default: {
                     if (ch > 127) {
-                        String hex = Integer.toHexString(ch);
-
-                        output.append("\\u").append(hex);
+                        output.append("\\u").append(String.format("%04x", (int) ch));
                     } else {
                         output.append(ch);
                     }
