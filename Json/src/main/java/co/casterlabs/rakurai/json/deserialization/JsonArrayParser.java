@@ -67,8 +67,8 @@ public class JsonArrayParser extends JsonParser {
         int dSkip = strfindex(section, '[') + 1;
         int dLen = strlindex(section, ']') + 1;
 
-        int arrayContentsLen = dLen - dSkip;
-        char[] arrayContents = new char[arrayContentsLen - 1];
+        int arrayContentsLen = (dLen - dSkip) - 1;
+        char[] arrayContents = new char[arrayContentsLen];
         strcpy(section, arrayContents, dSkip);
 
         JsonArray array = new JsonArray();
@@ -86,13 +86,19 @@ public class JsonArrayParser extends JsonParser {
                     throw new JsonParseException("Empty entry: " + new String(arrayContents));
                 }
             } else {
-                read += pair.getRead() + 1; // Returned value will always be one less
+                read += pair.getRead() + 1; // Include the comma
 
                 array.add(pair.getElement());
             }
 
-            for (int i = read; i < arrayContentsLen; i++) {
-                if (strfindex(JSON_WHITESPACE, arrayContents[i]) != -1) {
+            while (true) {
+                if (read < arrayContentsLen) {
+                    if (strfindex(JSON_WHITESPACE, arrayContents[read]) == -1) {
+                        break;
+                    } else {
+                        read++;
+                    }
+                } else {
                     end = true;
                     break;
                 }
