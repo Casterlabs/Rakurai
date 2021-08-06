@@ -73,6 +73,10 @@ public class JsonObject implements JsonElement, Iterable<Map.Entry<String, JsonE
         return this.contents.get(key).getAsNumber();
     }
 
+    public boolean getBoolean(String key) {
+        return this.contents.get(key).getAsBoolean();
+    }
+
     public JsonArray getArray(String key) {
         return this.contents.get(key).getAsArray();
     }
@@ -97,6 +101,12 @@ public class JsonObject implements JsonElement, Iterable<Map.Entry<String, JsonE
         } else {
             this.contents.put(key, new JsonNumber(value));
         }
+
+        return this;
+    }
+
+    public JsonObject put(@NonNull String key, boolean value) {
+        this.contents.put(key, new JsonBoolean(value));
 
         return this;
     }

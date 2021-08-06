@@ -91,6 +91,10 @@ public class JsonArray implements JsonElement, Iterable<JsonElement> {
         return this.contents.get(index).getAsNumber();
     }
 
+    public boolean getBoolean(int index) {
+        return this.contents.get(index).getAsBoolean();
+    }
+
     public JsonArray getArray(int index) {
         return this.contents.get(index).getAsArray();
     }
@@ -116,6 +120,11 @@ public class JsonArray implements JsonElement, Iterable<JsonElement> {
             this.contents.add(new JsonNumber(e));
         }
 
+        return this;
+    }
+
+    public JsonArray add(boolean b) {
+        this.contents.add(new JsonBoolean(b));
         return this;
     }
 
