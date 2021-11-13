@@ -108,29 +108,29 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                 HttpResponse response = this.server.serveSession(session.getHost(), session, this.secure);
 
                 if (response == null) {
-                    exchange.setStatusCode(StandardHttpStatus.NOT_IMPLEMENTED.getStatusCode());
-                    exchange.setReasonPhrase(StandardHttpStatus.NOT_IMPLEMENTED.getDescription());
+                    response = HttpResponse.newFixedLengthResponse(StandardHttpStatus.NOT_IMPLEMENTED);
                 } else if (response.getStatus() == StandardHttpStatus.NO_RESPONSE) {
                     IOUtil.safeClose(exchange.getConnection());
                     return;
-                } else {
-                    exchange.setStatusCode(response.getStatus().getStatusCode());
-                    exchange.setReasonPhrase(response.getStatus().getDescription());
+                }
 
-                    for (Map.Entry<String, String> entry : response.getAllHeaders().entrySet()) {
-                        String key = StringUtil.prettifyHeader(entry.getKey());
-                        String value = entry.getValue();
+                exchange.setStatusCode(response.getStatus().getStatusCode());
+                exchange.setReasonPhrase(response.getStatus().getDescription());
 
-                        exchange.getResponseHeaders().add(HttpString.tryFromString(key), value);
-                    }
+                for (Map.Entry<String, String> entry : response.getAllHeaders().entrySet()) {
+                    String key = StringUtil.prettifyHeader(entry.getKey());
+                    String value = entry.getValue();
 
-                    InputStream in = response.getResponseStream();
-                    OutputStream out = exchange.getOutputStream();
+                    exchange.getResponseHeaders().add(HttpString.tryFromString(key), value);
+                }
 
-                    if (response.getMode() == TransferEncoding.FIXED_LENGTH) {
-                        exchange.setResponseContentLength(response.getLength());
+                InputStream in = response.getResponseStream();
+                OutputStream out = exchange.getOutputStream();
 
-                        //@formatter:off
+                if (response.getMode() == TransferEncoding.FIXED_LENGTH) {
+                    exchange.setResponseContentLength(response.getLength());
+
+                    //@formatter:off
                         IOUtil.writeInputStreamToOutputStream(
                                 in, 
                                 out, 
@@ -138,17 +138,15 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                                 IOUtil.DEFAULT_BUFFER_SIZE
                         );
                         //@formatter:on
-                    } else {
-                        IOUtil.writeInputStreamToOutputStream(in, out);
-                    }
-
-                    double time = (System.currentTimeMillis() - start) / 1000d;
-
-                    this.logger.debug("Served HTTP %s %s %s (%.2fs)", session.getMethod().name(), session.getRemoteIpAddress(), session.getHost() + session.getUri(), time);
-
-                    exchange.endExchange();
-
+                } else {
+                    IOUtil.writeInputStreamToOutputStream(in, out);
                 }
+
+                double time = (System.currentTimeMillis() - start) / 1000d;
+
+                this.logger.debug("Served HTTP %s %s %s (%.2fs)", session.getMethod().name(), session.getRemoteIpAddress(), session.getHost() + session.getUri(), time);
+
+                exchange.endExchange();
             } catch (Exception e) {
                 /*if (!(e instanceof DropConnectionException)) {
                 e.printStackTrace();
