@@ -63,8 +63,8 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
         this.undertow = Undertow.builder()
             .setServerOption(UndertowOptions.ENABLE_SPDY, builder.isSPDYEnabled())
             .setServerOption(UndertowOptions.ENABLE_HTTP2, builder.isHttp2Enabled())
-
-            .setServerOption(UndertowOptions.ALWAYS_SET_KEEP_ALIVE, false)
+            .setServerOption(UndertowOptions.DECODE_URL, false)
+//            .setServerOption(UndertowOptions.ALWAYS_SET_KEEP_ALIVE, false)
 
             .setHandler(new BlockingHandler(Handlers.websocket(this, this)))
             .addHttpListener(port, hostname)
@@ -82,8 +82,8 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
 
             .setServerOption(UndertowOptions.ENABLE_SPDY, builder.isSPDYEnabled())
             .setServerOption(UndertowOptions.ENABLE_HTTP2, builder.isHttp2Enabled())
-
-            .setServerOption(UndertowOptions.ALWAYS_SET_KEEP_ALIVE, false)
+            .setServerOption(UndertowOptions.DECODE_URL, false)
+//            .setServerOption(UndertowOptions.ALWAYS_SET_KEEP_ALIVE, false)
 
             .setHandler(new BlockingHandler(Handlers.websocket(this, this)))
             .addHttpsListener(port, hostname, keyManagers, trustManagers)
