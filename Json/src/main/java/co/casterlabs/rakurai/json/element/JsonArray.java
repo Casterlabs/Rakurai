@@ -2,6 +2,7 @@ package co.casterlabs.rakurai.json.element;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -14,7 +15,13 @@ import lombok.NonNull;
 
 @EqualsAndHashCode
 public class JsonArray implements JsonElement, Iterable<JsonElement> {
+    public static final JsonArray EMPTY_ARRAY = new JsonArray();
+
     private List<JsonElement> contents = new LinkedList<>();
+
+    static {
+        EMPTY_ARRAY.contents = Collections.unmodifiableList(EMPTY_ARRAY.contents);
+    }
 
     public JsonArray() {}
 

@@ -2,6 +2,7 @@ package co.casterlabs.rakurai.json.element;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -18,7 +19,13 @@ import lombok.NonNull;
 
 @EqualsAndHashCode
 public class JsonObject implements JsonElement, Iterable<Map.Entry<String, JsonElement>> {
+    public static final JsonObject EMPTY_OBJECT = new JsonObject();
+
     private Map<String, JsonElement> contents = new LinkedHashMap<>();
+
+    static {
+        EMPTY_OBJECT.contents = Collections.unmodifiableMap(EMPTY_OBJECT.contents);
+    }
 
     @Override
     public boolean isJsonObject() {
