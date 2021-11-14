@@ -1,9 +1,10 @@
 package co.casterlabs.rakurai.impl.http.undertow;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.net.URLDecoder;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -30,6 +31,7 @@ public class UndertowHttpSessionWrapper extends HttpSession {
 
     private byte[] body;
 
+    @SuppressWarnings("deprecation")
     public UndertowHttpSessionWrapper(HttpServerExchange exchange, int port) {
         this.exchange = exchange;
         this.port = port;
@@ -51,8 +53,14 @@ public class UndertowHttpSessionWrapper extends HttpSession {
         this.headers = builder.build();
 
         for (Map.Entry<String, Deque<String>> entry : exchange.getQueryParameters().entrySet()) {
-            this.allQueryParameters.put(entry.getKey(), new ArrayList<>(entry.getValue()));
-            this.queryParameters.put(entry.getKey(), entry.getValue().getFirst());
+            List<String> values = new LinkedList<>();
+
+            for (String queryValue : entry.getValue()) {
+                values.add(URLDecoder.decode(queryValue));
+            }
+
+            this.allQueryParameters.put(entry.getKey(), values);
+            this.queryParameters.put(entry.getKey(), values.get(0));
         }
 
     }
