@@ -61,6 +61,8 @@ public class Rson {
     public <T> JsonElement toJson(@Nullable T o) {
         if (o == null) {
             return JsonNull.INSTANCE;
+        } else if (o instanceof JsonElement) {
+            return (JsonElement) o;
         } else {
             @SuppressWarnings("unchecked")
             TypeResolver<T> resolver = (TypeResolver<T>) this.resolvers.get(o.getClass());
