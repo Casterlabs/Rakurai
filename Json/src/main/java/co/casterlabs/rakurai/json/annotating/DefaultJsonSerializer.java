@@ -58,7 +58,7 @@ public class DefaultJsonSerializer implements JsonSerializer<Object> {
             }
 
             for (Field field : clazz.getDeclaredFields()) {
-                if (!Modifier.isStatic(field.getModifiers())) {
+                if (!Modifier.isStatic(field.getModifiers()) && !field.isAnnotationPresent(JsonExclude.class)) {
                     if (exposeAll || field.isAnnotationPresent(JsonField.class)) {
                         String fieldName = field.getName();
 
