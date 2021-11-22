@@ -78,14 +78,7 @@ public class JsonArrayParser extends JsonParser {
         while ((read < arrayContentsLen) && !end) {
             ParsedTokenPair pair = JsonParser.parseElement(arrayContents, read, settings);
 
-            if (pair == null) {
-                if (settings.areJson5FeaturesEnabled()) {
-                    // Was a dud.
-                    read++;
-                } else {
-                    throw new JsonParseException("Empty entry: " + new String(arrayContents));
-                }
-            } else {
+            if (pair != null) {
                 read += pair.getRead() + 1; // Include the comma
 
                 array.add(pair.getElement());

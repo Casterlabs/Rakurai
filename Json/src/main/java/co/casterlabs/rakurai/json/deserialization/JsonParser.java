@@ -1,5 +1,6 @@
 package co.casterlabs.rakurai.json.deserialization;
 
+import co.casterlabs.rakurai.json.JsonUtil;
 import co.casterlabs.rakurai.json.Rson.RsonConfig;
 import co.casterlabs.rakurai.json.element.JsonArray;
 import co.casterlabs.rakurai.json.element.JsonElement;
@@ -30,7 +31,30 @@ public abstract class JsonParser {
             } catch (JsonLexException ignored) {}
         }
 
-        throw new JsonParseException(String.format("Unknown input: %s", new String(in).substring(skip)));
+        if (in[skip] == ' ') {
+            return null;
+        }
+
+        int errorLocation = skip;
+        int lowSide = Math.max(errorLocation - 15, 0);
+        int highSide = Math.min(errorLocation + 15, in.length);
+
+        String erroredLine = new String(in).substring(lowSide, errorLocation);
+        String restOfLine = new String(in).substring(errorLocation, highSide);
+        StringBuilder arrow = new StringBuilder();
+        int totalLength = erroredLine.length() + restOfLine.length();
+
+        String escapedErroredLine = JsonUtil.jsonEscape(erroredLine, true);
+        errorLocation += escapedErroredLine.length() - erroredLine.length();
+        escapedErroredLine += JsonUtil.jsonEscape(restOfLine, true);
+
+        for (int i = 0; i <= errorLocation; i++) {
+            arrow.append(' ');
+        }
+
+        arrow.append("^ error");
+
+        throw new JsonParseException(String.format("Unknown input: \n%s\n%s (lineLength = %d)", escapedErroredLine, arrow, totalLength));
     }
 
     public static JsonElement parseString(@NonNull String json, @NonNull RsonConfig settings) throws JsonParseException {
