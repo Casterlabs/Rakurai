@@ -169,6 +169,12 @@ public class Rson {
         return this.fromJson(e, expected);
     }
 
+    public <T> T fromJson(@NonNull String json, @NonNull TypeToken<T> token) throws JsonParseException {
+        JsonElement e = JsonParser.parseString(json, this.settings);
+
+        return this.fromJson(e, token);
+    }
+
     public <T> T fromJson(@NonNull JsonElement e, @NonNull Class<T> expected) throws JsonParseException {
         Class<?> componentType;
 
