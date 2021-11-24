@@ -8,10 +8,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
+import java.util.Set;
 import java.util.Stack;
 
 import org.jetbrains.annotations.Nullable;
@@ -251,6 +253,8 @@ public class Rson {
 
                                 if (Stack.class.isAssignableFrom(expected)) {
                                     coll = new Stack<>();
+                                } else if (Set.class.isAssignableFrom(expected)) {
+                                    coll = new HashSet<>();
                                 } else if (Queue.class.isAssignableFrom(expected)) {
                                     coll = new PriorityQueue<>();
                                 } else if (Deque.class.isAssignableFrom(expected)) {
