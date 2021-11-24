@@ -47,26 +47,28 @@ public class JsonReflectionUtil {
         List<Method> methods = getAllDeclaredMethods(clazz);
         for (Method method : methods) {
             if (method.isAnnotationPresent(JsonValidate.class) &&
-                (method.getReturnType() == Void.TYPE) &&
-                method.trySetAccessible()) {
+                (method.getReturnType() == Void.TYPE)) {
+                try {
+                    method.setAccessible(true);
 
-                validators.add((@NonNull Object inst) -> {
-                    try {
-                        method.invoke(inst);
-                    } catch (IllegalAccessException | IllegalArgumentException e) {
-                        // Ignore it.
-                    } catch (InvocationTargetException e) {
-                        Throwable cause = e.getCause();
+                    validators.add((@NonNull Object inst) -> {
+                        try {
+                            method.invoke(inst);
+                        } catch (IllegalAccessException | IllegalArgumentException e) {
+                            // Ignore it.
+                        } catch (InvocationTargetException e) {
+                            Throwable cause = e.getCause();
 
-                        if (cause != null) {
-                            if (cause instanceof JsonValidationException) {
-                                throw (JsonValidationException) cause;
-                            } else {
-                                throw new JsonValidationException(cause);
+                            if (cause != null) {
+                                if (cause instanceof JsonValidationException) {
+                                    throw (JsonValidationException) cause;
+                                } else {
+                                    throw new JsonValidationException(cause);
+                                }
                             }
                         }
-                    }
-                });
+                    });
+                } catch (Exception ignored) {}
             }
         }
 
