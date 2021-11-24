@@ -11,11 +11,11 @@ public class JsonParseException extends IOException {
         super(reason);
     }
 
-    public JsonParseException(@NonNull String reason, @NonNull Exception cause) {
+    public JsonParseException(@NonNull String reason, @NonNull Throwable cause) {
         super(reason, cause);
     }
 
-    public JsonParseException(@NonNull Exception cause) {
+    public JsonParseException(@NonNull Throwable cause) {
         super(cause);
     }
 

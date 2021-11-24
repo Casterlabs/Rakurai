@@ -18,6 +18,7 @@ import java.util.Stack;
 
 import org.jetbrains.annotations.Nullable;
 
+import co.casterlabs.rakurai.json.JsonReflectionUtil.JsonValidator;
 import co.casterlabs.rakurai.json.annotating.JsonClass;
 import co.casterlabs.rakurai.json.annotating.JsonSerializer;
 import co.casterlabs.rakurai.json.deserialization.JsonParser;
@@ -29,6 +30,7 @@ import co.casterlabs.rakurai.json.element.JsonString;
 import co.casterlabs.rakurai.json.serialization.JsonParseException;
 import co.casterlabs.rakurai.json.serialization.JsonSerializationContext;
 import co.casterlabs.rakurai.json.serialization.JsonSerializeException;
+import co.casterlabs.rakurai.json.validation.JsonValidationException;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.Getter;
@@ -163,19 +165,19 @@ public class Rson {
         }
     }
 
-    public <T> T fromJson(@NonNull String json, @NonNull Class<T> expected) throws JsonParseException {
+    public <T> T fromJson(@NonNull String json, @NonNull Class<T> expected) throws JsonParseException, JsonValidationException {
         JsonElement e = JsonParser.parseString(json, this.settings);
 
         return this.fromJson(e, expected);
     }
 
-    public <T> T fromJson(@NonNull String json, @NonNull TypeToken<T> token) throws JsonParseException {
+    public <T> T fromJson(@NonNull String json, @NonNull TypeToken<T> token) throws JsonParseException, JsonValidationException {
         JsonElement e = JsonParser.parseString(json, this.settings);
 
         return this.fromJson(e, token);
     }
 
-    public <T> T fromJson(@NonNull JsonElement e, @NonNull Class<T> expected) throws JsonParseException {
+    public <T> T fromJson(@NonNull JsonElement e, @NonNull Class<T> expected) throws JsonParseException, JsonValidationException {
         Class<?> componentType;
 
         boolean isArray = expected.isArray();
@@ -189,7 +191,7 @@ public class Rson {
         return this.fromJson(e, expected, componentType);
     }
 
-    public <T> T fromJson(@NonNull JsonElement e, @NonNull TypeToken<T> token) throws JsonParseException {
+    public <T> T fromJson(@NonNull JsonElement e, @NonNull TypeToken<T> token) throws JsonParseException, JsonValidationException {
         Class<?> expected = token.getTokenClass();
         Class<?> componentType;
 
@@ -211,11 +213,23 @@ public class Rson {
         return this.fromJson(e, expected, componentType);
     }
 
+    @Deprecated
+    public <T> T fromJson(@NonNull JsonElement e, @NonNull Class<?> expected, @Nullable Class<?> componentType) throws JsonParseException, JsonValidationException {
+        T result = this.fromJson0(e, expected, componentType);
+
+        // These throw on error. So yeah.
+        List<JsonValidator> validators = JsonReflectionUtil.getJsonValidatorsForClass(expected);
+        for (JsonValidator v : validators) {
+            v.validate(result);
+        }
+
+        return result;
+    }
+
     @SuppressWarnings({
             "unchecked"
     })
-    @Deprecated
-    public <T> T fromJson(JsonElement e, Class<?> expected, @Nullable Class<?> componentType) throws JsonParseException {
+    private <T> T fromJson0(JsonElement e, Class<?> expected, @Nullable Class<?> componentType) throws JsonParseException {
         if (e.isJsonNull()) {
             return null;
         } else if (JsonElement.class.isAssignableFrom(expected)) {

@@ -85,6 +85,7 @@ System.out.println(
 
 ### Full Demo
 [Demo File](https://github.com/Casterlabs/Rakurai/blob/main/Json/JsonDemo.java)  
+[Validation Demo File](https://github.com/Casterlabs/Rakurai/blob/main/Json/JsonValidationDemo.java)  
   
 That demo outputs this:  
 ```
