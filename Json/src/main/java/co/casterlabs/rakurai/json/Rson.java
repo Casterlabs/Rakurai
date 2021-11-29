@@ -232,6 +232,8 @@ public class Rson {
     private <T> T fromJson0(JsonElement e, Class<?> expected, @Nullable Class<?> componentType) throws JsonParseException {
         if (e.isJsonNull()) {
             return null;
+        } else if (JsonElement.class == expected) {
+            return (T) e;
         } else if (JsonElement.class.isAssignableFrom(expected)) {
             if (e.getClass() == expected) {
                 return (T) e;
