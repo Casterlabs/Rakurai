@@ -5,10 +5,12 @@ import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
+import co.casterlabs.rakurai.json.element.JsonArray;
 import co.casterlabs.rakurai.json.element.JsonBoolean;
 import co.casterlabs.rakurai.json.element.JsonElement;
 import co.casterlabs.rakurai.json.element.JsonNull;
 import co.casterlabs.rakurai.json.element.JsonNumber;
+import co.casterlabs.rakurai.json.element.JsonObject;
 import co.casterlabs.rakurai.json.element.JsonString;
 import lombok.NonNull;
 
@@ -16,6 +18,19 @@ public class DefaultTypeResolvers {
     private static final Map<Class<?>, TypeResolver<?>> defaultResolvers = new HashMap<>();
 
     static {
+        // This fixes some obscure serialization bug.
+        register(new TypeResolver<JsonElement>() {
+            @Override
+            public @Nullable JsonElement resolve(@NonNull JsonElement value, @NonNull Class<?> type) {
+                return value;
+            }
+
+            @Override
+            public @Nullable JsonElement writeOut(@NonNull JsonElement value, @NonNull Class<?> type) {
+                return value;
+            }
+        }, JsonObject.class, JsonArray.class);
+
         register(new TypeResolver<Byte>() {
             @Override
             public @Nullable Byte resolve(@NonNull JsonElement value, @NonNull Class<?> type) {

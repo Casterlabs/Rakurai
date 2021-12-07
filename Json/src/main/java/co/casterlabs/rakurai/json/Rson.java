@@ -235,7 +235,9 @@ public class Rson {
         } else if (JsonElement.class == expected) {
             return (T) e;
         } else if (JsonElement.class.isAssignableFrom(expected)) {
-            if (e.getClass() == expected) {
+            if (expected == JsonElement.class) {
+                return (T) e;
+            } else if (e.getClass() == expected) {
                 return (T) e;
             } else {
                 throw new JsonParseException(String.format("Expected a %s but got a %s\n%s", expected.getSimpleName(), e.getClass().getSimpleName(), e));
