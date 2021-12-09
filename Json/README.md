@@ -28,7 +28,7 @@ Our very own Json library, Rson.
         repositories {
             maven { url 'https://jitpack.io' }
         }
-	}
+    }
 
     dependencies {
         implementation 'com.github.casterlabs.rakurai:Json:VERSION'
@@ -83,45 +83,8 @@ System.out.println(
 
 ```
 
-### Full Demo
+### Demos
 [Demo File](https://github.com/Casterlabs/Rakurai/blob/main/Json/JsonDemo.java)  
 [Validation Demo File](https://github.com/Casterlabs/Rakurai/blob/main/Json/JsonValidationDemo.java)  
+[Methods Demo File](https://github.com/Casterlabs/Rakurai/blob/main/Json/JsonMethodDemo.java)  
   
-That demo outputs this:  
-```
-Objects are easily serialized.
-{
-    "number": 1234,
-    "my_string": "I love Rakurai <3",
-    "my_string_two": "I also love Rakurai <3"
-}
-
-It even works for arrays and collections...
-[
-    {
-        "number": 1234,
-        "my_string": "I love Rakurai <3",
-        "my_string_two": "I also love Rakurai <3"
-    }
-]
-
-Maps work as well.
-{
-    "test3": {
-        "number": 1234,
-        "my_string": "I love Rakurai <3",
-        "my_string_two": "I also love Rakurai <3"
-    }
-}
-
-We can also deserialize back into a TestObject.
-{"my_string": "My String","my_string_two": "My String Two"}
-Test.TestObject(number=1234, myString=My String, deux=Test.TestObjectDeux(str=My String Two))
-
-Deserializing into arrays also works.
-[{"my_string": "My String","my_string_two": "My String Two"}]
-[Test.TestObject(number=1234, myString=My String, deux=Test.TestObjectDeux(str=My String Two))]
-
-
- Serialization demo took 3 ms, Deserialization demo took 2 ms.
-```
