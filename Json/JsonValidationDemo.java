@@ -14,7 +14,7 @@ public class JsonValidationDemo {
 
         String json = "[{\"_id\": 1, \"name\": \"Casterlabs\"},{\"_id\": 2, \"name\": null}]";
 
-        Object users = Rson.DEFAULT.fromJson(json, new TypeToken<List<User>>() {
+        List<User> users = Rson.DEFAULT.fromJson(json, new TypeToken<List<User>>() {
         });
 
         System.out.println(users);

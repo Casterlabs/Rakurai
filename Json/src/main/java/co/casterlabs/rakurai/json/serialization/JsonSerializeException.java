@@ -9,7 +9,7 @@ public class JsonSerializeException extends RuntimeException {
         super(reason);
     }
 
-    public JsonSerializeException(@NonNull Exception e) {
+    public JsonSerializeException(@NonNull Throwable e) {
         super(e);
     }
 

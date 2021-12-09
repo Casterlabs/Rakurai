@@ -18,7 +18,9 @@ import java.util.Stack;
 
 import org.jetbrains.annotations.Nullable;
 
-import co.casterlabs.rakurai.json.JsonReflectionUtil.JsonValidator;
+import co.casterlabs.rakurai.json.JsonReflectionUtil.JsonDeserializerMethodImpl;
+import co.casterlabs.rakurai.json.JsonReflectionUtil.JsonSerializerMethodImpl;
+import co.casterlabs.rakurai.json.JsonReflectionUtil.JsonValidatorImpl;
 import co.casterlabs.rakurai.json.annotating.JsonClass;
 import co.casterlabs.rakurai.json.annotating.JsonSerializer;
 import co.casterlabs.rakurai.json.deserialization.JsonParser;
@@ -156,7 +158,18 @@ public class Rson {
                             }
                         }
 
-                        return serializer.serialize(o, this);
+                        JsonElement result = serializer.serialize(o, this);
+
+                        if (result.isJsonObject()) {
+                            JsonObject dest = result.getAsObject();
+                            Collection<JsonSerializerMethodImpl> serializerMethods = JsonReflectionUtil.getJsonSerializerMethodsForClass(clazz);
+
+                            for (JsonSerializerMethodImpl m : serializerMethods) {
+                                m.generate(o, dest);
+                            }
+                        }
+
+                        return result;
                     }
                 } catch (IllegalArgumentException | NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
                     throw new JsonSerializeException(e);
@@ -217,9 +230,19 @@ public class Rson {
     public <T> T fromJson(@NonNull JsonElement e, @NonNull Class<?> expected, @Nullable Class<?> componentType) throws JsonParseException, JsonValidationException {
         T result = this.fromJson0(e, expected, componentType);
 
-        // These throw on error. So yeah.
-        List<JsonValidator> validators = JsonReflectionUtil.getJsonValidatorsForClass(expected);
-        for (JsonValidator v : validators) {
+        // Execute the deserializer methods.
+        if (e.isJsonObject()) {
+            JsonObject source = e.getAsObject();
+            Collection<JsonDeserializerMethodImpl> serializerMethods = JsonReflectionUtil.getJsonDeserializerMethodsForClass(expected);
+
+            for (JsonDeserializerMethodImpl m : serializerMethods) {
+                m.accept(result, source);
+            }
+        }
+
+        // Validate. (These throw on error.)
+        Collection<JsonValidatorImpl> validators = JsonReflectionUtil.getJsonValidatorsForClass(expected);
+        for (JsonValidatorImpl v : validators) {
             v.validate(result);
         }
 

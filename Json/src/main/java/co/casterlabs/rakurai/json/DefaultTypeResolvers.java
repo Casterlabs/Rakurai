@@ -66,7 +66,11 @@ public class DefaultTypeResolvers {
         register(new TypeResolver<Integer>() {
             @Override
             public @Nullable Integer resolve(@NonNull JsonElement value, @NonNull Class<?> type) {
-                return value.getAsNumber().intValue();
+                if (value.isJsonNull()) {
+                    return null;
+                } else {
+                    return value.getAsNumber().intValue();
+                }
             }
 
             @Override

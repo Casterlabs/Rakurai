@@ -9,6 +9,13 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
+import co.casterlabs.rakurai.json.annotating.JsonDeserializationMethod;
+import co.casterlabs.rakurai.json.annotating.JsonSerializationMethod;
+import co.casterlabs.rakurai.json.element.JsonElement;
+import co.casterlabs.rakurai.json.element.JsonNull;
+import co.casterlabs.rakurai.json.element.JsonObject;
+import co.casterlabs.rakurai.json.serialization.JsonParseException;
+import co.casterlabs.rakurai.json.serialization.JsonSerializeException;
 import co.casterlabs.rakurai.json.validation.JsonValidate;
 import co.casterlabs.rakurai.json.validation.JsonValidationException;
 import lombok.NonNull;
@@ -41,13 +48,14 @@ public class JsonReflectionUtil {
         }
     }
 
-    public static @Nullable List<JsonValidator> getJsonValidatorsForClass(Class<?> clazz) {
-        List<JsonValidator> validators = new LinkedList<>();
+    public static @Nullable Collection<JsonValidatorImpl> getJsonValidatorsForClass(Class<?> clazz) {
+        List<JsonValidatorImpl> validators = new LinkedList<>();
 
         List<Method> methods = getAllDeclaredMethods(clazz);
         for (Method method : methods) {
             if (method.isAnnotationPresent(JsonValidate.class) &&
-                (method.getReturnType() == Void.TYPE)) {
+                (method.getReturnType() == Void.TYPE) &&
+                (method.getParameterCount() == 0)) {
                 try {
                     method.setAccessible(true);
 
@@ -75,6 +83,115 @@ public class JsonReflectionUtil {
         return validators;
     }
 
+    public static @Nullable Collection<JsonDeserializerMethodImpl> getJsonDeserializerMethodsForClass(Class<?> clazz) {
+        List<JsonDeserializerMethodImpl> deserializerMethods = new LinkedList<>();
+
+        List<Method> methods = getAllDeclaredMethods(clazz);
+        for (Method method : methods) {
+            if (method.isAnnotationPresent(JsonDeserializationMethod.class) &&
+                (method.getReturnType() == Void.TYPE) &&
+                (method.getParameterCount() == 1) &&
+                (method.getParameterTypes()[0] == JsonElement.class)) {
+                try {
+                    JsonDeserializationMethod annotation = method.getAnnotation(JsonDeserializationMethod.class);
+
+                    method.setAccessible(true);
+
+                    deserializerMethods.add(new JsonDeserializerMethodImpl() {
+                        @Override
+                        public JsonDeserializationMethod getAnnotation() {
+                            return annotation;
+                        }
+
+                        @Override
+                        public void accept(@NonNull Object inst, @NonNull JsonObject source) throws JsonParseException {
+                            try {
+                                JsonElement elem = source.get(annotation.value());
+
+                                if (elem != null) {
+                                    method.invoke(inst, elem);
+                                }
+                            } catch (IllegalAccessException | IllegalArgumentException e) {
+                                // Ignore it.
+                            } catch (InvocationTargetException e) {
+                                Throwable cause = e.getCause();
+
+                                if (cause != null) {
+                                    if (cause instanceof JsonParseException) {
+                                        throw (JsonParseException) cause;
+                                    } else {
+                                        throw new JsonParseException(cause);
+                                    }
+                                }
+                            }
+                        }
+                    });
+                } catch (Exception ignored) {}
+            }
+        }
+
+        deserializerMethods.sort((o1, o2) -> {
+            return o1.getAnnotation().weight() < o2.getAnnotation().weight() ? 1 : -1;
+        });
+
+        return deserializerMethods;
+    }
+
+    public static @Nullable Collection<JsonSerializerMethodImpl> getJsonSerializerMethodsForClass(Class<?> clazz) {
+        List<JsonSerializerMethodImpl> serializerMethods = new LinkedList<>();
+
+        List<Method> methods = getAllDeclaredMethods(clazz);
+        for (Method method : methods) {
+            if (method.isAnnotationPresent(JsonSerializationMethod.class) &&
+                (method.getReturnType() == JsonElement.class) &&
+                (method.getParameterCount() == 0)) {
+                try {
+                    JsonSerializationMethod annotation = method.getAnnotation(JsonSerializationMethod.class);
+
+                    method.setAccessible(true);
+
+                    serializerMethods.add(new JsonSerializerMethodImpl() {
+                        @Override
+                        public JsonSerializationMethod getAnnotation() {
+                            return annotation;
+                        }
+
+                        @Override
+                        public void generate(@NonNull Object inst, @NonNull JsonObject dest) throws JsonSerializeException {
+                            try {
+                                JsonElement result = (JsonElement) method.invoke(inst);
+
+                                if (result == null) {
+                                    result = JsonNull.INSTANCE;
+                                }
+
+                                dest.put(annotation.value(), result);
+                            } catch (IllegalAccessException | IllegalArgumentException e) {
+                                // Ignore it.
+                            } catch (InvocationTargetException e) {
+                                Throwable cause = e.getCause();
+
+                                if (cause != null) {
+                                    if (cause instanceof JsonParseException) {
+                                        throw (JsonSerializeException) cause;
+                                    } else {
+                                        throw new JsonSerializeException(cause);
+                                    }
+                                }
+                            }
+                        }
+                    });
+                } catch (Exception ignored) {}
+            }
+        }
+
+        serializerMethods.sort((o1, o2) -> {
+            return o1.getAnnotation().weight() < o2.getAnnotation().weight() ? 1 : -1;
+        });
+
+        return serializerMethods;
+    }
+
     private static List<Method> getAllDeclaredMethods(Class<?> clazz) {
         List<Method> methods = new LinkedList<>();
 
@@ -97,9 +214,25 @@ public class JsonReflectionUtil {
         }
     }
 
-    public static interface JsonValidator {
+    public static interface JsonValidatorImpl {
 
         public void validate(@NonNull Object inst) throws JsonValidationException;
+
+    }
+
+    public static interface JsonDeserializerMethodImpl {
+
+        public JsonDeserializationMethod getAnnotation();
+
+        public void accept(@NonNull Object inst, @NonNull JsonObject source) throws JsonParseException;
+
+    }
+
+    public static interface JsonSerializerMethodImpl {
+
+        public JsonSerializationMethod getAnnotation();
+
+        public void generate(@NonNull Object inst, @NonNull JsonObject dest) throws JsonSerializeException;
 
     }
 
