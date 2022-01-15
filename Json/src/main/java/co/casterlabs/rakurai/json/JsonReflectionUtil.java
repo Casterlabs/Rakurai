@@ -172,7 +172,7 @@ public class JsonReflectionUtil {
                                 Throwable cause = e.getCause();
 
                                 if (cause != null) {
-                                    if (cause instanceof JsonParseException) {
+                                    if (cause instanceof JsonSerializeException) {
                                         throw (JsonSerializeException) cause;
                                     } else {
                                         throw new JsonSerializeException(cause);
