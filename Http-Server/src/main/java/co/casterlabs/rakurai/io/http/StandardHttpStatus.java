@@ -16,31 +16,27 @@ import lombok.NonNull;
 @Getter
 @NonNull
 public enum StandardHttpStatus implements HttpStatus {
-    /* ---------------- */
-    /* Informational    */
-    /* ---------------- */
-    // CONTINUE("Continue", 100),
-    // SWITCHING_PROTOCOLS("Switching Protocols", 101),
-    PROCESSING("Processing", 102), // (WebDAV)
+    // @formatter:off
+    
+                                   /* -------- Informational -------- */
+//                                       CONTINUE(100, "Continue"),
+//                            SWITCHING_PROTOCOLS(101, "Switching Protocols"),
+                                     PROCESSING(102, "Processing"), // (WebDAV)
 
-    /* ---------------- */
-    /* Success          */
-    /* ---------------- */
-    OK("OK", 200),
-    CREATED("Created", 201),
-    ACCEPTED("Accepted", 202),
-    NON_AUTHORITATIVE_INFORMATION("Non-Authoritative Information", 203),
-    NO_CONTENT("No Content", 204),
-    RESET_CONTENT("Reset Content", 205),
-    PARTIAL_CONTENT("Partial Content", 206),
-    THIS_IS_FINE("This Is Fine", 218), // (Rakurai/Apache Web Server)
-    INSTANCE_MANIPULATION_USED("Instance Manipulation Used", 226),
+                                   /* -------- Success -------- */
+                                             OK(200, "OK"),
+                                        CREATED(201, "Created"),
+                                       ACCEPTED(202, "Accepted"),
+                  NON_AUTHORITATIVE_INFORMATION(203, "Non-Authoritative Information"),
+                                     NO_CONTENT(204, "No Content"),
+                                  RESET_CONTENT(205, "Reset Content"),
+                                PARTIAL_CONTENT(206, "Partial Content"),
+                                   THIS_IS_FINE(218, "This Is Fine"), // (Rakurai/Apache Web Server)
+                     INSTANCE_MANIPULATION_USED(226, "Instance Manipulation Used"),
 
-    /* ---------------- */
-    /* Redirection      */
-    /* ---------------- */
-    MULTIPLE_CHOICES("Multiple Choices", 300),
-    MOVED_PERMANENTLY("Moved Permanently", 301),
+                                   /* -------- Redirection -------- */
+                               MULTIPLE_CHOICES(300, "Multiple Choices"),
+                              MOVED_PERMANENTLY(301, "Moved Permanently"),
     /**
      * @deprecated Even if the specification requires the method (and the body) not
      *             to be altered when the redirection is performed, not all
@@ -50,77 +46,71 @@ public enum StandardHttpStatus implements HttpStatus {
      *             to use {@link TEMPORARY_REDIRECT} instead, as the method change
      *             is explicitly prohibited in that case.
      */
-    @Deprecated
-    FOUND("Found", 302),
-    SEE_OTHER("See Other", 303),
-    NOT_MODIFIED("Not Modified", 304),
+                              @Deprecated FOUND(302, "Found"),
+                                      SEE_OTHER(303, "See Other"),
+                                   NOT_MODIFIED(304, "Not Modified"),
     /**
      * Defined in a previous version of the HTTP specification to indicate that a
      * requested response must be accessed by a proxy. It has been deprecated due to
      * security concerns regarding in-band configuration of a proxy.
      */
-    @Deprecated
-    USE_PROXY("Use Proxy", 305),
-    // UNUSED("Unused", 306);
-    TEMPORARY_REDIRECT("Temporary Redirect", 307),
-    PERMANENT_REDIRECT("Permanent Redirect", 308),
+                          @Deprecated USE_PROXY(305, "Use Proxy"),
+//                                         UNUSED(306, "Unused");
+                             TEMPORARY_REDIRECT(307, "Temporary Redirect"),
+                             PERMANENT_REDIRECT(308, "Permanent Redirect"),
 
-    /* ---------------- */
-    /* Client Error     */
-    /* ---------------- */
-    BAD_REQUEST("Bad Request", 400),
-    UNAUTHORIZED("Unauthorized", 401),
-    @Experimental
-    PAYMENT_REQUIRED("Payment Required", 402),
-    FORBIDDEN("Forbidden", 403),
-    NOT_FOUND("Not Found", 404),
-    METHOD_NOT_ALLOWED("Method Not Allowed", 405),
-    NOT_ACCEPTABLE("Not Acceptable", 406),
-    PROXY_AUTHENTICAION_REQUIRED("Proxy Authentication Required", 407),
-    REQUEST_TIMEOUT("Request Timeout", 408),
-    CONFLICT("Conflict", 409),
-    GONE("Gone", 410),
-    LENGTH_REQUIRED("Length Required", 411),
-    PRECONDITION_FAILED("Precondition Failed", 412),
-    PAYLOAD_TOO_LARGE("Payload Too Large", 413),
-    REQUEST_URI_TOO_LONG("Request URI Too Long", 414),
-    UNSUPPORTED_MEDIA_TYPE("Unsupported Media Type", 415),
-    RANGE_NOT_SATISFIABLE("Requested Range Not Satisfiable", 416),
-    EXPECTATION_FAILED("Expectation Failed", 417),
-    IM_A_TEAPOT("I'm A Teapot", 418), // :D https://en.wikipedia.org/wiki/HTTP_418
-    ENHANCE_YOUR_CALM("Enhance Your Calm", 420), // (Twitter)
-    UNPROCESSABLE_ENTITY("Unprocessable Entity", 422), // (WebDAV)
-    LOCKED("Locked", 423), // (WebDAV)
-    FAILED_DEPENDENCY("Failed Dependency", 424), // (WebDAV)
-    UPGRADE_REQUIRED("Upgrade Required", 426),
-    PRECONDITION_REQUIRED("Precondition Required", 428),
-    TOO_MANY_REQUESTS("Too Many Requests", 429),
-    LOGIN_TIMEOUT("Login Timeout", 440), // (Microsoft IIS)
-    NO_RESPONSE("No Response", 444), // (Rakurai/Nginx)
-    RETRY_WITH("Retry With", 449), // (Microsoft IIS)
-    UNAVAILABLE_FOR_LEAGAL_REASONS("Unavailable For Legal Reasons", 451),
-    REQUEST_HEADER_TOO_LARGE("Request Header Too Large", 494), // (Nginx)
-    HTTP_REQUEST_SENT_TO_HTTPS_PORT("HTTP Request Sent To HTTPS Port", 497), // (Nginx)
-    INVALID_TOKEN("Invalid Token", 498), // (Esri)
+                                   /* -------- Client Error -------- */
+                                    BAD_REQUEST(400, "Bad Request"),
+                                   UNAUTHORIZED(401, "Unauthorized"),
+                 @Experimental PAYMENT_REQUIRED(402, "Payment Required"),
+                                      FORBIDDEN(403, "Forbidden"),
+                                      NOT_FOUND(404, "Not Found"),
+                             METHOD_NOT_ALLOWED(405, "Method Not Allowed"),
+                                 NOT_ACCEPTABLE(406, "Not Acceptable"),
+                   PROXY_AUTHENTICAION_REQUIRED(407, "Proxy Authentication Required"),
+                                REQUEST_TIMEOUT(408, "Request Timeout"),
+                                       CONFLICT(409, "Conflict"),
+                                           GONE(410, "Gone"),
+                                LENGTH_REQUIRED(411, "Length Required"),
+                            PRECONDITION_FAILED(412, "Precondition Failed"),
+                              PAYLOAD_TOO_LARGE(413, "Payload Too Large"),
+                           REQUEST_URI_TOO_LONG(414, "Request URI Too Long"),
+                         UNSUPPORTED_MEDIA_TYPE(415, "Unsupported Media Type"),
+                          RANGE_NOT_SATISFIABLE(416, "Requested Range Not Satisfiable"),
+                             EXPECTATION_FAILED(417, "Expectation Failed"),
+                                    IM_A_TEAPOT(418, "I'm A Teapot"), // :D https://en.wikipedia.org/wiki/HTTP_418
+                              ENHANCE_YOUR_CALM(420, "Enhance Your Calm"), // (Twitter)
+                           UNPROCESSABLE_ENTITY(422, "Unprocessable Entity"), // (WebDAV)
+                                         LOCKED(423, "Locked"), // (WebDAV)
+                              FAILED_DEPENDENCY(424, "Failed Dependency"), // (WebDAV)
+                               UPGRADE_REQUIRED(426, "Upgrade Required"),
+                          PRECONDITION_REQUIRED(428, "Precondition Required"),
+                              TOO_MANY_REQUESTS(429, "Too Many Requests"),
+                                  LOGIN_TIMEOUT(440, "Login Timeout"), // (Microsoft IIS)
+                                    NO_RESPONSE(444, "No Response"), // (Rakurai/Nginx)
+                                     RETRY_WITH(449, "Retry With"), // (Microsoft IIS)
+                 UNAVAILABLE_FOR_LEAGAL_REASONS(451, "Unavailable For Legal Reasons"),
+                       REQUEST_HEADER_TOO_LARGE(494, "Request Header Too Large"), // (Nginx)
+                HTTP_REQUEST_SENT_TO_HTTPS_PORT(497, "HTTP Request Sent To HTTPS Port"), // (Nginx)
+                                  INVALID_TOKEN(498, "Invalid Token"), // (Esri)
 
-    /* ---------------- */
-    /* Server Error     */
-    /* ---------------- */
-    INTERNAL_ERROR("Internal Server Error", 500),
-    NOT_IMPLEMENTED("Not Implemented", 501),
-    BAD_GATEWAY("Bad Gateway", 502),
-    SERVICE_UNAVAILABLE("Service Unavailable", 503),
-    GATEWAY_TIMEOUT("Gateway Timeout", 504),
-    UNSUPPORTED_HTTP_VERSION("HTTP Version Not Supported", 505),
-    VARIANT_ALSO_NEGOTIATES("Variant Also Negotiates", 506),
-    INSUFFICIENT_STORAGE("Insufficient Storage", 507), // (WebDAV)
-    LOOP_DETECTED("Loop Detected", 508), // (WebDAV)
-    BANDWIDTH_LIMIT_EXCEEDED("Badnwidth Limit Exceeded", 509), // (Apache Web Server / cPanel)
-    NOT_EXTENDED("Not Extended", 510),
-    NETWORK_AUTHENTICATION_REQUIRED("Network Authentication Required", 511),
-    NETWORK_READ_TIMEOUT_ERROR("Network Read Timeout Error", 598), // Some proxies use it.
-    NETWORK_CONNECT_TIMEOUT_ERROR("Network Connect Timeout Error", 599), // Some proxies use it.
+                                   /* -------- Server Error -------- */
+                                 INTERNAL_ERROR(500, "Internal Server Error"),
+                                NOT_IMPLEMENTED(501, "Not Implemented"),
+                                    BAD_GATEWAY(502, "Bad Gateway"),
+                            SERVICE_UNAVAILABLE(503, "Service Unavailable"),
+                                GATEWAY_TIMEOUT(504, "Gateway Timeout"),
+                       UNSUPPORTED_HTTP_VERSION(505, "HTTP Version Not Supported"),
+                        VARIANT_ALSO_NEGOTIATES(506, "Variant Also Negotiates"),
+                           INSUFFICIENT_STORAGE(507, "Insufficient Storage"), // (WebDAV)
+                                  LOOP_DETECTED(508, "Loop Detected"), // (WebDAV)
+                       BANDWIDTH_LIMIT_EXCEEDED(509, "Badnwidth Limit Exceeded"), // (Apache Web Server / cPanel)
+                                   NOT_EXTENDED(510, "Not Extended"),
+                NETWORK_AUTHENTICATION_REQUIRED(511, "Network Authentication Required"),
+                     NETWORK_READ_TIMEOUT_ERROR(598, "Network Read Timeout Error"), // Some proxies use it.
+                  NETWORK_CONNECT_TIMEOUT_ERROR(599, "Network Connect Timeout Error"), // Some proxies use it.
 
+    // @formatter:on
     ;
 
     // TODO make sure this is always tied to the max status code value.
@@ -136,7 +126,7 @@ public enum StandardHttpStatus implements HttpStatus {
     private String description;
     private int statusCode;
 
-    private StandardHttpStatus(String description, int statusCode) {
+    private StandardHttpStatus(int statusCode, String description) {
         this.statusString = statusCode + " " + description;
         this.description = description;
         this.statusCode = statusCode;
