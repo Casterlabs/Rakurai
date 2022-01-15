@@ -1,17 +1,22 @@
 package co.casterlabs.rakurai.io.http;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
+import lombok.Getter;
 import lombok.NonNull;
 
 public class MimeTypes {
-    public static final Map<String, String> mimeTypes = new HashMap<>();
+    private static @Getter Map<String, String> mimeTypes;
 
     static {
+        Map<String, String> mimeTypes = new HashMap<>();
+        MimeTypes.mimeTypes = Collections.unmodifiableMap(mimeTypes);
+
         mimeTypes.put("3dm", "x-world/x-3dmf");
         mimeTypes.put("3dmf", "x-world/x-3dmf");
         mimeTypes.put("aab", "application/x-authorware-bin");
