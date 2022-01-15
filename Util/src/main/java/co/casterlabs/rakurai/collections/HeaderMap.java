@@ -120,6 +120,22 @@ public class HeaderMap implements Map<String, List<String>> {
             return this;
         }
 
+        public Builder putMap(Map<String, List<String>> map) {
+            for (Map.Entry<String, List<String>> entry : map.entrySet()) {
+                this.putAll(entry.getKey(), entry.getValue());
+            }
+
+            return this;
+        }
+
+        public Builder putSingleMap(Map<String, String> map) {
+            for (Map.Entry<String, String> entry : map.entrySet()) {
+                this.putAll(entry.getKey(), entry.getValue());
+            }
+
+            return this;
+        }
+
         private List<String> getValueList(String key) {
             List<String> values = this.headers.get(key);
 

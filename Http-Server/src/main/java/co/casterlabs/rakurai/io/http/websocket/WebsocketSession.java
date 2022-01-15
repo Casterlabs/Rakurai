@@ -1,36 +1,33 @@
 package co.casterlabs.rakurai.io.http.websocket;
 
-import java.util.List;
+import java.io.IOException;
 import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
-import lombok.NonNull;
+import co.casterlabs.rakurai.io.http.HttpMethod;
+import co.casterlabs.rakurai.io.http.HttpSession;
 
-public interface WebsocketSession {
+public abstract class WebsocketSession extends HttpSession {
 
-    // Request headers
-    public Map<String, String> getHeaders();
-
-    default @Nullable String getHeader(@NonNull String header) {
-        return this.getHeaders().get(header);
+    @Override
+    public boolean hasBody() {
+        return false;
     }
 
-    // URI
-    public String getUri();
+    @Override
+    public @Nullable byte[] getRequestBodyBytes() throws IOException {
+        throw new UnsupportedOperationException();
+    }
 
-    public Map<String, List<String>> getAllQueryParameters();
+    @Override
+    public Map<String, String> parseFormBody() throws IOException {
+        throw new UnsupportedOperationException();
+    }
 
-    public Map<String, String> getQueryParameters();
-
-    public String getQueryString();
-
-    // Server info
-    public String getHost();
-
-    public int getPort();
-
-    // Misc
-    public String getRemoteIpAddress();
+    @Override
+    public HttpMethod getMethod() {
+        return HttpMethod.GET;
+    }
 
 }

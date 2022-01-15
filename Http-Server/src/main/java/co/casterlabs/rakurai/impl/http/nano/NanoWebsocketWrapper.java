@@ -1,8 +1,6 @@
 package co.casterlabs.rakurai.impl.http.nano;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import co.casterlabs.rakurai.impl.http.BinaryWebsocketFrame;
@@ -11,6 +9,7 @@ import co.casterlabs.rakurai.io.http.websocket.Websocket;
 import co.casterlabs.rakurai.io.http.websocket.WebsocketCloseCode;
 import co.casterlabs.rakurai.io.http.websocket.WebsocketFrame;
 import co.casterlabs.rakurai.io.http.websocket.WebsocketListener;
+import co.casterlabs.rakurai.io.http.websocket.WebsocketSession;
 import fi.iki.elonen.NanoHTTPD.IHTTPSession;
 import fi.iki.elonen.NanoWSD.WebSocket;
 import fi.iki.elonen.NanoWSD.WebSocketFrame;
@@ -22,12 +21,13 @@ public class NanoWebsocketWrapper extends WebSocket {
     private WebsocketListener listener;
 
     private WebSocket instance = this;
-    private RakuraiWebsocket rakWebsocket = new RakuraiWebsocket();
+    private RakuraiWebsocket rakWebsocket;
 
-    public NanoWebsocketWrapper(IHTTPSession nanoSession, WebsocketListener listener) {
+    public NanoWebsocketWrapper(IHTTPSession nanoSession, WebsocketListener listener, NanoWebsocketSessionWrapper wrapper) {
         super(nanoSession);
 
         this.listener = listener;
+        this.rakWebsocket = new RakuraiWebsocket(wrapper);
     }
 
     // Nano WebSocket Impl
@@ -74,6 +74,10 @@ public class NanoWebsocketWrapper extends WebSocket {
 
     private class RakuraiWebsocket extends Websocket {
 
+        public RakuraiWebsocket(@NonNull WebsocketSession session) {
+            super(session);
+        }
+
         @Override
         public void send(@NonNull String message) throws IOException {
             instance.send(message);
@@ -89,44 +93,6 @@ public class NanoWebsocketWrapper extends WebSocket {
             try {
                 instance.close(CloseCode.find(code.getCode()), "", false);
             } catch (Exception ignored) {}
-        }
-
-        // Request headers
-        @Override
-        public Map<String, String> getHeaders() {
-            return instance.getHandshakeRequest().getHeaders();
-        }
-
-        // URI
-        @Override
-        public String getUri() {
-            return instance.getHandshakeRequest().getUri();
-        }
-
-        @Override
-        public Map<String, List<String>> getAllQueryParameters() {
-            return instance.getHandshakeRequest().getParameters();
-        }
-
-        @SuppressWarnings("deprecation")
-        @Override
-        public Map<String, String> getQueryParameters() {
-            return instance.getHandshakeRequest().getParms();
-        }
-
-        @Override
-        public String getQueryString() {
-            if (instance.getHandshakeRequest().getQueryParameterString() == null) {
-                return "";
-            } else {
-                return "?" + instance.getHandshakeRequest().getQueryParameterString();
-            }
-        }
-
-        // Misc
-        @Override
-        public String getRemoteIpAddress() {
-            return instance.getHandshakeRequest().getRemoteIpAddress();
         }
 
     }

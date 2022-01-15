@@ -120,7 +120,7 @@ public class NanoHttpServer extends NanoWSD implements HttpServer {
             double time = (System.currentTimeMillis() - start) / 1000d;
             logger.debug("Served websocket %s %s (%.2fs)", session.getRemoteIpAddress(), session.getHost() + session.getUri(), time);
 
-            return new NanoWebsocketWrapper(nanoSession, listener);
+            return new NanoWebsocketWrapper(nanoSession, listener, session);
         } else {
             logger.debug("Dropped websocket %s %s", session.getRemoteIpAddress(), session.getHost() + session.getUri());
             throw new DropConnectionException();

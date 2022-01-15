@@ -18,22 +18,15 @@ import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
 public class NanoHttpSession extends HttpSession {
     private @Getter IHTTPSession nanoSession;
-    private HeaderMap headers;
     private int port;
 
+    private HeaderMap headers;
     private byte[] body;
 
     public NanoHttpSession(IHTTPSession nanoSession, FastLogger logger, int port) {
         this.port = port;
         this.nanoSession = nanoSession;
-
-        HeaderMap.Builder builder = new HeaderMap.Builder();
-
-        for (Map.Entry<String, String> entry : this.nanoSession.getHeaders().entrySet()) {
-            builder.put(entry.getKey(), entry.getValue());
-        }
-
-        this.headers = builder.build();
+        this.headers = new HeaderMap.Builder().putSingleMap(this.nanoSession.getHeaders()).build();
     }
 
     // Request headers

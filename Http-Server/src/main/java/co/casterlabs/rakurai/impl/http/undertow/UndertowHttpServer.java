@@ -175,7 +175,7 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                 protected void onFullTextMessage(WebSocketChannel channel, BufferedTextMessage message) {
                     WebsocketFrame frame = new TextWebsocketFrame(message.getData());
 
-                    logger.debug("WebsocketFrame (%s):\n%s", websocket.getRemoteIpAddress(), frame);
+                    logger.debug("WebsocketFrame (%s):\n%s", websocket.getSession().getRemoteIpAddress(), frame);
 
                     listener.onFrame(websocket, frame);
                 }
@@ -186,7 +186,7 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                     for (ByteBuffer buffer : message.getData().getResource()) {
                         WebsocketFrame frame = new BinaryWebsocketFrame(buffer.array());
 
-                        logger.debug("WebsocketFrame (%s):\n%s", websocket.getRemoteIpAddress(), frame);
+                        logger.debug("WebsocketFrame (%s):\n%s", websocket.getSession().getRemoteIpAddress(), frame);
 
                         listener.onFrame(websocket, frame);
                     }

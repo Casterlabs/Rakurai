@@ -1,46 +1,41 @@
 package co.casterlabs.rakurai.impl.http.undertow;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import co.casterlabs.rakurai.collections.HeaderMap;
+import co.casterlabs.rakurai.io.http.HttpVersion;
 import co.casterlabs.rakurai.io.http.websocket.WebsocketSession;
 import io.undertow.websockets.core.WebSocketChannel;
 import io.undertow.websockets.spi.WebSocketHttpExchange;
 
-public class UndertowWebsocketSessionWrapper implements WebsocketSession {
+public class UndertowWebsocketSessionWrapper extends WebsocketSession {
     private WebSocketHttpExchange exchange;
     private WebSocketChannel channel;
     private int port;
 
     private Map<String, List<String>> allQueryParameters = new HashMap<>();
     private Map<String, String> queryParameters = new HashMap<>();
-    private Map<String, String> headers = new HashMap<>();
+    private HeaderMap headers;
 
     public UndertowWebsocketSessionWrapper(WebSocketHttpExchange exchange, WebSocketChannel channel, int port) {
         this.exchange = exchange;
         this.channel = channel;
         this.port = port;
 
-        Map<String, List<String>> headers = exchange.getRequestHeaders();
-
-        for (Map.Entry<String, List<String>> entry : headers.entrySet()) {
-            this.headers.put(entry.getKey().toLowerCase(), entry.getValue().get(0));
-        }
-
         for (Map.Entry<String, List<String>> entry : exchange.getRequestParameters().entrySet()) {
             this.allQueryParameters.put(entry.getKey(), new ArrayList<>(entry.getValue()));
             this.queryParameters.put(entry.getKey(), entry.getValue().get(0));
         }
 
-        this.headers = Collections.unmodifiableMap(this.headers);
+        this.headers = new HeaderMap.Builder().putMap(exchange.getRequestHeaders()).build();
     }
 
     // Request headers
     @Override
-    public Map<String, String> getHeaders() {
+    public HeaderMap getHeaders() {
         return this.headers;
     }
 
@@ -81,6 +76,11 @@ public class UndertowWebsocketSessionWrapper implements WebsocketSession {
     }
 
     // Misc
+    @Override
+    public HttpVersion getVersion() {
+        return HttpVersion.HTTP_2_0; // ?
+    }
+
     @Override
     public String getRemoteIpAddress() {
         return this.channel.getSourceAddress().getHostString();

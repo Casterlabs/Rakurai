@@ -3,19 +3,27 @@ package co.casterlabs.rakurai.impl.http.nano;
 import java.util.List;
 import java.util.Map;
 
+import co.casterlabs.rakurai.collections.HeaderMap;
+import co.casterlabs.rakurai.io.http.HttpVersion;
 import co.casterlabs.rakurai.io.http.websocket.WebsocketSession;
 import fi.iki.elonen.NanoHTTPD.IHTTPSession;
-import lombok.AllArgsConstructor;
 
-@AllArgsConstructor
-public class NanoWebsocketSessionWrapper implements WebsocketSession {
+public class NanoWebsocketSessionWrapper extends WebsocketSession {
     private IHTTPSession nanoSession;
     private int port;
 
+    private HeaderMap headers;
+
+    public NanoWebsocketSessionWrapper(IHTTPSession nanoSession, int port) {
+        this.nanoSession = nanoSession;
+        this.port = port;
+        this.headers = new HeaderMap.Builder().putSingleMap(this.nanoSession.getHeaders()).build();
+    }
+
     // Headers
     @Override
-    public Map<String, String> getHeaders() {
-        return this.nanoSession.getHeaders();
+    public HeaderMap getHeaders() {
+        return this.headers;
     }
 
     // URI
@@ -56,6 +64,11 @@ public class NanoWebsocketSessionWrapper implements WebsocketSession {
     }
 
     // Misc
+    @Override
+    public HttpVersion getVersion() {
+        return HttpVersion.HTTP_1_1;
+    }
+
     @Override
     public String getRemoteIpAddress() {
         return this.nanoSession.getRemoteIpAddress();
