@@ -10,4 +10,9 @@ public enum TLSVersion {
         return this.name().replace('_', '.');
     }
 
+    @Override
+    public String toString() {
+        return this.getRuntimeName();
+    }
+
 }
