@@ -2,7 +2,7 @@ package co.casterlabs.rakurai.io.http;
 
 import java.io.File;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
@@ -14,7 +14,7 @@ public class MimeTypes {
     private static @Getter Map<String, String> mimeTypes;
 
     static {
-        Map<String, String> mimeTypes = new HashMap<>();
+        Map<String, String> mimeTypes = new LinkedHashMap<>();
         MimeTypes.mimeTypes = Collections.unmodifiableMap(mimeTypes);
 
         mimeTypes.put("3dm", "x-world/x-3dmf");
