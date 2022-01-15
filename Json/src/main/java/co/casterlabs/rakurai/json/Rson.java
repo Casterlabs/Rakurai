@@ -34,6 +34,7 @@ import co.casterlabs.rakurai.json.serialization.JsonSerializationContext;
 import co.casterlabs.rakurai.json.serialization.JsonSerializeException;
 import co.casterlabs.rakurai.json.validation.JsonValidationException;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
 import lombok.NonNull;
@@ -44,13 +45,13 @@ public class Rson {
     public static final Rson DEFAULT = new Rson.Builder()
         .build();
 
-    private final Builder settings;
+    private final RsonConfig settings;
 
     private Map<Class<?>, TypeResolver<?>> resolvers = new HashMap<>();
 
     private Rson(Builder builder) {
-        this.settings = builder;
-        this.resolvers.putAll(this.settings.resolvers);
+        this.settings = builder.toConfig();
+        this.resolvers.putAll(builder.resolvers);
     }
 
     public String toJsonString(@Nullable Object o) {
@@ -360,7 +361,21 @@ public class Rson {
         }
     }
 
-    public static class Builder extends RsonConfig {
+    @Data
+    @Accessors(chain = true)
+    public static class Builder {
+        @Getter(AccessLevel.NONE)
+        private boolean json5FeaturesEnabled = false;
+
+        // Make it more fluent. :^)
+        public boolean areJson5FeaturesEnabled() {
+            return this.json5FeaturesEnabled;
+        }
+
+        private boolean prettyPrintingEnabled = false;
+
+        private String tabCharacter = "    ";
+
         @Getter(AccessLevel.NONE)
         @Setter(AccessLevel.NONE)
         private Map<Class<?>, TypeResolver<?>> resolvers = DefaultTypeResolvers.get();
@@ -377,22 +392,26 @@ public class Rson {
             return new Rson(this);
         }
 
+        public RsonConfig toConfig() {
+            return new RsonConfig(this.json5FeaturesEnabled, this.prettyPrintingEnabled, this.tabCharacter);
+        }
+
     }
 
-    @Data
-    @Accessors(chain = true)
+    @Getter
+    @AllArgsConstructor
     public static class RsonConfig {
         @Getter(AccessLevel.NONE)
         private boolean json5FeaturesEnabled = false;
+
+        private boolean prettyPrintingEnabled = false;
+
+        private String tabCharacter = "    ";
 
         // Make it more fluent. :^)
         public boolean areJson5FeaturesEnabled() {
             return this.json5FeaturesEnabled;
         }
-
-        private boolean prettyPrintingEnabled = false;
-
-        private String tabCharacter = "    ";
 
     }
 

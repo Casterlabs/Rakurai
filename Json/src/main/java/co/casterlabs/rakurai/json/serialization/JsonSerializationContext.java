@@ -1,6 +1,7 @@
 package co.casterlabs.rakurai.json.serialization;
 
 import co.casterlabs.rakurai.json.JsonUtil;
+import co.casterlabs.rakurai.json.Rson;
 import co.casterlabs.rakurai.json.Rson.RsonConfig;
 import lombok.Getter;
 import lombok.NonNull;
@@ -16,7 +17,7 @@ public class JsonSerializationContext {
     private boolean addedContent = false;
     private boolean indentIfNotDangle = false;
 
-    private @Setter @Getter RsonConfig config = new RsonConfig();
+    private @Setter @Getter RsonConfig config = new Rson.Builder().toConfig();
 
     /* Object */
 
