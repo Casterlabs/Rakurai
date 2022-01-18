@@ -206,7 +206,7 @@ public class Rson {
     }
 
     public <T> T fromJson(@NonNull JsonElement e, @NonNull TypeToken<T> token) throws JsonParseException, JsonValidationException {
-        Class<?> expected = token.getTokenClass();
+        Class<?> expected = token.getTypeClass();
         Class<?> componentType;
 
         boolean isCollection = Collection.class.isAssignableFrom(expected);
@@ -216,7 +216,7 @@ public class Rson {
             componentType = expected.getComponentType();
         } else if (isCollection) {
             try {
-                componentType = Class.forName(token.getTokenParameters());
+                componentType = Class.forName(token.getTypeArguments()[0].getTypeName());
             } catch (ClassNotFoundException ex) {
                 throw new JsonParseException(ex);
             }
@@ -229,36 +229,41 @@ public class Rson {
 
     @Deprecated
     public <T> T fromJson(@NonNull JsonElement e, @NonNull Class<?> expected, @Nullable Class<?> componentType) throws JsonParseException, JsonValidationException {
-        T result = this.fromJson0(e, expected, componentType);
+        try {
+            T result = this.fromJson0(e, expected, componentType);
 
-        // Execute the deserializer methods.
-        if (e.isJsonObject()) {
-            JsonObject source = e.getAsObject();
-            Collection<JsonDeserializerMethodImpl> serializerMethods = JsonReflectionUtil.getJsonDeserializerMethodsForClass(expected);
+            // Execute the deserializer methods.
+            if (e.isJsonObject()) {
+                JsonObject source = e.getAsObject();
+                Collection<JsonDeserializerMethodImpl> serializerMethods = JsonReflectionUtil.getJsonDeserializerMethodsForClass(expected);
 
-            for (JsonDeserializerMethodImpl m : serializerMethods) {
-                m.accept(result, source);
+                for (JsonDeserializerMethodImpl m : serializerMethods) {
+                    m.accept(result, source);
+                }
             }
-        }
 
-        // Validate. (These throw on error.)
-        Collection<JsonValidatorImpl> validators = JsonReflectionUtil.getJsonValidatorsForClass(expected);
-        for (JsonValidatorImpl v : validators) {
-            v.validate(result);
-        }
+            // Validate. (These throw on error.)
+            Collection<JsonValidatorImpl> validators = JsonReflectionUtil.getJsonValidatorsForClass(expected);
+            for (JsonValidatorImpl v : validators) {
+                v.validate(result);
+            }
 
-        return result;
+            return result;
+
+        } catch (IllegalArgumentException | NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | InvocationTargetException | ClassNotFoundException ex) {
+            throw new JsonSerializeException(ex);
+        }
     }
 
     @SuppressWarnings({
             "unchecked"
     })
-    private <T> T fromJson0(JsonElement e, Class<?> expected, @Nullable Class<?> componentType) throws JsonParseException {
+    private <T> T fromJson0(JsonElement e, Class<?> expected, @Nullable Class<?> componentType) throws JsonParseException, ClassNotFoundException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
         if (e.isJsonNull()) {
             return null;
-        } else if (JsonElement.class == expected) {
-            return (T) e;
-        } else if (JsonElement.class.isAssignableFrom(expected)) {
+        }
+
+        if (JsonElement.class.isAssignableFrom(expected)) {
             if (expected == JsonElement.class) {
                 return (T) e;
             } else if (e.getClass() == expected) {
@@ -266,99 +271,95 @@ public class Rson {
             } else {
                 throw new JsonParseException(String.format("Expected a %s but got a %s\n%s", expected.getSimpleName(), e.getClass().getSimpleName(), e));
             }
-        } else {
-            TypeResolver<T> resolver = (TypeResolver<T>) resolvers.get(expected);
+        }
 
-            if (resolver != null) {
-                return resolver.resolve(e, expected);
-            } else {
-                try {
-                    boolean isCollection = Collection.class.isAssignableFrom(expected);
-                    boolean isArray = expected.isArray();
-                    boolean isEnum = Enum.class.isAssignableFrom(expected);
+        TypeResolver<T> resolver = (TypeResolver<T>) this.resolvers.get(expected);
+        if (resolver != null) {
+            return resolver.resolve(e, expected);
+        }
 
-                    if ((isCollection || isArray) != e.isJsonArray()) {
-                        throw new JsonParseException(String.format("Expected a %s but got a %s\n%s", expected.getSimpleName(), e.getClass().getSimpleName(), e));
-                    } else {
-                        if (isCollection || isArray) {
-                            JsonArray array = e.getAsArray();
+        if (Enum.class.isAssignableFrom(expected)) {
+            String name = e.getAsString();
 
-                            Object result = Array.newInstance(componentType, array.size());
+            for (Object enC : expected.getEnumConstants()) {
+                Enum<?> en = (Enum<?>) enC;
 
-                            for (int i = 0; i < array.size(); i++) {
-                                Class<?> itemComponent = JsonReflectionUtil.getCollectionComponent(componentType);
-
-                                Object item = this.fromJson(array.get(i), componentType, itemComponent);
-
-                                Array.set(result, i, item);
-                            }
-
-                            if (isArray) {
-                                return (T) result;
-                            } else {
-                                // stacks, queues, deques, lists and trees
-                                Collection<Object> coll;
-
-                                if (Stack.class.isAssignableFrom(expected)) {
-                                    coll = new Stack<>();
-                                } else if (Set.class.isAssignableFrom(expected)) {
-                                    coll = new HashSet<>();
-                                } else if (Queue.class.isAssignableFrom(expected)) {
-                                    coll = new PriorityQueue<>();
-                                } else if (Deque.class.isAssignableFrom(expected)) {
-                                    coll = new ArrayDeque<>();
-                                } else if (List.class.isAssignableFrom(expected)) {
-                                    coll = new ArrayList<>();
-                                } else {
-                                    throw new JsonParseException("Cannot create a matching collection.");
-                                }
-
-                                for (int i = 0; i < Array.getLength(result); i++) {
-                                    Object item = Array.get(result, i);
-                                    coll.add(item);
-                                }
-
-                                return (T) coll;
-                            }
-                        } else if (isEnum) {
-                            String name = e.getAsString();
-
-                            for (Object enC : expected.getEnumConstants()) {
-                                Enum<?> en = (Enum<?>) enC;
-
-                                if (en.name().equals(name)) {
-                                    return (T) en;
-                                }
-                            }
-
-                            throw new JsonParseException(String.format("Cannot deserialize enum (%s) from %s.", expected, name));
-                        } else {
-                            JsonSerializer<?> serializer;
-
-                            // Create the deserializer, or supply a default.
-                            {
-                                JsonClass classData = expected.getAnnotation(JsonClass.class);
-
-                                if (classData != null) {
-                                    Class<? extends JsonSerializer<?>> serializerClass = classData.serializer();
-                                    Constructor<? extends JsonSerializer<?>> serializerConstructor = serializerClass.getConstructor();
-
-                                    serializerConstructor.setAccessible(true);
-
-                                    serializer = serializerConstructor.newInstance();
-                                } else {
-                                    serializer = JsonSerializer.DEFAULT;
-                                }
-                            }
-
-                            return (T) serializer.deserialize(e, expected, this);
-                        }
-                    }
-                } catch (IllegalArgumentException | NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | InvocationTargetException | ClassNotFoundException ex) {
-                    throw new JsonSerializeException(ex);
+                if (en.name().equals(name)) {
+                    return (T) en;
                 }
             }
+
+            throw new JsonParseException(String.format("Cannot deserialize enum (%s) from %s.", expected, name));
         }
+
+        boolean isCollection = Collection.class.isAssignableFrom(expected);
+        boolean isArray = expected.isArray();
+        if (isCollection || isArray) {
+            if (!e.isJsonArray()) {
+                throw new JsonParseException(String.format("Expected a %s but got a %s\n%s", expected.getSimpleName(), e.getClass().getSimpleName(), e));
+            }
+
+            JsonArray array = e.getAsArray();
+
+            Object result = Array.newInstance(componentType, array.size());
+
+            for (int i = 0; i < array.size(); i++) {
+                Class<?> itemComponent = JsonReflectionUtil.getCollectionComponent(componentType);
+
+                Object item = this.fromJson(array.get(i), componentType, itemComponent);
+
+                Array.set(result, i, item);
+            }
+
+            if (isArray) {
+                return (T) result;
+            } else {
+                // stacks, queues, deques, lists and trees
+                Collection<Object> coll;
+
+                if (Stack.class.isAssignableFrom(expected)) {
+                    coll = new Stack<>();
+                } else if (Set.class.isAssignableFrom(expected)) {
+                    coll = new HashSet<>();
+                } else if (Queue.class.isAssignableFrom(expected)) {
+                    coll = new PriorityQueue<>();
+                } else if (Deque.class.isAssignableFrom(expected)) {
+                    coll = new ArrayDeque<>();
+                } else if (List.class.isAssignableFrom(expected)) {
+                    coll = new ArrayList<>();
+                } else {
+                    throw new JsonParseException("Cannot create a matching collection.");
+                }
+
+                for (int i = 0; i < Array.getLength(result); i++) {
+                    Object item = Array.get(result, i);
+                    coll.add(item);
+                }
+
+                return (T) coll;
+            }
+        }
+
+        // Object deserialization.
+        JsonSerializer<?> serializer;
+
+        // Create the deserializer, or supply a default.
+        {
+            JsonClass classData = expected.getAnnotation(JsonClass.class);
+
+            if (classData != null) {
+                Class<? extends JsonSerializer<?>> serializerClass = classData.serializer();
+                Constructor<? extends JsonSerializer<?>> serializerConstructor = serializerClass.getConstructor();
+
+                serializerConstructor.setAccessible(true);
+
+                serializer = serializerConstructor.newInstance();
+            } else {
+                serializer = JsonSerializer.DEFAULT;
+            }
+        }
+
+        return (T) serializer.deserialize(e, expected, this);
     }
 
     @Data
