@@ -13,6 +13,7 @@ import java.util.Map.Entry;
 
 import co.casterlabs.rakurai.json.JsonReflectionUtil;
 import co.casterlabs.rakurai.json.Rson;
+import co.casterlabs.rakurai.json.TypeToken;
 import co.casterlabs.rakurai.json.element.JsonElement;
 import co.casterlabs.rakurai.json.element.JsonObject;
 import co.casterlabs.rakurai.json.serialization.JsonParseException;
@@ -104,7 +105,6 @@ public class DefaultJsonSerializer implements JsonSerializer<Object> {
         }
     }
 
-    @SuppressWarnings("deprecation")
     @Override
     public Object deserialize(@NonNull JsonElement value, @NonNull Class<?> type, @NonNull Rson rson) throws JsonParseException {
         if (value.isJsonObject()) {
@@ -145,7 +145,7 @@ public class DefaultJsonSerializer implements JsonSerializer<Object> {
                         } else {
                             Class<?> fieldComponent = JsonReflectionUtil.getCollectionComponentForField(field);
 
-                            Object converted = rson.fromJson(e, fieldType, fieldComponent);
+                            Object converted = rson.fromJson(e, TypeToken.of(fieldType, fieldComponent));
 
                             field.set(o, converted);
                         }

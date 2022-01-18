@@ -194,43 +194,19 @@ public class Rson {
     public <T> T fromJson(@NonNull JsonElement e, @NonNull Class<T> expected) throws JsonParseException, JsonValidationException {
         Class<?> componentType;
 
-        boolean isArray = expected.isArray();
-
-        if (isArray) {
+        if (expected.isArray()) {
             componentType = expected.getComponentType();
         } else {
             componentType = Object.class;
         }
 
-        return this.fromJson(e, expected, componentType);
+        return this.fromJson(e, TypeToken.of(expected, componentType));
     }
 
-    public <T> T fromJson(@NonNull JsonElement e, @NonNull TypeToken<T> token) throws JsonParseException, JsonValidationException {
-        Class<?> expected = token.getTypeClass();
-        Class<?> componentType;
-
-        boolean isCollection = Collection.class.isAssignableFrom(expected);
-        boolean isArray = expected.isArray();
-
-        if (isArray) {
-            componentType = expected.getComponentType();
-        } else if (isCollection) {
-            try {
-                componentType = Class.forName(token.getTypeArguments()[0].getTypeName());
-            } catch (ClassNotFoundException ex) {
-                throw new JsonParseException(ex);
-            }
-        } else {
-            componentType = Object.class;
-        }
-
-        return this.fromJson(e, expected, componentType);
-    }
-
-    @Deprecated
-    public <T> T fromJson(@NonNull JsonElement e, @NonNull Class<?> expected, @Nullable Class<?> componentType) throws JsonParseException, JsonValidationException {
+    public <T> T fromJson(@NonNull JsonElement e, TypeToken<T> token) throws JsonParseException, JsonValidationException {
         try {
-            T result = this.fromJson0(e, expected, componentType);
+            T result = this.fromJson0(e, token);
+            Class<?> expected = token.getTypeClass();
 
             // Execute the deserializer methods.
             if (e.isJsonObject()) {
@@ -258,11 +234,15 @@ public class Rson {
     @SuppressWarnings({
             "unchecked"
     })
-    private <T> T fromJson0(JsonElement e, Class<?> expected, @Nullable Class<?> componentType) throws JsonParseException, ClassNotFoundException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
+    private <T> T fromJson0(JsonElement e, TypeToken<T> token) throws JsonParseException, ClassNotFoundException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
+        // Null check.
         if (e.isJsonNull()) {
             return null;
         }
 
+        Class<?> expected = token.getTypeClass();
+
+        // Json elements.
         if (JsonElement.class.isAssignableFrom(expected)) {
             if (expected == JsonElement.class) {
                 return (T) e;
@@ -273,11 +253,13 @@ public class Rson {
             }
         }
 
+        // Type resolvers.
         TypeResolver<T> resolver = (TypeResolver<T>) this.resolvers.get(expected);
         if (resolver != null) {
             return resolver.resolve(e, expected);
         }
 
+        // Parse enums.
         if (Enum.class.isAssignableFrom(expected)) {
             String name = e.getAsString();
 
@@ -292,21 +274,32 @@ public class Rson {
             throw new JsonParseException(String.format("Cannot deserialize enum (%s) from %s.", expected, name));
         }
 
+        // Arrays & Collections
         boolean isCollection = Collection.class.isAssignableFrom(expected);
-        boolean isArray = expected.isArray();
+        boolean isArray = token.isArrayType();
+
         if (isCollection || isArray) {
             if (!e.isJsonArray()) {
                 throw new JsonParseException(String.format("Expected a %s but got a %s\n%s", expected.getSimpleName(), e.getClass().getSimpleName(), e));
             }
 
+            Class<?> componentType;
+
+            if (isArray) {
+                componentType = expected.getComponentType();
+            } else if (isCollection) {
+                componentType = Class.forName(token.getTypeArguments()[0].getTypeName());
+            } else {
+                componentType = Object.class;
+            }
+
             JsonArray array = e.getAsArray();
 
             Object result = Array.newInstance(componentType, array.size());
+            TypeToken<?> itemComponentType = TypeToken.of(componentType, JsonReflectionUtil.getCollectionComponent(componentType));
 
             for (int i = 0; i < array.size(); i++) {
-                Class<?> itemComponent = JsonReflectionUtil.getCollectionComponent(componentType);
-
-                Object item = this.fromJson(array.get(i), componentType, itemComponent);
+                Object item = this.fromJson(array.get(i), itemComponentType);
 
                 Array.set(result, i, item);
             }
@@ -341,12 +334,11 @@ public class Rson {
         }
 
         // Object deserialization.
-        JsonSerializer<?> serializer;
-
-        // Create the deserializer, or supply a default.
         {
             JsonClass classData = expected.getAnnotation(JsonClass.class);
+            JsonSerializer<?> serializer;
 
+            // Create the deserializer, or supply a default.
             if (classData != null) {
                 Class<? extends JsonSerializer<?>> serializerClass = classData.serializer();
                 Constructor<? extends JsonSerializer<?>> serializerConstructor = serializerClass.getConstructor();
@@ -357,9 +349,9 @@ public class Rson {
             } else {
                 serializer = JsonSerializer.DEFAULT;
             }
-        }
 
-        return (T) serializer.deserialize(e, expected, this);
+            return (T) serializer.deserialize(e, expected, this);
+        }
     }
 
     @Data

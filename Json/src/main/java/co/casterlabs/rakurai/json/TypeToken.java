@@ -3,38 +3,73 @@ package co.casterlabs.rakurai.json;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 
-import lombok.SneakyThrows;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.ToString;
 
+@ToString
 public abstract class TypeToken<T> {
 
-    @SneakyThrows
-    public Class<?> getTokenClass() {
-        String type = getType(this.getClass()).toString();
-        // "java.util.List<java.lang.String>"
-        String className = type.split("<")[0];
-        return Class.forName(className);
+    private @Getter Type type;
+    private @Getter Class<?> typeClass;
+    private @Getter Type[] typeArguments = {};
+
+    public TypeToken() {
+        Type superclass = this.getClass().getGenericSuperclass();
+
+        if (superclass instanceof Class) {
+            throw new RuntimeException("TypeToken MUST be initialized with a type.");
+        }
+
+        this.type = getType(superclass);
+        this.init();
     }
 
-    @SneakyThrows
-    public String getTokenParameters() {
-        String type = getType(this.getClass()).toString();
-        // "java.util.List<java.lang.String>"
-        String parameters = type.substring(type.indexOf('<') + 1);
-
-        parameters = parameters.substring(0, parameters.length() - 1); // Drop trailing '>'
-
-        return parameters;
+    private TypeToken(Type type) {
+        this.type = type;
+        this.init();
     }
 
-    private static Type getType(Class<?> clazz) {
-        return getType(clazz, 0);
+    private void init() {
+        if (this.type instanceof ParameterizedType) {
+            ParameterizedType p = (ParameterizedType) this.type;
+
+            this.typeClass = (Class<?>) p.getRawType();
+            this.typeArguments = p.getActualTypeArguments();
+        } else {
+            Class<?> c = (Class<?>) this.type;
+            this.typeClass = c;
+        }
     }
 
-    private static Type getType(Class<?> clazz, int pos) {
-        Type superclass = clazz.getGenericSuperclass();
-        Type[] types = ((ParameterizedType) superclass).getActualTypeArguments();
+    private static Type getType(Type superclass) {
+        if (superclass instanceof ParameterizedType) {
+            ParameterizedType pt = (ParameterizedType) superclass;
+            Type[] types = pt.getActualTypeArguments();
 
-        return types[pos];
+            return types[0];
+        } else {
+            return superclass;
+        }
+    }
+
+    public boolean isArrayType() {
+        return this.typeClass.isArray();
+    }
+
+    public static <T> TypeToken<T> of(@NonNull Class<T> clazz) {
+        return new TypeToken<T>(clazz) {
+        };
+    }
+
+    public static <T> TypeToken<T> of(@NonNull Class<T> clazz, @NonNull Type... typeArguments) {
+        TypeToken<T> tt = new TypeToken<T>(clazz) {
+        };
+
+        // Jank fix.
+        tt.typeArguments = typeArguments;
+
+        return tt;
     }
 
 }
