@@ -288,7 +288,7 @@ public class Rson {
             if (isArray) {
                 componentType = expected.getComponentType();
             } else if (isCollection) {
-                componentType = Class.forName(token.getTypeArguments()[0].getTypeName());
+                componentType = JsonReflectionUtil.typeToClass(token.getTypeArguments()[0], null);
             } else {
                 componentType = Object.class;
             }

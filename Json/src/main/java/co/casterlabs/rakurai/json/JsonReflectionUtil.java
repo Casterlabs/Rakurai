@@ -3,6 +3,8 @@ package co.casterlabs.rakurai.json;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -19,6 +21,7 @@ import co.casterlabs.rakurai.json.serialization.JsonSerializeException;
 import co.casterlabs.rakurai.json.validation.JsonValidate;
 import co.casterlabs.rakurai.json.validation.JsonValidationException;
 import lombok.NonNull;
+import lombok.SneakyThrows;
 
 public class JsonReflectionUtil {
 
@@ -26,7 +29,9 @@ public class JsonReflectionUtil {
         if (clazz.isArray()) {
             return clazz.getComponentType();
         } else if (Collection.class.isAssignableFrom(clazz)) {
-            return Class.forName(clazz.getTypeParameters()[0].getBounds()[0].getTypeName());
+            Type type = clazz.getTypeParameters()[0].getBounds()[0];
+
+            return typeToClass(type, clazz.getClassLoader());
         } else {
             return null;
         }
@@ -38,13 +43,22 @@ public class JsonReflectionUtil {
         if (type.isArray()) {
             return type.getComponentType();
         } else if (Collection.class.isAssignableFrom(type)) {
-            String parameter = field.getGenericType().toString();
+            ParameterizedType genericType = (ParameterizedType) field.getGenericType();
+            Type parameter = genericType.getActualTypeArguments()[0];
 
-            parameter = parameter.substring(parameter.indexOf('<') + 1, parameter.length() - 1);
-
-            return Class.forName(parameter);
+            return typeToClass(parameter, field.getDeclaringClass().getClassLoader());
         } else {
             return null;
+        }
+    }
+
+    @SneakyThrows
+    public static Class<?> typeToClass(@NonNull Type type, @Nullable ClassLoader cl) {
+        if (type instanceof Class) {
+            return (Class<?>) type;
+        } else {
+            // Fallback.
+            return Class.forName(type.getTypeName(), false, cl);
         }
     }
 
