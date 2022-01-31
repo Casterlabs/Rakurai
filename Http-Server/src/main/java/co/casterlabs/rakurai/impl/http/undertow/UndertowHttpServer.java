@@ -3,9 +3,10 @@ package co.casterlabs.rakurai.impl.http.undertow;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.TrustManager;
@@ -34,7 +35,6 @@ import io.undertow.Undertow;
 import io.undertow.UndertowOptions;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
-import io.undertow.server.handlers.BlockingHandler;
 import io.undertow.util.HttpString;
 import io.undertow.websockets.WebSocketConnectionCallback;
 import io.undertow.websockets.core.AbstractReceiveListener;
@@ -42,6 +42,7 @@ import io.undertow.websockets.core.BufferedBinaryMessage;
 import io.undertow.websockets.core.BufferedTextMessage;
 import io.undertow.websockets.core.StreamSourceFrameChannel;
 import io.undertow.websockets.core.WebSocketChannel;
+import io.undertow.websockets.core.WebSockets;
 import io.undertow.websockets.spi.WebSocketHttpExchange;
 import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
@@ -53,6 +54,8 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
 
     private boolean running = false;
     private boolean secure = false;
+
+    private ExecutorService executor = Executors.newCachedThreadPool();
 
     static {
         System.setProperty("org.jboss.logging.provider", "slf4j"); // This mutes it.
@@ -66,7 +69,7 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
             .setServerOption(UndertowOptions.DECODE_URL, false)
 //            .setServerOption(UndertowOptions.ALWAYS_SET_KEEP_ALIVE, false)
 
-            .setHandler(new BlockingHandler(Handlers.websocket(this, this)))
+            .setHandler(Handlers.websocket(this, this))
             .addHttpListener(port, hostname)
             .build();
 
@@ -85,7 +88,7 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
             .setServerOption(UndertowOptions.DECODE_URL, false)
 //            .setServerOption(UndertowOptions.ALWAYS_SET_KEEP_ALIVE, false)
 
-            .setHandler(new BlockingHandler(Handlers.websocket(this, this)))
+            .setHandler(Handlers.websocket(this, this))
             .addHttpsListener(port, hostname, keyManagers, trustManagers)
             .build();
 
@@ -96,9 +99,7 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
 
     @Override
     public void handleRequest(HttpServerExchange exchange) throws Exception {
-        if (exchange.isInIoThread()) {
-            exchange.dispatch(this);
-        } else {
+        executor.submit(() -> {
             try {
                 long start = System.currentTimeMillis();
 
@@ -130,14 +131,12 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                 if (response.getMode() == TransferEncoding.FIXED_LENGTH) {
                     exchange.setResponseContentLength(response.getLength());
 
-                    //@formatter:off
-                        IOUtil.writeInputStreamToOutputStream(
-                                in, 
-                                out, 
-                                response.getLength(), 
-                                IOUtil.DEFAULT_BUFFER_SIZE
-                        );
-                        //@formatter:on
+                    IOUtil.writeInputStreamToOutputStream(
+                        in,
+                        out,
+                        response.getLength(),
+                        IOUtil.DEFAULT_BUFFER_SIZE
+                    );
                 } else {
                     IOUtil.writeInputStreamToOutputStream(in, out);
                 }
@@ -154,7 +153,7 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
 
                 IOUtil.safeClose(exchange.getConnection());
             }
-        }
+        });
     }
 
     @Override
@@ -183,13 +182,16 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                 @SuppressWarnings("deprecation")
                 @Override
                 protected void onFullBinaryMessage(WebSocketChannel channel, BufferedBinaryMessage message) {
-                    for (ByteBuffer buffer : message.getData().getResource()) {
-                        WebsocketFrame frame = new BinaryWebsocketFrame(buffer.array());
+                    byte[] bytes = WebSockets.mergeBuffers(message.getData().getResource()).array();
 
-                        logger.debug("WebsocketFrame (%s):\n%s", websocket.getSession().getRemoteIpAddress(), frame);
+                    // Free the pool.
+                    message.getData().free();
 
-                        listener.onFrame(websocket, frame);
-                    }
+                    WebsocketFrame frame = new BinaryWebsocketFrame(bytes);
+
+                    logger.debug("WebsocketFrame (%s):\n%s", websocket.getSession().getRemoteIpAddress(), frame);
+
+                    listener.onFrame(websocket, frame);
                 }
 
                 @Override
