@@ -1,7 +1,6 @@
 package co.casterlabs.rakurai.impl.http.undertow;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +18,7 @@ import co.casterlabs.rakurai.impl.http.BinaryWebsocketFrame;
 import co.casterlabs.rakurai.impl.http.TextWebsocketFrame;
 import co.casterlabs.rakurai.io.IOUtil;
 import co.casterlabs.rakurai.io.http.HttpResponse;
+import co.casterlabs.rakurai.io.http.HttpResponse.ResponseContent;
 import co.casterlabs.rakurai.io.http.HttpResponse.TransferEncoding;
 import co.casterlabs.rakurai.io.http.HttpSession;
 import co.casterlabs.rakurai.io.http.StandardHttpStatus;
@@ -62,14 +62,20 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
     }
 
     @SuppressWarnings("deprecation")
-    public UndertowHttpServer(HttpListener server, String hostname, int port, HttpServerBuilder builder) {
-        this.undertow = Undertow.builder()
+    private Undertow.Builder makeBuilder(HttpListener server, String hostname, int port, HttpServerBuilder builder) {
+        return Undertow.builder()
             .setServerOption(UndertowOptions.ENABLE_SPDY, builder.isSPDYEnabled())
             .setServerOption(UndertowOptions.ENABLE_HTTP2, builder.isHttp2Enabled())
             .setServerOption(UndertowOptions.DECODE_URL, false)
 //            .setServerOption(UndertowOptions.ALWAYS_SET_KEEP_ALIVE, false)
 
-            .setHandler(Handlers.websocket(this, this))
+            .setBufferSize(IOUtil.DEFAULT_BUFFER_SIZE)
+
+            .setHandler(Handlers.websocket(this, this));
+    }
+
+    public UndertowHttpServer(HttpListener server, String hostname, int port, HttpServerBuilder builder) {
+        this.undertow = makeBuilder(server, hostname, port, builder)
             .addHttpListener(port, hostname)
             .build();
 
@@ -77,18 +83,11 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
         this.server = server;
     }
 
-    @SuppressWarnings("deprecation")
     public UndertowHttpServer(HttpListener server, String hostname, int port, KeyManager[] keyManagers, TrustManager[] trustManagers, String[] tls, List<String> cipherSuites, HttpServerBuilder builder) {
-        this.undertow = Undertow.builder()
+        this.undertow = makeBuilder(server, hostname, port, builder)
             .setSocketOption(Options.SSL_ENABLED_CIPHER_SUITES, Sequence.of(cipherSuites))
             .setSocketOption(Options.SSL_ENABLED_PROTOCOLS, Sequence.of(tls))
 
-            .setServerOption(UndertowOptions.ENABLE_SPDY, builder.isSPDYEnabled())
-            .setServerOption(UndertowOptions.ENABLE_HTTP2, builder.isHttp2Enabled())
-            .setServerOption(UndertowOptions.DECODE_URL, false)
-//            .setServerOption(UndertowOptions.ALWAYS_SET_KEEP_ALIVE, false)
-
-            .setHandler(Handlers.websocket(this, this))
             .addHttpsListener(port, hostname, keyManagers, trustManagers)
             .build();
 
@@ -99,7 +98,8 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
 
     @Override
     public void handleRequest(HttpServerExchange exchange) throws Exception {
-        executor.submit(() -> {
+        // We want to dispatch in our executor.
+        exchange.dispatch(this.executor, () -> {
             try {
                 long start = System.currentTimeMillis();
 
@@ -125,21 +125,15 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                     exchange.getResponseHeaders().add(HttpString.tryFromString(key), value);
                 }
 
-                InputStream in = response.getResponseStream();
+                ResponseContent<?> content = response.getContent();
                 OutputStream out = exchange.getOutputStream();
 
-                if (response.getMode() == TransferEncoding.FIXED_LENGTH) {
-                    exchange.setResponseContentLength(response.getLength());
-
-                    IOUtil.writeInputStreamToOutputStream(
-                        in,
-                        out,
-                        response.getLength(),
-                        IOUtil.DEFAULT_BUFFER_SIZE
-                    );
-                } else {
-                    IOUtil.writeInputStreamToOutputStream(in, out);
+                // If it's a fixed-length response we want to add that info.
+                if (content.getEncoding() == TransferEncoding.FIXED_LENGTH) {
+                    exchange.setResponseContentLength(content.getLength());
                 }
+
+                content.write(out);
 
                 double time = (System.currentTimeMillis() - start) / 1000d;
 

@@ -1,19 +1,22 @@
 package co.casterlabs.rakurai.io.http;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+import co.casterlabs.rakurai.CharStrings;
+import co.casterlabs.rakurai.io.IOUtil;
 import co.casterlabs.rakurai.json.element.JsonArray;
 import co.casterlabs.rakurai.json.element.JsonElement;
 import co.casterlabs.rakurai.json.element.JsonObject;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
@@ -32,13 +35,10 @@ public class HttpResponse {
     private @Getter(AccessLevel.NONE) Map<String, String> headers = new HashMap<>();
     private @NonNull @Setter HttpStatus status;
 
-    private InputStream responseStream;
-    private TransferEncoding mode;
-    private long length = -1;
+    private ResponseContent<?> content;
 
-    private HttpResponse(InputStream responseStream, TransferEncoding mode, HttpStatus status) {
-        this.responseStream = responseStream;
-        this.mode = mode;
+    private HttpResponse(ResponseContent<?> content, HttpStatus status) {
+        this.content = content;
         this.status = status;
     }
 
@@ -75,7 +75,7 @@ public class HttpResponse {
     }
 
     /* ---------------- */
-    /* Creating         */
+    /* Creating (Byte)  */
     /* ---------------- */
 
     public static HttpResponse newFixedLengthResponse(@NonNull HttpStatus status) {
@@ -84,6 +84,10 @@ public class HttpResponse {
 
     public static HttpResponse newFixedLengthResponse(@NonNull HttpStatus status, @NonNull String body) {
         return newFixedLengthResponse(status, body.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public static HttpResponse newFixedLengthResponse(@NonNull HttpStatus status, @NonNull char[] body) {
+        return newFixedLengthResponse(status, CharStrings.strbytes(body));
     }
 
     public static HttpResponse newFixedLengthResponse(@NonNull HttpStatus status, @NonNull JsonElement json) {
@@ -100,19 +104,25 @@ public class HttpResponse {
     }
 
     public static HttpResponse newFixedLengthResponse(@NonNull HttpStatus status, @NonNull byte[] body) {
-        return newFixedLengthResponse(status, new ByteArrayInputStream(body), body.length);
+        HttpResponse response = new HttpResponse(
+            new ByteResponse(body),
+            status
+        );
+
+        return response;
     }
 
+    /* ---------------- */
+    /* Response (Stream) */
+    /* ---------------- */
+
     public static HttpResponse newFixedLengthResponse(@NonNull HttpStatus status, @NonNull InputStream responseStream, long length) {
-        if (length > Integer.MAX_VALUE) {
-            return newChunkedResponse(status, responseStream);
-        } else {
-            HttpResponse response = new HttpResponse(responseStream, TransferEncoding.FIXED_LENGTH, status);
+        HttpResponse response = new HttpResponse(
+            new StreamResponse(responseStream, length),
+            status
+        );
 
-            response.length = length;
-
-            return response;
-        }
+        return response;
     }
 
     public static HttpResponse newFixedLengthFileResponse(@NonNull HttpStatus status, @NonNull File file) throws FileNotFoundException {
@@ -130,16 +140,101 @@ public class HttpResponse {
     }
 
     public static HttpResponse newChunkedResponse(@NonNull HttpStatus status, @NonNull InputStream responseStream) {
-        return new HttpResponse(responseStream, TransferEncoding.CHUNKED, status);
+        return new HttpResponse(
+            new StreamResponse(responseStream, 0 - 1),
+            status
+        );
     }
 
     /* ---------------- */
-    /* Misc             */
+    /* Responses        */
     /* ---------------- */
 
     public static enum TransferEncoding {
         FIXED_LENGTH,
         CHUNKED;
+
+    }
+
+    public static interface ResponseContent<T> {
+
+        public void write(OutputStream out) throws IOException;
+
+        public TransferEncoding getEncoding();
+
+        public long getLength();
+
+        public T raw();
+
+    }
+
+    @AllArgsConstructor
+    public static class StreamResponse implements ResponseContent<InputStream> {
+        private InputStream response;
+        private long length;
+
+        @Override
+        public void write(OutputStream out) throws IOException {
+            // If we have to, use the less efficient response format.
+            // Otherwise, we want to use the smallest buffer possible (Saves cpu).
+            boolean isInefficient = (this.length == -1) || (this.length > Integer.MAX_VALUE);
+
+            if (isInefficient) {
+                IOUtil.writeInputStreamToOutputStream(this.response, out);
+            } else {
+                IOUtil.writeInputStreamToOutputStream(
+                    this.response,
+                    out,
+                    this.length,
+                    IOUtil.DEFAULT_BUFFER_SIZE
+                );
+            }
+        }
+
+        @Override
+        public TransferEncoding getEncoding() {
+            if (this.length == -1) {
+                return TransferEncoding.CHUNKED;
+            } else {
+                return TransferEncoding.FIXED_LENGTH;
+            }
+        }
+
+        @Override
+        public long getLength() {
+            return this.length;
+        }
+
+        @Override
+        public InputStream raw() {
+            return this.response;
+        }
+
+    }
+
+    @AllArgsConstructor
+    public static class ByteResponse implements ResponseContent<byte[]> {
+        private byte[] response;
+
+        @Override
+        public void write(OutputStream out) throws IOException {
+            out.write(this.response);
+        }
+
+        @Override
+        public TransferEncoding getEncoding() {
+            return TransferEncoding.FIXED_LENGTH;
+        }
+
+        @Override
+        public long getLength() {
+            return this.response.length;
+        }
+
+        @Override
+        public byte[] raw() {
+            return this.response;
+        }
 
     }
 

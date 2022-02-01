@@ -1,6 +1,8 @@
 package co.casterlabs.rakurai.impl.http.nano;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.logging.Level;
@@ -9,6 +11,7 @@ import java.util.logging.Logger;
 import co.casterlabs.rakurai.StringUtil;
 import co.casterlabs.rakurai.io.http.DropConnectionException;
 import co.casterlabs.rakurai.io.http.HttpResponse;
+import co.casterlabs.rakurai.io.http.HttpResponse.ResponseContent;
 import co.casterlabs.rakurai.io.http.HttpResponse.TransferEncoding;
 import co.casterlabs.rakurai.io.http.HttpStatus;
 import co.casterlabs.rakurai.io.http.StandardHttpStatus;
@@ -84,12 +87,30 @@ public class NanoHttpServer extends NanoWSD implements HttpServer {
             } else {
                 String mime = response.getAllHeaders().getOrDefault("content-type", "text/plaintext");
 
-                //@formatter:off
                 IStatus status = convertStatus(response.getStatus());
-                Response nanoResponse = (response.getMode() == TransferEncoding.CHUNKED) ?
-                        NanoHTTPD.newChunkedResponse(status, mime, response.getResponseStream()) :
-                        NanoHTTPD.newFixedLengthResponse(status, mime, response.getResponseStream(), response.getLength());
-                //@formatter:on
+                ResponseContent<?> content = response.getContent();
+
+                Response nanoResponse;
+
+                // ByteResponse is always fixed length.
+                // StreamResponse *can* be fixed length, you just have to ask.
+                if (content instanceof HttpResponse.ByteResponse) {
+                    nanoResponse = NanoHTTPD.newFixedLengthResponse(
+                        status,
+                        mime,
+                        new ByteArrayInputStream((byte[]) content.raw()), // Nano doesn't support byte responses.
+                        content.getLength()
+                    );
+                } else if (content.getEncoding() == TransferEncoding.FIXED_LENGTH) {
+                    nanoResponse = NanoHTTPD.newFixedLengthResponse(
+                        status,
+                        mime,
+                        (InputStream) content.raw(),
+                        content.getLength()
+                    );
+                } else {
+                    nanoResponse = NanoHTTPD.newChunkedResponse(status, mime, (InputStream) content.raw());
+                }
 
                 for (Map.Entry<String, String> header : response.getAllHeaders().entrySet()) {
                     // Check prevents duplicate headers
