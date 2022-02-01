@@ -1,8 +1,24 @@
 package co.casterlabs.rakurai;
 
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.StandardCharsets;
+
 import lombok.NonNull;
 
 public class CharStrings {
+
+    public static byte[] strbytes(char[] chars) {
+        CharBuffer charBuffer = CharBuffer.wrap(chars);
+        ByteBuffer byteBuffer = StandardCharsets.UTF_8.encode(charBuffer);
+
+        byte[] bytes = byteBuffer.array().clone();
+
+        charBuffer = null;
+        byteBuffer = null;
+
+        return bytes;
+    }
 
     public static void strcpy(@NonNull char[] source, @NonNull char[] dest) {
         System.arraycopy(source, 0, dest, 0, dest.length);
