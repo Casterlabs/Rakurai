@@ -57,6 +57,8 @@ public class HttpResponse {
         this.putHeader("X-Sora-For", session.getRemoteIpAddress());
 
         if (!session.hasSessionErrored) {
+            session.printOutput.close();
+            session.logFile.delete();
             return; // Do nothing, ignore it.
         }
 
