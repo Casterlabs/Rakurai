@@ -7,6 +7,7 @@ import java.util.Map;
 
 import co.casterlabs.rakurai.collections.HeaderMap;
 import co.casterlabs.rakurai.io.http.HttpVersion;
+import co.casterlabs.rakurai.io.http.server.HttpServerBuilder;
 import co.casterlabs.rakurai.io.http.websocket.WebsocketSession;
 import io.undertow.websockets.core.WebSocketChannel;
 import io.undertow.websockets.spi.WebSocketHttpExchange;
@@ -20,7 +21,9 @@ public class UndertowWebsocketSessionWrapper extends WebsocketSession {
     private Map<String, String> queryParameters = new HashMap<>();
     private HeaderMap headers;
 
-    public UndertowWebsocketSessionWrapper(WebSocketHttpExchange exchange, WebSocketChannel channel, int port) {
+    public UndertowWebsocketSessionWrapper(WebSocketHttpExchange exchange, WebSocketChannel channel, int port, HttpServerBuilder config) {
+        super(config);
+
         this.exchange = exchange;
         this.channel = channel;
         this.port = port;

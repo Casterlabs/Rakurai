@@ -5,6 +5,7 @@ import java.util.Map;
 
 import co.casterlabs.rakurai.collections.HeaderMap;
 import co.casterlabs.rakurai.io.http.HttpVersion;
+import co.casterlabs.rakurai.io.http.server.HttpServerBuilder;
 import co.casterlabs.rakurai.io.http.websocket.WebsocketSession;
 import fi.iki.elonen.NanoHTTPD.IHTTPSession;
 
@@ -14,7 +15,9 @@ public class NanoWebsocketSessionWrapper extends WebsocketSession {
 
     private HeaderMap headers;
 
-    public NanoWebsocketSessionWrapper(IHTTPSession nanoSession, int port) {
+    public NanoWebsocketSessionWrapper(IHTTPSession nanoSession, int port, HttpServerBuilder config) {
+        super(config);
+
         this.nanoSession = nanoSession;
         this.port = port;
         this.headers = new HeaderMap.Builder().putSingleMap(this.nanoSession.getHeaders()).build();

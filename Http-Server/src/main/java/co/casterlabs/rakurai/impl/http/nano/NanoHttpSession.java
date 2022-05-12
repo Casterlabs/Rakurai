@@ -11,6 +11,7 @@ import co.casterlabs.rakurai.collections.HeaderMap;
 import co.casterlabs.rakurai.io.http.HttpMethod;
 import co.casterlabs.rakurai.io.http.HttpSession;
 import co.casterlabs.rakurai.io.http.HttpVersion;
+import co.casterlabs.rakurai.io.http.server.HttpServerBuilder;
 import fi.iki.elonen.NanoHTTPD.IHTTPSession;
 import fi.iki.elonen.NanoHTTPD.ResponseException;
 import lombok.Getter;
@@ -23,7 +24,9 @@ public class NanoHttpSession extends HttpSession {
     private HeaderMap headers;
     private byte[] body;
 
-    public NanoHttpSession(IHTTPSession nanoSession, FastLogger logger, int port) {
+    public NanoHttpSession(IHTTPSession nanoSession, FastLogger logger, int port, HttpServerBuilder config) {
+        super(config);
+
         this.port = port;
         this.nanoSession = nanoSession;
         this.headers = new HeaderMap.Builder().putSingleMap(this.nanoSession.getHeaders()).build();

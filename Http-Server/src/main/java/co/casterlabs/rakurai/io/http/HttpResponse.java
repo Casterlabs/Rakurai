@@ -8,10 +8,13 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import co.casterlabs.rakurai.CharStrings;
 import co.casterlabs.rakurai.io.IOUtil;
+import co.casterlabs.rakurai.io.http.server.HttpServerBuilder;
 import co.casterlabs.rakurai.json.element.JsonArray;
 import co.casterlabs.rakurai.json.element.JsonElement;
 import co.casterlabs.rakurai.json.element.JsonObject;
@@ -20,6 +23,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
+import xyz.e3ndr.fastloggingframework.logging.FastLogger;
+import xyz.e3ndr.fastloggingframework.logging.StringUtil;
 
 @Getter
 public class HttpResponse {
@@ -40,6 +45,85 @@ public class HttpResponse {
     private HttpResponse(ResponseContent<?> content, HttpStatus status) {
         this.content = content;
         this.status = status;
+    }
+
+    /**
+     * @deprecated This is only to be used internally.
+     */
+    @Deprecated
+    public void finalizeResult(HttpSession session, HttpServerBuilder config, FastLogger serverLogger) {
+        this.putHeader("X-Sora-Request-ID", session.getRequestId());
+        this.putHeader("X-Sora-Request-State", session.hasSessionErrored ? "ERRORED" : "OK");
+        this.putHeader("X-Sora-For", session.getRemoteIpAddress());
+
+        if (!session.hasSessionErrored) {
+            return; // Do nothing, ignore it.
+        }
+
+        if (session.printOutput == null) {
+            serverLogger.info(
+                "Request %s produced an error and was logged to console.\n" +
+                    "Consider enabling logging in your config to get more detailed reports of incidents in the future.",
+                session.getRequestId()
+            );
+            return;
+        }
+
+        // Start logigng.
+        session.printOutput.println("\n\n---- End of log ----");
+
+        // Request
+        session.printOutput.println("\n\n---- Start of request ----");
+
+        session.printOutput.format("%s %s\n\n", session.getMethod(), session.getUri());
+
+        for (Map.Entry<String, List<String>> header : session.getHeaders().entrySet()) {
+            for (String value : header.getValue()) {
+                session.printOutput.format("%s: %s\n", header.getKey(), value);
+            }
+        }
+
+        if (session.hasBody()) {
+            try {
+                byte[] body = session.getRequestBodyBytes();
+
+                session.printOutput.write(body);
+            } catch (IOException e) {
+                session.printOutput.format("ERROR, UNABLE TO GET BODY. PRINTING STACK:\n", StringUtil.getExceptionStack(e));
+            }
+        }
+
+        session.printOutput.println("\n\n---- End of request ----");
+
+        // Response
+        session.printOutput.println("\n\n---- Start of response ----");
+
+        session.printOutput.format("%s: %s\n\n", this.status.getStatusCode(), this.status.getDescription());
+
+        for (Entry<String, String> header : this.headers.entrySet()) {
+            session.printOutput.format("%s: %s\n", header.getKey(), header.getValue());
+        }
+
+        if (this.content instanceof StreamResponse) {
+            session.printOutput.print("<-- Stream response, not inspectable -->");
+        } else {
+            try {
+                session.printOutput.write((byte[]) this.content.raw());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        session.printOutput.println("\n\n---- End of response ----");
+
+        // Write to file
+        session.printOutput.close();
+
+        serverLogger.info(
+            "Request %s produced an error and was written to %s.",
+            session.getRequestId(),
+            session.logFile
+        );
     }
 
     /* ---------------- */

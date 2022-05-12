@@ -14,6 +14,7 @@ import co.casterlabs.rakurai.collections.HeaderMap;
 import co.casterlabs.rakurai.io.http.HttpMethod;
 import co.casterlabs.rakurai.io.http.HttpSession;
 import co.casterlabs.rakurai.io.http.HttpVersion;
+import co.casterlabs.rakurai.io.http.server.HttpServerBuilder;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.server.handlers.form.FormData;
 import io.undertow.server.handlers.form.FormDataParser;
@@ -32,7 +33,9 @@ public class UndertowHttpSessionWrapper extends HttpSession {
     private byte[] body;
 
     @SuppressWarnings("deprecation")
-    public UndertowHttpSessionWrapper(HttpServerExchange exchange, int port) {
+    public UndertowHttpSessionWrapper(HttpServerExchange exchange, int port, HttpServerBuilder config) {
+        super(config);
+
         this.exchange = exchange;
         this.port = port;
 

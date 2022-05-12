@@ -1,21 +1,75 @@
 package co.casterlabs.rakurai.io.http;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.jetbrains.annotations.Nullable;
 
 import co.casterlabs.rakurai.collections.HeaderMap;
+import co.casterlabs.rakurai.io.http.server.HttpServerBuilder;
+import co.casterlabs.rakurai.io.http.websocket.WebsocketSession;
 import co.casterlabs.rakurai.json.Rson;
 import co.casterlabs.rakurai.json.element.JsonArray;
 import co.casterlabs.rakurai.json.element.JsonElement;
 import co.casterlabs.rakurai.json.element.JsonObject;
 import co.casterlabs.rakurai.json.serialization.JsonParseException;
+import lombok.Getter;
 import lombok.NonNull;
+import xyz.e3ndr.fastloggingframework.logging.FastLogger;
+import xyz.e3ndr.fastloggingframework.logging.LogLevel;
+import xyz.e3ndr.fastloggingframework.logging.StringUtil;
 
 public abstract class HttpSession {
+    private final @Getter String requestId = UUID.randomUUID().toString();
+
+    File logFile;
+    PrintStream printOutput;
+    boolean hasSessionErrored = false;
+
+    private @Getter FastLogger logger;
+
+    protected HttpSession(HttpServerBuilder config) {
+        FastLogger realLogger = new FastLogger("Sora Session: " + this.requestId);
+
+        boolean logsEnabled = !(this instanceof WebsocketSession) && (config.getLogsDir() != null);
+
+        if (logsEnabled) {
+            this.logFile = new File(config.getLogsDir(), this.requestId + ".httpexchange");
+
+            try {
+                this.logFile.createNewFile();
+                this.printOutput = new PrintStream(new FileOutputStream(this.logFile));
+
+                this.printOutput.println("\n\n---- Start of log ----");
+            } catch (IOException e) {
+                realLogger.fatal("Could not start request logging:\n%s", e);
+            }
+        }
+
+        this.logger = new FastLogger(this.requestId) {
+            @Override
+            public FastLogger log(@NonNull LogLevel level, @Nullable Object object, @Nullable Object... args) {
+                if (level.getPriority() <= LogLevel.WARNING.getPriority()) {
+                    hasSessionErrored = true;
+                    realLogger.log(level, object, args);
+                }
+
+                if (logsEnabled) {
+                    String line = StringUtil.parseFormat(object, args);
+
+                    printOutput.println(line);
+                }
+
+                return this;
+            }
+        };
+    }
 
     // Request headers
     public abstract HeaderMap getHeaders();

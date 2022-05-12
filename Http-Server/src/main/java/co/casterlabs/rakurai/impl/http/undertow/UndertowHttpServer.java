@@ -55,6 +55,8 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
     private boolean running = false;
     private boolean secure = false;
 
+    private HttpServerBuilder config;
+
     private ExecutorService executor = Executors.newCachedThreadPool();
 
     static {
@@ -81,6 +83,7 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
 
         this.port = port;
         this.server = server;
+        this.config = builder;
     }
 
     public UndertowHttpServer(HttpListener server, String hostname, int port, KeyManager[] keyManagers, TrustManager[] trustManagers, String[] tls, List<String> cipherSuites, HttpServerBuilder builder) {
@@ -94,8 +97,10 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
         this.port = port;
         this.secure = true;
         this.server = server;
+        this.config = builder;
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void handleRequest(HttpServerExchange exchange) throws Exception {
         // We want to dispatch in our executor.
@@ -105,7 +110,7 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
 
                 exchange.startBlocking();
 
-                HttpSession session = new UndertowHttpSessionWrapper(exchange, this.port);
+                HttpSession session = new UndertowHttpSessionWrapper(exchange, this.port, this.config);
                 HttpResponse response = this.server.serveSession(session.getHost(), session, this.secure);
 
                 if (response == null) {
@@ -113,6 +118,8 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                 } else if (response.getStatus() == StandardHttpStatus.NO_RESPONSE) {
                     IOUtil.safeClose(exchange.getConnection());
                     return;
+                } else {
+                    response.finalizeResult(session, this.config, this.logger);
                 }
 
                 exchange.setStatusCode(response.getStatus().getStatusCode());
@@ -152,7 +159,7 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
 
     @Override
     public void onConnect(WebSocketHttpExchange exchange, WebSocketChannel channel) {
-        WebsocketSession session = new UndertowWebsocketSessionWrapper(exchange, channel, this.port);
+        WebsocketSession session = new UndertowWebsocketSessionWrapper(exchange, channel, this.port, this.config);
         WebsocketListener listener = this.server.serveWebsocketSession(session.getHost(), session, this.secure);
 
         if (listener == null) {
