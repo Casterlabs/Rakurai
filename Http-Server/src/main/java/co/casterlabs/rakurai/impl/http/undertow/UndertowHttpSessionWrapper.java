@@ -34,8 +34,6 @@ public class UndertowHttpSessionWrapper extends HttpSession {
 
     @SuppressWarnings("deprecation")
     public UndertowHttpSessionWrapper(HttpServerExchange exchange, int port, HttpServerBuilder config) {
-        super(config);
-
         this.exchange = exchange;
         this.port = port;
 
@@ -66,6 +64,7 @@ public class UndertowHttpSessionWrapper extends HttpSession {
             this.queryParameters.put(entry.getKey(), values.get(0));
         }
 
+        super.postConstruct(config);
     }
 
     // Request headers

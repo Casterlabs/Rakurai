@@ -25,11 +25,11 @@ public class NanoHttpSession extends HttpSession {
     private byte[] body;
 
     public NanoHttpSession(IHTTPSession nanoSession, FastLogger logger, int port, HttpServerBuilder config) {
-        super(config);
-
         this.port = port;
         this.nanoSession = nanoSession;
         this.headers = new HeaderMap.Builder().putSingleMap(this.nanoSession.getHeaders()).build();
+
+        this.postConstruct(config);
     }
 
     // Request headers

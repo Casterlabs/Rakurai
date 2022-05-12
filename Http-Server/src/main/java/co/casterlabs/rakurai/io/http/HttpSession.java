@@ -37,7 +37,7 @@ public abstract class HttpSession {
     private @Getter boolean isProxied;
     private String remoteIp;
 
-    protected HttpSession(HttpServerBuilder config) {
+    protected void postConstruct(HttpServerBuilder config) {
         this.isProxied = config.isBehindProxy();
 
         FastLogger realLogger = new FastLogger("Sora Session: " + this.requestId);
