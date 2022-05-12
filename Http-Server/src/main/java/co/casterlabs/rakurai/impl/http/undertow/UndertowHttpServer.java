@@ -17,6 +17,7 @@ import co.casterlabs.rakurai.StringUtil;
 import co.casterlabs.rakurai.impl.http.BinaryWebsocketFrame;
 import co.casterlabs.rakurai.impl.http.TextWebsocketFrame;
 import co.casterlabs.rakurai.io.IOUtil;
+import co.casterlabs.rakurai.io.http.DropConnectionException;
 import co.casterlabs.rakurai.io.http.HttpResponse;
 import co.casterlabs.rakurai.io.http.HttpResponse.ResponseContent;
 import co.casterlabs.rakurai.io.http.HttpResponse.TransferEncoding;
@@ -148,9 +149,9 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
 
                 exchange.endExchange();
             } catch (Exception e) {
-                /*if (!(e instanceof DropConnectionException)) {
-                e.printStackTrace();
-                }*/
+                if (!(e instanceof DropConnectionException)) {
+                    this.logger.fatal("A fatal error occurred whilst processing a request:\n%s", e);
+                }
 
                 IOUtil.safeClose(exchange.getConnection());
             }
