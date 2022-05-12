@@ -170,7 +170,7 @@ public class UndertowHttpSessionWrapper extends HttpSession {
     }
 
     @Override
-    public String getRemoteIpAddress() {
+    protected String getNetworkIpAddress() {
         return this.exchange.getSourceAddress().getHostString();
     }
 

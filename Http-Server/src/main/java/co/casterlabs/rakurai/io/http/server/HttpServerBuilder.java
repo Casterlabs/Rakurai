@@ -26,6 +26,8 @@ public abstract class HttpServerBuilder {
 
     protected SSLConfiguration ssl;
 
+    protected boolean behindProxy = false;
+
     /* Protocols */
     @Deprecated
     protected boolean SPDYEnabled = false;

@@ -73,7 +73,7 @@ public class NanoWebsocketSessionWrapper extends WebsocketSession {
     }
 
     @Override
-    public String getRemoteIpAddress() {
+    protected String getNetworkIpAddress() {
         return this.nanoSession.getRemoteIpAddress();
     }
 

@@ -5,6 +5,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -34,7 +35,12 @@ public abstract class HttpSession {
 
     private @Getter FastLogger logger;
 
+    private @Getter boolean isProxied;
+    private String remoteIp;
+
     protected HttpSession(HttpServerBuilder config) {
+        this.isProxied = config.isBehindProxy();
+
         FastLogger realLogger = new FastLogger("Sora Session: " + this.requestId);
 
         boolean logsEnabled = !(this instanceof WebsocketSession) && (config.getLogsDir() != null);
@@ -50,6 +56,10 @@ public abstract class HttpSession {
             } catch (IOException e) {
                 realLogger.fatal("Could not start request logging:\n%s", e);
             }
+        }
+
+        if (this.isProxied) {
+            this.remoteIp = this.getRequestHops().get(0);
         }
 
         this.logger = new FastLogger(this.requestId) {
@@ -146,7 +156,40 @@ public abstract class HttpSession {
 
     public abstract HttpVersion getVersion();
 
-    public abstract String getRemoteIpAddress();
+    public final String getRemoteIpAddress() {
+        return this.remoteIp;
+    }
+
+    protected abstract String getNetworkIpAddress();
+
+    public List<String> getRequestHops() {
+        List<String> hops = new ArrayList<>();
+
+        // If we are expecting the request to be proxied and the X-Forwarded-For header
+        // is present then we parse it.
+        if (this.isProxied) {
+            // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For
+            List<String> forwardedForHeader = this.getHeaders().get("X-Forwarded-For");
+
+            if (forwardedForHeader != null) {
+                for (String list : forwardedForHeader) {
+                    for (String hop : list.split(",")) {
+                        hops.add(hop.trim());
+                    }
+                }
+            }
+        }
+
+        // Add the final hop. If we aren't proxied then this has the effect of adding
+        // the actual IP address to the list.
+        String finalHop = this.getNetworkIpAddress();
+
+        if (!hops.contains(finalHop)) {
+            hops.add(finalHop);
+        }
+
+        return hops;
+    }
 
     @Override
     public final String toString() {
@@ -159,6 +202,7 @@ public abstract class HttpSession {
         sb.append("\n    port=").append(this.getPort());
         sb.append("\n    host=").append(this.getHost());
         sb.append("\n    remoteIpAddress=").append(this.getRemoteIpAddress());
+        sb.append("\n    hops=").append(this.getRequestHops());
         sb.append("\n    headers=").append(this.getHeaders());
         sb.append("\n    uri=").append(this.getUri()).append(this.getQueryString());
 

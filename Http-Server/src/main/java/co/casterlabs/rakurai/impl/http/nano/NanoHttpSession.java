@@ -124,7 +124,7 @@ public class NanoHttpSession extends HttpSession {
     }
 
     @Override
-    public String getRemoteIpAddress() {
+    protected String getNetworkIpAddress() {
         return this.nanoSession.getRemoteIpAddress();
     }
 

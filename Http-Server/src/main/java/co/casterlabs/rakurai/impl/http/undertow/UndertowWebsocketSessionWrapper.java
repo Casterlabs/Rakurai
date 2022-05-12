@@ -85,7 +85,7 @@ public class UndertowWebsocketSessionWrapper extends WebsocketSession {
     }
 
     @Override
-    public String getRemoteIpAddress() {
+    protected String getNetworkIpAddress() {
         return this.channel.getSourceAddress().getHostString();
     }
 
