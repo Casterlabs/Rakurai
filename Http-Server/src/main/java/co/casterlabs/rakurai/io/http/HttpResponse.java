@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,8 +58,6 @@ public class HttpResponse {
         this.putHeader("X-Sora-For", session.getRemoteIpAddress());
 
         if (!session.hasSessionErrored) {
-            session.printOutput.close();
-            session.logFile.delete();
             return; // Do nothing, ignore it.
         }
 
@@ -119,13 +118,24 @@ public class HttpResponse {
         session.printOutput.println("\n\n---- End of response ----");
 
         // Write to file
-        session.printOutput.close();
+        File logFile = new File(config.getLogsDir(), session.getRequestId() + ".httpexchange");
 
-        serverLogger.info(
-            "Request %s produced an error and was written to %s.",
-            session.getRequestId(),
-            session.logFile
-        );
+        try {
+            Files.write(logFile.toPath(), session.printResult.toByteArray());
+            serverLogger.info(
+                "Request %s produced an error and was written to %s.",
+                session.getRequestId(),
+                logFile
+            );
+        } catch (IOException e) {
+            serverLogger.severe(
+                "Could not write log file for %s to %s:\n%s",
+                session.getRequestId(),
+                logFile,
+                e
+            );
+            e.printStackTrace();
+        }
     }
 
     /* ---------------- */

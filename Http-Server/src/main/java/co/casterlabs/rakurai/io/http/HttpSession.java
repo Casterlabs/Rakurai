@@ -1,7 +1,6 @@
 package co.casterlabs.rakurai.io.http;
 
-import java.io.File;
-import java.io.FileOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
@@ -29,7 +28,7 @@ import xyz.e3ndr.fastloggingframework.logging.StringUtil;
 public abstract class HttpSession {
     private final @Getter String requestId = UUID.randomUUID().toString();
 
-    File logFile;
+    ByteArrayOutputStream printResult;
     PrintStream printOutput;
     boolean hasSessionErrored = false;
 
@@ -42,31 +41,27 @@ public abstract class HttpSession {
         this.isProxied = config.isBehindProxy();
 
         FastLogger realLogger = new FastLogger("Sora Session: " + this.requestId);
+        realLogger.setCurrentLevel(LogLevel.ALL);
 
         boolean logsEnabled = !(this instanceof WebsocketSession) && (config.getLogsDir() != null);
 
         if (logsEnabled) {
-            this.logFile = new File(config.getLogsDir(), this.requestId + ".httpexchange");
+            this.printResult = new ByteArrayOutputStream();
+            this.printOutput = new PrintStream(this.printResult);
 
-            try {
-                this.logFile.createNewFile();
-                this.printOutput = new PrintStream(new FileOutputStream(this.logFile));
-
-                this.printOutput.println("\n\n---- Start of log ----");
-            } catch (IOException e) {
-                realLogger.fatal("Could not start request logging:\n%s", e);
-            }
+            this.printOutput.println("\n\n---- Start of log ----");
         }
 
-        if (this.isProxied) {
-            this.remoteIp = this.getRequestHops().get(0);
-        }
+        this.remoteIp = this.getRequestHops().get(0);
 
         this.logger = new FastLogger(this.requestId) {
             @Override
             public FastLogger log(@NonNull LogLevel level, @Nullable Object object, @Nullable Object... args) {
-                if (level.getPriority() <= LogLevel.WARNING.getPriority()) {
+                if (level.canLog(LogLevel.WARNING)) {
                     hasSessionErrored = true;
+                }
+
+                if (level.canLog(this.getCurrentLevel())) {
                     realLogger.log(level, object, args);
                 }
 
@@ -79,6 +74,8 @@ public abstract class HttpSession {
                 return this;
             }
         };
+
+        this.logger.setCurrentLevel(LogLevel.WARNING);
     }
 
     // Request headers
