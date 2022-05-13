@@ -53,13 +53,12 @@ public class HttpResponse {
      */
     @Deprecated
     public void finalizeResult(HttpSession session, HttpServerBuilder config, FastLogger serverLogger) {
-        this.putHeader("X-Sora-Request-ID", session.getRequestId());
-        this.putHeader("X-Sora-Request-State", session.hasSessionErrored ? "ERRORED" : "OK");
-        this.putHeader("X-Sora-For", session.getRemoteIpAddress());
 
         if (!session.hasSessionErrored) {
             return; // Do nothing, ignore it.
         }
+
+        this.putHeader("X-Request-ID", session.getRequestId());
 
         if (session.printOutput == null) {
             serverLogger.info(
