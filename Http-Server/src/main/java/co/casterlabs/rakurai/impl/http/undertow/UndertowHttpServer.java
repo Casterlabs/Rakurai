@@ -149,7 +149,7 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
 
                 exchange.endExchange();
             } catch (Exception e) {
-                if (!(e instanceof DropConnectionException)) {
+                if (!(e instanceof DropConnectionException) && !e.getMessage().contains("Stream is closed")) {
                     this.logger.fatal("A fatal error occurred whilst processing a request:\n%s", e);
                 }
 
