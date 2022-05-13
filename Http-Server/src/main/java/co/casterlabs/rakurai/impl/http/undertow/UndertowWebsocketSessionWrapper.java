@@ -22,8 +22,6 @@ public class UndertowWebsocketSessionWrapper extends WebsocketSession {
     private HeaderMap headers;
 
     public UndertowWebsocketSessionWrapper(WebSocketHttpExchange exchange, WebSocketChannel channel, int port, HttpServerBuilder config) {
-        super(config);
-
         this.exchange = exchange;
         this.channel = channel;
         this.port = port;
@@ -34,6 +32,8 @@ public class UndertowWebsocketSessionWrapper extends WebsocketSession {
         }
 
         this.headers = new HeaderMap.Builder().putMap(exchange.getRequestHeaders()).build();
+
+        super.postConstruct(config);
     }
 
     // Request headers

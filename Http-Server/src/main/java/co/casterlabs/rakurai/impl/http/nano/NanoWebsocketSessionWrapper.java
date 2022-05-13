@@ -16,11 +16,11 @@ public class NanoWebsocketSessionWrapper extends WebsocketSession {
     private HeaderMap headers;
 
     public NanoWebsocketSessionWrapper(IHTTPSession nanoSession, int port, HttpServerBuilder config) {
-        super(config);
-
         this.nanoSession = nanoSession;
         this.port = port;
         this.headers = new HeaderMap.Builder().putSingleMap(this.nanoSession.getHeaders()).build();
+
+        super.postConstruct(config);
     }
 
     // Headers
