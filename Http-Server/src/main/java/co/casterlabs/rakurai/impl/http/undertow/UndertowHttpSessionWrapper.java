@@ -11,6 +11,7 @@ import java.util.Map;
 import org.jetbrains.annotations.Nullable;
 
 import co.casterlabs.rakurai.collections.HeaderMap;
+import co.casterlabs.rakurai.io.IOUtil;
 import co.casterlabs.rakurai.io.http.HttpMethod;
 import co.casterlabs.rakurai.io.http.HttpSession;
 import co.casterlabs.rakurai.io.http.HttpVersion;
@@ -110,8 +111,7 @@ public class UndertowHttpSessionWrapper extends HttpSession {
             long length = this.exchange.getRequestContentLength();
 
             if (length != -1) {
-                this.body = new byte[(int) length];
-                this.exchange.getInputStream().read(this.body, 0, (int) length);
+                this.body = IOUtil.readInputStreamBytes(this.exchange.getInputStream());
 
                 return this.body;
             } else {

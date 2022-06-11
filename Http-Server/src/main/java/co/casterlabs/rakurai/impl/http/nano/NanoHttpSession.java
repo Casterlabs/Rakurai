@@ -8,6 +8,7 @@ import java.util.Map;
 import org.jetbrains.annotations.Nullable;
 
 import co.casterlabs.rakurai.collections.HeaderMap;
+import co.casterlabs.rakurai.io.IOUtil;
 import co.casterlabs.rakurai.io.http.HttpMethod;
 import co.casterlabs.rakurai.io.http.HttpSession;
 import co.casterlabs.rakurai.io.http.HttpVersion;
@@ -74,10 +75,7 @@ public class NanoHttpSession extends HttpSession {
     public @Nullable byte[] getRequestBodyBytes() throws IOException {
         if (this.body == null) {
             if (this.hasBody()) {
-                int contentLength = Integer.parseInt(this.getHeader("content-length"));
-                this.body = new byte[contentLength];
-
-                this.nanoSession.getInputStream().read(this.body, 0, contentLength);
+                this.body = IOUtil.readInputStreamBytes(this.nanoSession.getInputStream());
 
                 return this.body;
             } else {
