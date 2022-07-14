@@ -153,7 +153,7 @@ public abstract class HttpSession {
 
     public abstract HttpVersion getVersion();
 
-    public final String getRemoteIpAddress() {
+    public String getRemoteIpAddress() {
         return this.remoteIp;
     }
 
