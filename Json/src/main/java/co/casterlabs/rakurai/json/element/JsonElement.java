@@ -65,16 +65,7 @@ public interface JsonElement {
     /* Serialization */
 
     default String toString(boolean prettyPrinting) {
-        JsonSerializationContext ctx = new JsonSerializationContext()
-            .setConfig(
-                new Rson.Builder()
-                    .setPrettyPrintingEnabled(prettyPrinting)
-                    .toConfig()
-            );
-
-        this.serialize(ctx);
-
-        return ctx.toString();
+        return Rson.DEFAULT.toJsonString(this);
     }
 
     default void serialize(@NonNull JsonSerializationContext ctx) {

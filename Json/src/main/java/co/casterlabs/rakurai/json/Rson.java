@@ -43,6 +43,7 @@ import lombok.experimental.Accessors;
 
 public class Rson {
     public static final Rson DEFAULT = new Rson.Builder()
+        .setPrettyPrintingEnabled(true)
         .build();
 
     private final RsonConfig settings;
@@ -60,7 +61,7 @@ public class Rson {
         JsonSerializationContext ctx = new JsonSerializationContext()
             .setConfig(this.settings);
 
-        e.serializeToArray(ctx);
+        e.serialize(ctx);
 
         return ctx.toString();
     }
