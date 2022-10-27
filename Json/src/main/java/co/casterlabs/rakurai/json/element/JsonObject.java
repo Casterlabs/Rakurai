@@ -13,6 +13,7 @@ import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
 
+import co.casterlabs.rakurai.json.Rson;
 import co.casterlabs.rakurai.json.serialization.JsonSerializationContext;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
@@ -26,6 +27,15 @@ public class JsonObject implements JsonElement, Iterable<Map.Entry<String, JsonE
     }
 
     private Map<String, JsonElement> contents = new LinkedHashMap<>();
+
+    /* Static Construction */
+
+    public static JsonObject singleton(@NonNull String key, @Nullable Object value) {
+        return new JsonObject()
+            .put(key, Rson.DEFAULT.toJson(value));
+    }
+
+    /* Access */
 
     @Override
     public boolean isJsonObject() {
@@ -188,18 +198,6 @@ public class JsonObject implements JsonElement, Iterable<Map.Entry<String, JsonE
     @Deprecated
     public Map<String, JsonElement> getMap() {
         return new HashMap<>(this.contents);
-    }
-
-    public static JsonObject singleton(@NonNull String key, @Nullable String value) {
-        return new JsonObject().put(key, value);
-    }
-
-    public static JsonObject singleton(@NonNull String key, @Nullable Number value) {
-        return new JsonObject().put(key, value);
-    }
-
-    public static JsonObject singleton(@NonNull String key, @Nullable JsonElement value) {
-        return new JsonObject().put(key, value);
     }
 
 }

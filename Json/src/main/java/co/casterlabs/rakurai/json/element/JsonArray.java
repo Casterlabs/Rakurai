@@ -1,6 +1,7 @@
 package co.casterlabs.rakurai.json.element;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -9,6 +10,7 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
+import co.casterlabs.rakurai.json.Rson;
 import co.casterlabs.rakurai.json.serialization.JsonSerializationContext;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
@@ -23,30 +25,23 @@ public class JsonArray implements JsonElement, Iterable<JsonElement> {
 
     private List<JsonElement> contents = new LinkedList<>();
 
-    public JsonArray(@NonNull Collection<? extends JsonElement> contents) {
-        for (JsonElement e : contents) {
-            this.add(e);
+    /* Static Construction */
+
+    public static JsonArray of(@NonNull Collection<Object> contents) {
+        JsonArray arr = new JsonArray();
+
+        for (Object e : contents) {
+            arr.add(Rson.DEFAULT.toJson(e));
         }
+
+        return arr;
     }
 
-    public JsonArray(@NonNull JsonElement... contents) {
-        for (JsonElement e : contents) {
-            this.add(e);
-        }
-    }
-    public JsonArray() {}
-
-    public JsonArray(@NonNull Number... contents) {
-        for (Number n : contents) {
-            this.add(n);
-        }
+    public static JsonArray of(@NonNull Object... contents) {
+        return of(Arrays.asList(contents));
     }
 
-    public JsonArray(@NonNull String... contents) {
-        for (String s : contents) {
-            this.add(s);
-        }
-    }
+    /* Access */
 
     @Override
     public boolean isJsonArray() {
