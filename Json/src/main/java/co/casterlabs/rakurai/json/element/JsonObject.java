@@ -21,11 +21,11 @@ import lombok.NonNull;
 public class JsonObject implements JsonElement, Iterable<Map.Entry<String, JsonElement>> {
     public static final JsonObject EMPTY_OBJECT = new JsonObject();
 
-    private Map<String, JsonElement> contents = new LinkedHashMap<>();
-
     static {
-        EMPTY_OBJECT.contents = Collections.unmodifiableMap(EMPTY_OBJECT.contents);
+        EMPTY_OBJECT.contents = Collections.emptyMap();
     }
+
+    private Map<String, JsonElement> contents = new LinkedHashMap<>();
 
     @Override
     public boolean isJsonObject() {

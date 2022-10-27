@@ -17,13 +17,11 @@ import lombok.NonNull;
 public class JsonArray implements JsonElement, Iterable<JsonElement> {
     public static final JsonArray EMPTY_ARRAY = new JsonArray();
 
-    private List<JsonElement> contents = new LinkedList<>();
-
     static {
-        EMPTY_ARRAY.contents = Collections.unmodifiableList(EMPTY_ARRAY.contents);
+        EMPTY_ARRAY.contents = Collections.emptyList();
     }
 
-    public JsonArray() {}
+    private List<JsonElement> contents = new LinkedList<>();
 
     public JsonArray(@NonNull Collection<? extends JsonElement> contents) {
         for (JsonElement e : contents) {
@@ -36,6 +34,7 @@ public class JsonArray implements JsonElement, Iterable<JsonElement> {
             this.add(e);
         }
     }
+    public JsonArray() {}
 
     public JsonArray(@NonNull Number... contents) {
         for (Number n : contents) {
