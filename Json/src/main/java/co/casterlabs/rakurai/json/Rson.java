@@ -5,10 +5,12 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
@@ -278,6 +280,7 @@ public class Rson {
         // Arrays & Collections
         boolean isCollection = Collection.class.isAssignableFrom(expected);
         boolean isArray = token.isArrayType();
+        boolean isMap = Map.class.isAssignableFrom(expected);
 
         if (isCollection || isArray) {
             if (!e.isJsonArray()) {
@@ -332,6 +335,44 @@ public class Rson {
 
                 return (T) coll;
             }
+        } else if (isMap) {
+            if (!e.isJsonObject()) {
+                throw new JsonParseException(String.format("Expected a %s but got a %s\n%s", expected.getSimpleName(), e.getClass().getSimpleName(), e));
+            }
+
+            Class<?> keyType = JsonReflectionUtil.typeToClass(token.getTypeArguments()[0], null);
+            Class<?> valueType = JsonReflectionUtil.typeToClass(token.getTypeArguments()[1], null);
+
+            if ((keyType != String.class) && !keyType.isEnum()) {
+                throw new JsonParseException(String.format("Can only deserialize map if the key type is a String or Enum\n%s", e));
+            }
+
+            Map<Object, Object> map = new LinkedHashMap<>();
+
+            for (Map.Entry<String, JsonElement> entry : e.getAsObject().entrySet()) {
+                Object key = null;
+
+                if (keyType == String.class) {
+                    key = entry.getKey();
+                } else {
+                    for (Object constant : keyType.getEnumConstants()) {
+                        Enum<?> enumConstant = (Enum<?>) constant;
+                        if (enumConstant.name().equalsIgnoreCase(entry.getKey())) {
+                            key = enumConstant;
+                            break;
+                        }
+                    }
+
+                    if (key == null) {
+                        throw new JsonParseException(String.format("Could not find a valid enum constant for string \"%s\" out of %s", entry.getKey(), Arrays.toString(keyType.getEnumConstants())));
+                    }
+                }
+
+                Object value = this.fromJson(entry.getValue(), valueType);
+                map.put(key, value);
+            }
+
+            return (T) map;
         }
 
         // Object deserialization.
