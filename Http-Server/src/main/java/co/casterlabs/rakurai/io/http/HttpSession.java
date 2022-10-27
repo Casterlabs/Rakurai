@@ -40,7 +40,7 @@ public abstract class HttpSession {
     protected void postConstruct(HttpServerBuilder config) {
         this.isProxied = config.isBehindProxy();
 
-        FastLogger realLogger = new FastLogger("Sora Session: " + this.requestId);
+        FastLogger realLogger = new FastLogger("Rakurai Session: " + this.requestId);
         realLogger.setCurrentLevel(LogLevel.ALL);
 
         boolean logsEnabled = !(this instanceof WebsocketSession) && (config.getLogsDir() != null);
