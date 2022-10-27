@@ -20,7 +20,6 @@ import co.casterlabs.rakurai.io.IOUtil;
 import co.casterlabs.rakurai.io.http.DropConnectionException;
 import co.casterlabs.rakurai.io.http.HttpResponse;
 import co.casterlabs.rakurai.io.http.HttpResponse.ResponseContent;
-import co.casterlabs.rakurai.io.http.HttpResponse.TransferEncoding;
 import co.casterlabs.rakurai.io.http.HttpSession;
 import co.casterlabs.rakurai.io.http.StandardHttpStatus;
 import co.casterlabs.rakurai.io.http.server.HttpListener;
@@ -133,12 +132,13 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                     exchange.getResponseHeaders().add(HttpString.tryFromString(key), value);
                 }
 
-                ResponseContent<?> content = response.getContent();
+                ResponseContent content = response.getContent();
                 OutputStream out = exchange.getOutputStream();
 
                 // If it's a fixed-length response we want to add that info.
-                if (content.getEncoding() == TransferEncoding.FIXED_LENGTH) {
-                    exchange.setResponseContentLength(content.getLength());
+                long length = content.getLength();
+                if (length >= 0) {
+                    exchange.setResponseContentLength(length);
                 }
 
                 content.write(out);

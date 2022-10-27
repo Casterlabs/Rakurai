@@ -41,9 +41,9 @@ public class HttpResponse {
     private @Getter(AccessLevel.NONE) Map<String, String> headers = new HashMap<>();
     private @NonNull @Setter HttpStatus status;
 
-    private ResponseContent<?> content;
+    private ResponseContent content;
 
-    private HttpResponse(ResponseContent<?> content, HttpStatus status) {
+    public HttpResponse(@NonNull ResponseContent content, @NonNull HttpStatus status) {
         this.content = content;
         this.status = status;
     }
@@ -104,14 +104,15 @@ public class HttpResponse {
             session.printOutput.format("%s: %s\n", header.getKey(), header.getValue());
         }
 
-        if (this.content instanceof StreamResponse) {
-            session.printOutput.print("<-- Stream response, not inspectable -->");
-        } else {
+        if (this.content instanceof ByteResponse) {
             try {
-                session.printOutput.write((byte[]) this.content.raw());
+                ByteResponse resp = (ByteResponse) this.content;
+                session.printOutput.write(resp.response);
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        } else {
+            session.printOutput.print("<-- Stream response, not inspectable -->");
         }
 
         session.printOutput.println("\n\n---- End of response ----");
@@ -236,7 +237,7 @@ public class HttpResponse {
 
     public static HttpResponse newChunkedResponse(@NonNull HttpStatus status, @NonNull InputStream responseStream) {
         return new HttpResponse(
-            new StreamResponse(responseStream, 0 - 1),
+            new StreamResponse(responseStream, -1),
             status
         );
     }
@@ -245,26 +246,19 @@ public class HttpResponse {
     /* Responses        */
     /* ---------------- */
 
-    public static enum TransferEncoding {
-        FIXED_LENGTH,
-        CHUNKED;
-
-    }
-
-    public static interface ResponseContent<T> {
+    public static interface ResponseContent {
 
         public void write(OutputStream out) throws IOException;
 
-        public TransferEncoding getEncoding();
-
+        /**
+         * @return any negative number for a chunked response.
+         */
         public long getLength();
-
-        public T raw();
 
     }
 
     @AllArgsConstructor
-    public static class StreamResponse implements ResponseContent<InputStream> {
+    private static class StreamResponse implements ResponseContent {
         private InputStream response;
         private long length;
 
@@ -287,28 +281,14 @@ public class HttpResponse {
         }
 
         @Override
-        public TransferEncoding getEncoding() {
-            if (this.length == -1) {
-                return TransferEncoding.CHUNKED;
-            } else {
-                return TransferEncoding.FIXED_LENGTH;
-            }
-        }
-
-        @Override
         public long getLength() {
             return this.length;
-        }
-
-        @Override
-        public InputStream raw() {
-            return this.response;
         }
 
     }
 
     @AllArgsConstructor
-    public static class ByteResponse implements ResponseContent<byte[]> {
+    private static class ByteResponse implements ResponseContent {
         private byte[] response;
 
         @Override
@@ -317,18 +297,8 @@ public class HttpResponse {
         }
 
         @Override
-        public TransferEncoding getEncoding() {
-            return TransferEncoding.FIXED_LENGTH;
-        }
-
-        @Override
         public long getLength() {
             return this.response.length;
-        }
-
-        @Override
-        public byte[] raw() {
-            return this.response;
         }
 
     }

@@ -1,6 +1,7 @@
 package co.casterlabs.rakurai.impl.http.nano;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
@@ -12,7 +13,6 @@ import co.casterlabs.rakurai.StringUtil;
 import co.casterlabs.rakurai.io.http.DropConnectionException;
 import co.casterlabs.rakurai.io.http.HttpResponse;
 import co.casterlabs.rakurai.io.http.HttpResponse.ResponseContent;
-import co.casterlabs.rakurai.io.http.HttpResponse.TransferEncoding;
 import co.casterlabs.rakurai.io.http.HttpStatus;
 import co.casterlabs.rakurai.io.http.StandardHttpStatus;
 import co.casterlabs.rakurai.io.http.server.HttpListener;
@@ -24,6 +24,7 @@ import fi.iki.elonen.NanoHTTPD;
 import fi.iki.elonen.NanoHTTPD.Response.IStatus;
 import fi.iki.elonen.NanoHTTPD.Response.Status;
 import fi.iki.elonen.NanoWSD;
+import lombok.SneakyThrows;
 import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
 public class NanoHttpServer extends NanoWSD implements HttpServer {
@@ -74,6 +75,7 @@ public class NanoHttpServer extends NanoWSD implements HttpServer {
     }
 
     // Serves http sessions or calls super to serve websockets
+    @SneakyThrows
     @SuppressWarnings("deprecation")
     @Override
     public Response serve(IHTTPSession nanoSession) {
@@ -96,28 +98,30 @@ public class NanoHttpServer extends NanoWSD implements HttpServer {
                 String mime = response.getAllHeaders().getOrDefault("content-type", "text/plaintext");
 
                 IStatus status = convertStatus(response.getStatus());
-                ResponseContent<?> content = response.getContent();
+                ResponseContent content = response.getContent();
+
+                ByteArrayOutputStream responseSink;
+
+                long length = content.getLength();
+                if (length >= 0) {
+                    responseSink = new ByteArrayOutputStream((int) length);
+                } else {
+                    responseSink = new ByteArrayOutputStream();
+                }
+
+                content.write(responseSink);
+                InputStream responseStream = new ByteArrayInputStream(responseSink.toByteArray());
 
                 Response nanoResponse;
-
-                // ByteResponse is always fixed length.
-                // StreamResponse *can* be fixed length, you just have to ask.
-                if (content instanceof HttpResponse.ByteResponse) {
+                if (length >= 0) {
                     nanoResponse = NanoHTTPD.newFixedLengthResponse(
                         status,
                         mime,
-                        new ByteArrayInputStream((byte[]) content.raw()), // Nano doesn't support byte responses.
-                        content.getLength()
-                    );
-                } else if (content.getEncoding() == TransferEncoding.FIXED_LENGTH) {
-                    nanoResponse = NanoHTTPD.newFixedLengthResponse(
-                        status,
-                        mime,
-                        (InputStream) content.raw(),
+                        responseStream,
                         content.getLength()
                     );
                 } else {
-                    nanoResponse = NanoHTTPD.newChunkedResponse(status, mime, (InputStream) content.raw());
+                    nanoResponse = NanoHTTPD.newChunkedResponse(status, mime, responseStream);
                 }
 
                 for (Map.Entry<String, String> header : response.getAllHeaders().entrySet()) {
