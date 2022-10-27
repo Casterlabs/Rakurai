@@ -108,6 +108,20 @@ public class JsonSerializationContext {
         return this;
     }
 
+    public JsonSerializationContext insertObjectRaw(@NonNull String key, String contents) {
+        this.addedContent = true;
+        this.insertCommaAndIndent();
+
+        this.sb
+            .append(this.getFieldName(key))
+            .append(':')
+            .append(this.getOptionalSpace())
+            .append(contents);
+
+        this.needsComma = true;
+        return this;
+    }
+
     public JsonSerializationContext endObject() {
         this.indentLevel--;
 
