@@ -1,7 +1,6 @@
 package co.casterlabs.rakurai.json;
 
 import java.lang.reflect.Array;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -129,11 +128,7 @@ public class Rson {
             // Create the serializer, or supply a default.
             JsonClass classData = clazz.getAnnotation(JsonClass.class);
             if (classData != null) {
-                Class<? extends JsonSerializer<?>> serializerClass = classData.serializer();
-                Constructor<? extends JsonSerializer<?>> serializerConstructor = serializerClass.getConstructor();
-
-                serializerConstructor.setAccessible(true);
-                serializer = serializerConstructor.newInstance();
+                serializer = JsonReflectionUtil.newInstance(classData.serializer());
             } else {
                 serializer = JsonSerializer.DEFAULT;
             }
@@ -151,7 +146,7 @@ public class Rson {
             }
 
             return result;
-        } catch (IllegalArgumentException | NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
+        } catch (IllegalArgumentException | SecurityException | InstantiationException | IllegalAccessException e) {
             throw new JsonSerializeException(e);
         }
     }
@@ -362,12 +357,7 @@ public class Rson {
 
         // Create the deserializer, or supply a default.
         if (classData != null) {
-            Class<? extends JsonSerializer<?>> serializerClass = classData.serializer();
-            Constructor<? extends JsonSerializer<?>> serializerConstructor = serializerClass.getConstructor();
-
-            serializerConstructor.setAccessible(true);
-
-            deserializer = serializerConstructor.newInstance();
+            deserializer = JsonReflectionUtil.newInstance(classData.serializer());
         } else {
             deserializer = JsonSerializer.DEFAULT;
         }

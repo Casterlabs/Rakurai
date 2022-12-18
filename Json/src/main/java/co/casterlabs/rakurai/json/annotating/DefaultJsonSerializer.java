@@ -1,8 +1,6 @@
 package co.casterlabs.rakurai.json.annotating;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -110,15 +108,7 @@ public class DefaultJsonSerializer implements JsonSerializer<Object> {
         if (value.isJsonObject()) {
             try {
                 JsonObject json = value.getAsObject();
-                Object o;
-
-                {
-                    Constructor<?> typeConstructor = type.getConstructor();
-
-                    typeConstructor.setAccessible(true);
-
-                    o = typeConstructor.newInstance();
-                }
+                Object o = JsonReflectionUtil.newInstance(type);
 
                 Map<String, Field> fields = getFields(type);
 
@@ -131,28 +121,27 @@ public class DefaultJsonSerializer implements JsonSerializer<Object> {
                     Class<?> fieldType = field.getType();
 
                     JsonElement e = json.get(fieldName);
+                    if (e == null) continue; // Not present.
 
-                    // Ignore it if null
-                    if (e != null) {
-                        if (e.isJsonNull()) {
-                            if (fieldType == boolean.class) {
-                                field.set(o, false);
-                            } else if (fieldType.isPrimitive()) {
-                                field.set(o, 0); // It's a number type.
-                            } else {
-                                field.set(o, null);
-                            }
+                    if (e.isJsonNull()) {
+                        // We treat a null json value the same way as javascript does, as a value.
+                        if (fieldType == boolean.class) {
+                            field.set(o, false);
+                        } else if (fieldType.isPrimitive()) {
+                            field.set(o, 0); // It's a number type.
                         } else {
-                            Class<?>[] fieldComponents = JsonReflectionUtil.getCollectionComponentForField(field);
-                            Object converted = rson.fromJson(e, TypeToken.of(fieldType, fieldComponents));
-
-                            field.set(o, converted);
+                            field.set(o, null);
                         }
+                    } else {
+                        Class<?>[] fieldComponents = JsonReflectionUtil.getCollectionComponentForField(field);
+                        Object converted = rson.fromJson(e, TypeToken.of(fieldType, fieldComponents));
+
+                        field.set(o, converted);
                     }
                 }
 
                 return o;
-            } catch (IllegalAccessException | InstantiationException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException | ClassNotFoundException e) {
+            } catch (IllegalAccessException | InstantiationException | IllegalArgumentException | SecurityException | ClassNotFoundException e) {
                 throw new JsonParseException(e);
             }
         } else {

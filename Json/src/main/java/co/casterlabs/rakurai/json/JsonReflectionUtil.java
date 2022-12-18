@@ -23,12 +23,35 @@ import co.casterlabs.rakurai.json.validation.JsonValidate;
 import co.casterlabs.rakurai.json.validation.JsonValidationException;
 import lombok.NonNull;
 import lombok.SneakyThrows;
+import sun.misc.Unsafe;
 
+@SuppressWarnings("restriction")
 public class JsonReflectionUtil {
+    private static @Deprecated Unsafe unsafe;
+
+    static {
+        try {
+            Field f = Unsafe.class.getDeclaredField("theUnsafe");
+            f.setAccessible(true);
+            unsafe = (Unsafe) f.get(null);
+        } catch (Exception ignored) {}
+    }
 
     /* -------------------- */
     /* Classes              */
     /* -------------------- */
+
+    @SuppressWarnings("unchecked")
+    public static <T> T newInstance(Class<T> clazz) throws InstantiationException, IllegalAccessException {
+        if (unsafe == null) {
+            return clazz.newInstance();
+        }
+
+        // In an ideal world, we don't want to have to worry about a class having a
+        // constructor or worry about that constructor throwing. We may need to fallback
+        // in the future hence the above code.
+        return (T) unsafe.allocateInstance(clazz);
+    }
 
     public static @Nullable Class<?> getCollectionComponent(Class<?> clazz) throws ClassNotFoundException {
         if (clazz.isArray()) {
