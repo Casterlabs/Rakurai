@@ -195,8 +195,7 @@ public class JsonObject implements JsonElement, Iterable<Map.Entry<String, JsonE
         return this.entrySet().iterator();
     }
 
-    @Deprecated
-    public Map<String, JsonElement> getMap() {
+    public Map<String, JsonElement> toMap() {
         return new HashMap<>(this.contents);
     }
 
