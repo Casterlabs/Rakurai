@@ -32,7 +32,7 @@ import lombok.SneakyThrows;
 import sun.misc.Unsafe;
 
 @SuppressWarnings("restriction")
-public class JsonReflectionUtil {
+class JsonReflectionUtil {
     private static @Deprecated Unsafe unsafe;
 
     static {
@@ -48,7 +48,7 @@ public class JsonReflectionUtil {
     /* -------------------- */
 
     @SuppressWarnings("unchecked")
-    public static <T> T newInstance(Class<T> clazz) throws InstantiationException, IllegalAccessException {
+    static <T> T newInstance(Class<T> clazz) throws InstantiationException, IllegalAccessException {
         if (unsafe == null) {
             return clazz.newInstance();
         }
@@ -59,7 +59,7 @@ public class JsonReflectionUtil {
         return (T) unsafe.allocateInstance(clazz);
     }
 
-    public static @Nullable Class<?> getCollectionComponent(Class<?> clazz) throws ClassNotFoundException {
+    static @Nullable Class<?> getCollectionComponent(Class<?> clazz) throws ClassNotFoundException {
         if (clazz.isArray()) {
             return clazz.getComponentType();
         }
@@ -73,7 +73,7 @@ public class JsonReflectionUtil {
         return null;
     }
 
-    public static @Nullable Class<?>[] getCollectionComponentForField(Field field) throws ClassNotFoundException {
+    static @Nullable Class<?>[] getCollectionComponentForField(Field field) throws ClassNotFoundException {
         Class<?> type = field.getType();
 
         if (type.isArray()) {
@@ -105,7 +105,7 @@ public class JsonReflectionUtil {
     }
 
     @SneakyThrows // We assume that no error will be thrown, ever.
-    public static Class<?> typeToClass(@NonNull Type type, @Nullable ClassLoader cl) {
+    static Class<?> typeToClass(@NonNull Type type, @Nullable ClassLoader cl) {
         if (type instanceof Class) {
             return (Class<?>) type; // Sometimes Java actually gives us a Class<?>!
         }
@@ -117,7 +117,7 @@ public class JsonReflectionUtil {
     /* Annotating           */
     /* -------------------- */
 
-    public static @Nullable Collection<JsonValidatorImpl> getJsonValidatorsForClass(Class<?> clazz) {
+    static @Nullable Collection<JsonValidatorImpl> getJsonValidatorsForClass(Class<?> clazz) {
         List<JsonValidatorImpl> validators = new LinkedList<>();
 
         for (Method method : getAllDeclaredMethods(clazz)) {
@@ -151,7 +151,7 @@ public class JsonReflectionUtil {
         return validators;
     }
 
-    public static @Nullable Collection<JsonDeserializerMethodImpl> getJsonDeserializerMethodsForClass(Class<?> clazz) {
+    static @Nullable Collection<JsonDeserializerMethodImpl> getJsonDeserializerMethodsForClass(Class<?> clazz) {
         List<JsonDeserializerMethodImpl> deserializerMethods = new LinkedList<>();
 
         for (Method method : getAllDeclaredMethods(clazz)) {
@@ -203,7 +203,7 @@ public class JsonReflectionUtil {
         return deserializerMethods;
     }
 
-    public static @Nullable Collection<JsonSerializerMethodImpl> getJsonSerializerMethodsForClass(Class<?> clazz) {
+    static @Nullable Collection<JsonSerializerMethodImpl> getJsonSerializerMethodsForClass(Class<?> clazz) {
         List<JsonSerializerMethodImpl> serializerMethods = new LinkedList<>();
 
         for (Method method : getAllDeclaredMethods(clazz)) {
@@ -261,13 +261,13 @@ public class JsonReflectionUtil {
     /* Wrappers             */
     /* -------------------- */
 
-    public static interface JsonValidatorImpl {
+    static interface JsonValidatorImpl {
 
         public void validate(@NonNull Object inst) throws JsonValidationException;
 
     }
 
-    public static interface JsonDeserializerMethodImpl {
+    static interface JsonDeserializerMethodImpl {
 
         public JsonDeserializationMethod getAnnotation();
 
@@ -275,7 +275,7 @@ public class JsonReflectionUtil {
 
     }
 
-    public static interface JsonSerializerMethodImpl {
+    static interface JsonSerializerMethodImpl {
 
         public JsonSerializationMethod getAnnotation();
 
@@ -287,7 +287,7 @@ public class JsonReflectionUtil {
     /* Method lookup        */
     /* -------------------- */
 
-    private static List<Method> getAllDeclaredMethods(Class<?> clazz) {
+    static List<Method> getAllDeclaredMethods(Class<?> clazz) {
         List<Method> methods = new LinkedList<>();
 
         getAllDeclaredMethods0(methods, clazz);
@@ -295,7 +295,7 @@ public class JsonReflectionUtil {
         return methods;
     }
 
-    private static void getAllDeclaredMethods0(List<Method> methods, Class<?> clazz) {
+    static void getAllDeclaredMethods0(List<Method> methods, Class<?> clazz) {
         Method[] declared = clazz.getDeclaredMethods();
 
         for (Method m : declared) {
@@ -313,7 +313,7 @@ public class JsonReflectionUtil {
     /* Field lookup         */
     /* -------------------- */
 
-    public static Map<String, Field> getFields(Class<?> type) {
+    static Map<String, Field> getFields(Class<?> type) {
         Map<String, Field> fields = new HashMap<>();
         List<Class<?>> toScan = new LinkedList<>();
 
