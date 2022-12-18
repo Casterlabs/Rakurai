@@ -6,6 +6,8 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
+import co.casterlabs.rakurai.json.DefaultJsonSerializer;
+
 @Retention(RUNTIME)
 @Target(TYPE)
 public @interface JsonClass {

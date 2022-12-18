@@ -1,17 +1,10 @@
-package co.casterlabs.rakurai.json.annotating;
+package co.casterlabs.rakurai.json;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import co.casterlabs.rakurai.json.JsonReflectionUtil;
-import co.casterlabs.rakurai.json.Rson;
-import co.casterlabs.rakurai.json.TypeToken;
+import co.casterlabs.rakurai.json.annotating.JsonSerializer;
 import co.casterlabs.rakurai.json.element.JsonElement;
 import co.casterlabs.rakurai.json.element.JsonObject;
 import co.casterlabs.rakurai.json.serialization.JsonParseException;
@@ -20,71 +13,13 @@ import lombok.NonNull;
 
 public class DefaultJsonSerializer implements JsonSerializer<Object> {
 
-    private static Map<String, Field> getFields(Class<?> type) {
-        Map<String, Field> fields = new HashMap<>();
-        List<Class<?>> toScan = new LinkedList<>();
-
-        Class<?> currentClass = type;
-        while (currentClass != null) {
-            boolean exposeSuper = false;
-
-            if (currentClass.isAnnotationPresent(JsonClass.class)) {
-                JsonClass classAnnotation = currentClass.getAnnotation(JsonClass.class);
-
-                exposeSuper = classAnnotation.exposeSuper();
-            }
-
-            if (exposeSuper) {
-                toScan.addAll(Arrays.asList(currentClass.getInterfaces()));
-
-                if (currentClass.getSuperclass() != null) {
-                    toScan.add(currentClass.getSuperclass());
-                }
-            }
-
-            toScan.add(currentClass);
-
-            currentClass = currentClass.getSuperclass();
-        }
-
-        for (Class<?> clazz : toScan) {
-            boolean exposeAll = false;
-
-            if (clazz.isAnnotationPresent(JsonClass.class)) {
-                JsonClass classAnnotation = clazz.getAnnotation(JsonClass.class);
-
-                exposeAll = classAnnotation.exposeAll();
-            }
-
-            for (Field field : clazz.getDeclaredFields()) {
-                if (!Modifier.isStatic(field.getModifiers()) && !field.isAnnotationPresent(JsonExclude.class)) {
-                    if (exposeAll || field.isAnnotationPresent(JsonField.class)) {
-                        String fieldName = field.getName();
-
-                        if (field.isAnnotationPresent(JsonField.class)) {
-                            JsonField fieldAnnotation = field.getAnnotation(JsonField.class);
-
-                            if (!fieldAnnotation.value().isEmpty()) {
-                                fieldName = fieldAnnotation.value();
-                            }
-                        }
-
-                        fields.put(fieldName, field);
-                    }
-                }
-            }
-        }
-
-        return fields;
-    }
-
     @Override
     public JsonElement serialize(@NonNull Object value, @NonNull Rson rson) {
         try {
             JsonObject json = new JsonObject();
             Class<?> type = value.getClass();
 
-            Map<String, Field> fields = getFields(type);
+            Map<String, Field> fields = JsonReflectionUtil.getFields(type);
 
             for (Entry<String, Field> entry : fields.entrySet()) {
                 String fieldName = entry.getKey();
@@ -110,7 +45,7 @@ public class DefaultJsonSerializer implements JsonSerializer<Object> {
                 JsonObject json = value.getAsObject();
                 Object o = JsonReflectionUtil.newInstance(type);
 
-                Map<String, Field> fields = getFields(type);
+                Map<String, Field> fields = JsonReflectionUtil.getFields(type);
 
                 for (Entry<String, Field> entry : fields.entrySet()) {
                     String fieldName = entry.getKey();

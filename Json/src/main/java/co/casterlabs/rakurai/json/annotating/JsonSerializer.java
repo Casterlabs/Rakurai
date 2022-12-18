@@ -2,6 +2,7 @@ package co.casterlabs.rakurai.json.annotating;
 
 import org.jetbrains.annotations.Nullable;
 
+import co.casterlabs.rakurai.json.DefaultJsonSerializer;
 import co.casterlabs.rakurai.json.Rson;
 import co.casterlabs.rakurai.json.element.JsonElement;
 import co.casterlabs.rakurai.json.serialization.JsonParseException;
