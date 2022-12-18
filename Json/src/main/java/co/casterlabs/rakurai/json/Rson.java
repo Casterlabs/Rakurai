@@ -56,6 +56,10 @@ public class Rson {
         this.resolvers.putAll(builder.resolvers);
     }
 
+    /* -------------------- */
+    /* Obj->Json            */
+    /* -------------------- */
+
     public <T> JsonElement toJson(@Nullable T o) {
         if (o == null) {
             return JsonNull.INSTANCE;
@@ -152,10 +156,12 @@ public class Rson {
         }
     }
 
-    public <T> T fromJson(@NonNull String json, @NonNull Class<T> expected) throws JsonParseException, JsonValidationException {
-        JsonElement e = JsonParser.parseString(json, this.config);
+    /* -------------------- */
+    /* String->Json->Obj    */
+    /* -------------------- */
 
-        return this.fromJson(e, expected);
+    public <T> T fromJson(@NonNull String json, @NonNull Class<T> expected) throws JsonParseException, JsonValidationException {
+        return this.fromJson(json, TypeToken.of(expected));
     }
 
     public <T> T fromJson(@NonNull String json, @NonNull TypeToken<T> token) throws JsonParseException, JsonValidationException {
@@ -177,12 +183,14 @@ public class Rson {
     }
 
     public <T> T fromJson(@NonNull JsonElement e, TypeToken<T> token) throws JsonParseException, JsonValidationException {
+        // Note that this is the "last stop" and only performs validation/annotation.
+        // fromJson0 is the real gravy.
         try {
             T result = this.fromJson0(e, token);
             Class<?> expected = token.getTypeClass();
 
-            // Execute the deserializer methods.
             if (e.isJsonObject()) {
+                // We need to call all methods marked with @JsonDeserializationMethod.
                 JsonObject source = e.getAsObject();
                 Collection<JsonDeserializerMethodImpl> serializerMethods = JsonReflectionUtil.getJsonDeserializerMethodsForClass(expected);
 
@@ -191,31 +199,33 @@ public class Rson {
                 }
             }
 
-            // Validate. (These throw on error.)
+            // Validate (These throw on error).
             Collection<JsonValidatorImpl> validators = JsonReflectionUtil.getJsonValidatorsForClass(expected);
             for (JsonValidatorImpl v : validators) {
                 v.validate(result);
             }
 
             return result;
-
         } catch (IllegalArgumentException | NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | InvocationTargetException | ClassNotFoundException ex) {
             throw new JsonSerializeException(ex);
         }
     }
 
+    /* -------------------- */
+    /* Json->Obj            */
+    /* -------------------- */
+
     @SuppressWarnings({
             "unchecked"
     })
     private <T> T fromJson0(JsonElement e, TypeToken<T> token) throws JsonParseException, ClassNotFoundException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
-        // Null check.
         if (e.isJsonNull()) {
-            return null;
+            return null; // Always null :D
         }
 
         Class<?> expected = token.getTypeClass();
 
-        // Json elements.
+        // Raw json elements.
         if (JsonElement.class.isAssignableFrom(expected)) {
             if (expected == JsonElement.class) {
                 return (T) e;
@@ -226,7 +236,7 @@ public class Rson {
             }
         }
 
-        // Type resolvers.
+        // Try a type resolver.
         TypeResolver<T> resolver = (TypeResolver<T>) this.resolvers.get(expected);
         if (resolver != null) {
             return resolver.resolve(e, expected);
@@ -239,7 +249,7 @@ public class Rson {
             for (Object enC : expected.getEnumConstants()) {
                 Enum<?> en = (Enum<?>) enC;
 
-                if (en.name().equals(name)) {
+                if (en.name().equalsIgnoreCase(name)) {
                     return (T) en;
                 }
             }
@@ -250,8 +260,6 @@ public class Rson {
         // Arrays & Collections
         boolean isCollection = Collection.class.isAssignableFrom(expected);
         boolean isArray = token.isArrayType();
-        boolean isMap = Map.class.isAssignableFrom(expected);
-
         if (isCollection || isArray) {
             if (!e.isJsonArray()) {
                 throw new JsonParseException(String.format("Expected a %s but got a %s\n%s", expected.getSimpleName(), e.getClass().getSimpleName(), e));
@@ -305,7 +313,10 @@ public class Rson {
 
                 return (T) coll;
             }
-        } else if (isMap) {
+        }
+
+        // Maps.
+        if (Map.class.isAssignableFrom(expected)) {
             if (!e.isJsonObject()) {
                 throw new JsonParseException(String.format("Expected a %s but got a %s\n%s", expected.getSimpleName(), e.getClass().getSimpleName(), e));
             }
@@ -345,26 +356,28 @@ public class Rson {
             return (T) map;
         }
 
-        // Object deserialization.
-        {
-            JsonClass classData = expected.getAnnotation(JsonClass.class);
-            JsonSerializer<?> serializer;
+        // Plain ole' object deserialization.
+        JsonClass classData = expected.getAnnotation(JsonClass.class);
+        JsonSerializer<?> deserializer;
 
-            // Create the deserializer, or supply a default.
-            if (classData != null) {
-                Class<? extends JsonSerializer<?>> serializerClass = classData.serializer();
-                Constructor<? extends JsonSerializer<?>> serializerConstructor = serializerClass.getConstructor();
+        // Create the deserializer, or supply a default.
+        if (classData != null) {
+            Class<? extends JsonSerializer<?>> serializerClass = classData.serializer();
+            Constructor<? extends JsonSerializer<?>> serializerConstructor = serializerClass.getConstructor();
 
-                serializerConstructor.setAccessible(true);
+            serializerConstructor.setAccessible(true);
 
-                serializer = serializerConstructor.newInstance();
-            } else {
-                serializer = JsonSerializer.DEFAULT;
-            }
-
-            return (T) serializer.deserialize(e, expected, this);
+            deserializer = serializerConstructor.newInstance();
+        } else {
+            deserializer = JsonSerializer.DEFAULT;
         }
+
+        return (T) deserializer.deserialize(e, expected, this);
     }
+
+    /* -------------------- */
+    /* Config               */
+    /* -------------------- */
 
     @Data
     @Accessors(chain = true)
