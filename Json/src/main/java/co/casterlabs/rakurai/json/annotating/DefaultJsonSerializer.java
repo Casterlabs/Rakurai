@@ -143,9 +143,8 @@ public class DefaultJsonSerializer implements JsonSerializer<Object> {
                                 field.set(o, null);
                             }
                         } else {
-                            Class<?> fieldComponent = JsonReflectionUtil.getCollectionComponentForField(field);
-
-                            Object converted = rson.fromJson(e, TypeToken.of(fieldType, fieldComponent));
+                            Class<?>[] fieldComponents = JsonReflectionUtil.getCollectionComponentForField(field);
+                            Object converted = rson.fromJson(e, TypeToken.of(fieldType, fieldComponents));
 
                             field.set(o, converted);
                         }

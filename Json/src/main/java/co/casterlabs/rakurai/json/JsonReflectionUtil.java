@@ -8,6 +8,7 @@ import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -37,16 +38,28 @@ public class JsonReflectionUtil {
         }
     }
 
-    public static @Nullable Class<?> getCollectionComponentForField(Field field) throws ClassNotFoundException {
+    public static @Nullable Class<?>[] getCollectionComponentForField(Field field) throws ClassNotFoundException {
         Class<?> type = field.getType();
 
         if (type.isArray()) {
-            return type.getComponentType();
+            return new Class<?>[] {
+                    type.getComponentType()
+            };
         } else if (Collection.class.isAssignableFrom(type)) {
             ParameterizedType genericType = (ParameterizedType) field.getGenericType();
             Type parameter = genericType.getActualTypeArguments()[0];
 
-            return typeToClass(parameter, field.getDeclaringClass().getClassLoader());
+            return new Class<?>[] {
+                    typeToClass(parameter, field.getDeclaringClass().getClassLoader())
+            };
+        } else if (Map.class.isAssignableFrom(type)) {
+            ParameterizedType pt = (ParameterizedType) field.getGenericType();
+            Type[] typeArguments = pt.getActualTypeArguments();
+
+            return new Class<?>[] {
+                    typeToClass(typeArguments[0], field.getDeclaringClass().getClassLoader()),
+                    typeToClass(typeArguments[1], field.getDeclaringClass().getClassLoader())
+            };
         } else {
             return null;
         }
