@@ -71,7 +71,8 @@ public interface JsonElement {
 
     default String toString(RsonConfig config, boolean prettyPrinting) {
         JsonSerializationContext ctx = new JsonSerializationContext()
-            .setConfig(config);
+            .setConfig(config)
+            .setPrettyPrinting(prettyPrinting);
 
         this.serialize(ctx);
 
