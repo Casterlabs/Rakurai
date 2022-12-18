@@ -18,6 +18,7 @@ public class JsonSerializationContext {
     private boolean indentIfNotDangle = false;
 
     private @Setter @Getter RsonConfig config = new Rson.Builder().toConfig();
+    private @Setter @Getter boolean prettyPrinting = false;
 
     /* Object */
 
@@ -243,7 +244,7 @@ public class JsonSerializationContext {
     }
 
     public void indent(boolean dangling) {
-        if (this.config.isPrettyPrintingEnabled()) {
+        if (this.prettyPrinting) {
             if (this.needsComma || this.addedContent || (this.indentIfNotDangle && !dangling)) {
                 this.sb.append('\n');
 
@@ -257,7 +258,7 @@ public class JsonSerializationContext {
     }
 
     private String getOptionalSpace() {
-        return this.config.isPrettyPrintingEnabled() ? " " : "";
+        return this.prettyPrinting ? " " : "";
     }
 
     @Override

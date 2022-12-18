@@ -32,7 +32,6 @@ import co.casterlabs.rakurai.json.element.JsonNull;
 import co.casterlabs.rakurai.json.element.JsonObject;
 import co.casterlabs.rakurai.json.element.JsonString;
 import co.casterlabs.rakurai.json.serialization.JsonParseException;
-import co.casterlabs.rakurai.json.serialization.JsonSerializationContext;
 import co.casterlabs.rakurai.json.serialization.JsonSerializeException;
 import co.casterlabs.rakurai.json.validation.JsonValidationException;
 import lombok.AccessLevel;
@@ -45,9 +44,9 @@ import lombok.experimental.Accessors;
 
 public class Rson {
     public static final Rson DEFAULT = new Rson.Builder()
-        .setPrettyPrintingEnabled(true)
         .build();
 
+    @Getter
     private final RsonConfig settings;
 
     private Map<Class<?>, TypeResolver<?>> resolvers = new HashMap<>();
@@ -55,17 +54,6 @@ public class Rson {
     private Rson(Builder builder) {
         this.settings = builder.toConfig();
         this.resolvers.putAll(builder.resolvers);
-    }
-
-    public String toJsonString(@Nullable Object o) {
-        JsonElement e = this.toJson(o);
-
-        JsonSerializationContext ctx = new JsonSerializationContext()
-            .setConfig(this.settings);
-
-        e.serialize(ctx);
-
-        return ctx.toString();
     }
 
     public <T> JsonElement toJson(@Nullable T o) {
@@ -402,18 +390,16 @@ public class Rson {
         @Getter(AccessLevel.NONE)
         private boolean json5FeaturesEnabled = false;
 
-        // Make it more fluent. :^)
-        public boolean areJson5FeaturesEnabled() {
-            return this.json5FeaturesEnabled;
-        }
-
-        private boolean prettyPrintingEnabled = false;
-
         private String tabCharacter = "    ";
 
         @Getter(AccessLevel.NONE)
         @Setter(AccessLevel.NONE)
         private Map<Class<?>, TypeResolver<?>> resolvers = DefaultTypeResolvers.get();
+
+        // Make it more fluent. :^)
+        public boolean areJson5FeaturesEnabled() {
+            return this.json5FeaturesEnabled;
+        }
 
         public Builder registerTypeResolver(TypeResolver<?> resolver, Class<?>... types) {
             for (Class<?> type : types) {
@@ -428,7 +414,7 @@ public class Rson {
         }
 
         public RsonConfig toConfig() {
-            return new RsonConfig(this.json5FeaturesEnabled, this.prettyPrintingEnabled, this.tabCharacter);
+            return new RsonConfig(this.json5FeaturesEnabled, this.tabCharacter);
         }
 
     }
@@ -437,11 +423,9 @@ public class Rson {
     @AllArgsConstructor
     public static class RsonConfig {
         @Getter(AccessLevel.NONE)
-        private boolean json5FeaturesEnabled = false;
+        private final boolean json5FeaturesEnabled;
 
-        private boolean prettyPrintingEnabled = false;
-
-        private String tabCharacter = "    ";
+        private final String tabCharacter;
 
         // Make it more fluent. :^)
         public boolean areJson5FeaturesEnabled() {
