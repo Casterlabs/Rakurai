@@ -165,7 +165,7 @@ public class JsonArray implements JsonElement, Iterable<JsonElement> {
 
     @Override
     public Iterator<JsonElement> iterator() {
-        return this.getList().iterator();
+        return this.contents.iterator();
     }
 
     public boolean remove(@Nullable JsonElement e) {
@@ -216,8 +216,7 @@ public class JsonArray implements JsonElement, Iterable<JsonElement> {
         return this.contents.toArray(new JsonElement[0]);
     }
 
-    @Deprecated
-    public List<JsonElement> getList() {
+    public List<JsonElement> toList() {
         return new ArrayList<>(this.contents);
     }
 
