@@ -59,114 +59,96 @@ public class Rson {
     public <T> JsonElement toJson(@Nullable T o) {
         if (o == null) {
             return JsonNull.INSTANCE;
-        } else if (o instanceof JsonElement) {
+        }
+
+        if (o instanceof JsonElement) {
             return (JsonElement) o;
-        } else {
-            @SuppressWarnings("unchecked")
-            TypeResolver<T> resolver = (TypeResolver<T>) this.resolvers.get(o.getClass());
+        }
 
-            if (resolver != null) {
-                return resolver.writeOut(o, o.getClass());
-            } else {
-                try {
-                    Class<?> clazz = o.getClass();
+        @SuppressWarnings("unchecked")
+        TypeResolver<T> resolver = (TypeResolver<T>) this.resolvers.get(o.getClass());
+        if (resolver != null) {
+            return resolver.writeOut(o, o.getClass());
+        }
 
-                    boolean isCollection = Collection.class.isAssignableFrom(clazz);
-                    boolean isMap = Map.class.isAssignableFrom(clazz);
-                    boolean isEnum = Enum.class.isAssignableFrom(clazz);
+        try {
+            Class<?> clazz = o.getClass();
 
-                    if (isCollection) {
-                        JsonArray result = new JsonArray();
+            if (Enum.class.isAssignableFrom(clazz)) {
+                Enum<?> en = (Enum<?>) o;
 
-                        Collection<?> collection = (Collection<?>) o;
+                return new JsonString(en.name());
+            }
 
-                        for (Object entry : collection) {
-                            if (entry == null) {
-                                result.addNull();
-                            } else {
-                                JsonElement serialized = this.toJson(entry);
+            if (clazz.isArray()) {
+                JsonArray result = new JsonArray();
 
-                                result.add(serialized);
-                            }
-                        }
+                int len = Array.getLength(o);
+                for (int i = 0; i < len; i++) {
+                    Object entry = Array.get(o, i);
+                    result.add(this.toJson(entry));
+                }
 
-                        return result;
-                    } else if (clazz.isArray()) {
-                        JsonArray result = new JsonArray();
+                return result;
+            }
 
-                        int len = Array.getLength(o);
+            if (Collection.class.isAssignableFrom(clazz)) {
+                JsonArray result = new JsonArray();
 
-                        for (int i = 0; i < len; i++) {
-                            Object entry = Array.get(o, i);
+                for (Object entry : new ArrayList<>((Collection<?>) o)/*copy*/) {
+                    result.add(this.toJson(entry));
+                }
 
-                            if (entry == null) {
-                                result.addNull();
-                            } else {
-                                JsonElement serialized = this.toJson(entry);
+                return result;
+            }
 
-                                result.add(serialized);
-                            }
-                        }
+            if (Map.class.isAssignableFrom(clazz)) {
+                JsonObject result = new JsonObject();
 
-                        return result;
-                    } else if (isMap) {
-                        JsonObject result = new JsonObject();
-
-                        Map<?, ?> map = (Map<?, ?>) o;
-
-                        for (Map.Entry<?, ?> entry : map.entrySet()) {
-                            JsonElement key = this.toJson(entry.getKey());
-
-                            if (key.isJsonString()) {
-                                JsonElement value = this.toJson(entry.getValue());
-
-                                result.put(key.getAsString(), value);
-                            } else {
-                                throw new JsonSerializeException("Map key must be either a String or Enum.");
-                            }
-                        }
-
-                        return result;
-                    } else if (isEnum) {
-                        Enum<?> en = (Enum<?>) o;
-
-                        return new JsonString(en.name());
-                    } else {
-                        JsonSerializer<?> serializer;
-
-                        // Create the serializer, or supply a default.
-                        {
-                            JsonClass classData = clazz.getAnnotation(JsonClass.class);
-
-                            if (classData != null) {
-                                Class<? extends JsonSerializer<?>> serializerClass = classData.serializer();
-                                Constructor<? extends JsonSerializer<?>> serializerConstructor = serializerClass.getConstructor();
-
-                                serializerConstructor.setAccessible(true);
-
-                                serializer = serializerConstructor.newInstance();
-                            } else {
-                                serializer = JsonSerializer.DEFAULT;
-                            }
-                        }
-
-                        JsonElement result = serializer.serialize(o, this);
-
-                        if (result.isJsonObject()) {
-                            JsonObject dest = result.getAsObject();
-                            Collection<JsonSerializerMethodImpl> serializerMethods = JsonReflectionUtil.getJsonSerializerMethodsForClass(clazz);
-
-                            for (JsonSerializerMethodImpl m : serializerMethods) {
-                                m.generate(o, dest);
-                            }
-                        }
-
-                        return result;
+                for (Map.Entry<?, ?> entry : new ArrayList<>(((Map<?, ?>) o).entrySet())/*copy*/) {
+                    JsonElement key = this.toJson(entry.getKey());
+                    if (!key.isJsonString()) {
+                        throw new JsonSerializeException("Map key must be a valid String-like. (e.g String or Enum), got: " + key);
                     }
-                } catch (IllegalArgumentException | NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
-                    throw new JsonSerializeException(e);
+
+                    result.put(
+                        key.getAsString(),
+                        this.toJson(entry.getValue())
+                    );
+                }
+
+                return result;
+            }
+
+            JsonSerializer<?> serializer;
+
+            // Create the serializer, or supply a default.
+            JsonClass classData = clazz.getAnnotation(JsonClass.class);
+            if (classData != null) {
+                Class<? extends JsonSerializer<?>> serializerClass = classData.serializer();
+                Constructor<? extends JsonSerializer<?>> serializerConstructor = serializerClass.getConstructor();
+
+                serializerConstructor.setAccessible(true);
+                serializer = serializerConstructor.newInstance();
+            } else {
+                serializer = JsonSerializer.DEFAULT;
+            }
+
+            JsonElement result = serializer.serialize(o, this);
+
+            if (result.isJsonObject()) {
+                // We need to call all methods marked with @JsonSerializationMethod.
+                JsonObject dest = result.getAsObject();
+                Collection<JsonSerializerMethodImpl> serializerMethods = JsonReflectionUtil.getJsonSerializerMethodsForClass(clazz);
+
+                for (JsonSerializerMethodImpl m : serializerMethods) {
+                    m.generate(o, dest);
                 }
             }
+
+            return result;
+        } catch (IllegalArgumentException | NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
+            throw new JsonSerializeException(e);
         }
     }
 
