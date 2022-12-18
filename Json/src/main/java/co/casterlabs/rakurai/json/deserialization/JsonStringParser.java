@@ -2,7 +2,7 @@ package co.casterlabs.rakurai.json.deserialization;
 
 import static co.casterlabs.rakurai.CharStrings.*;
 
-import co.casterlabs.rakurai.json.JsonUtil;
+import co.casterlabs.rakurai.json.JsonStringUtil;
 import co.casterlabs.rakurai.json.Rson.RsonConfig;
 import co.casterlabs.rakurai.json.element.JsonString;
 import co.casterlabs.rakurai.json.serialization.JsonParseException;
@@ -86,7 +86,7 @@ public class JsonStringParser extends JsonParser {
                 if (strcontainsany(contents, NEEDS_ESCAPE)) {
                     throw new JsonParseException("Unescaped characters in string: " + new String(contents));
                 } else {
-                    String str = JsonUtil.jsonUnescape(new String(contents));
+                    String str = JsonStringUtil.jsonUnescape(new String(contents));
 
                     return new ParsedTokenPair(new JsonString(str), sectionLength);
                 }
@@ -160,7 +160,7 @@ public class JsonStringParser extends JsonParser {
             if (strcontainsany(contents, NEEDS_ESCAPE)) {
                 throw new JsonParseException("Unescaped characters in string: " + new String(contents));
             } else {
-                return JsonUtil.jsonUnescape(new String(contents));
+                return JsonStringUtil.jsonUnescape(new String(contents));
             }
         }
     }

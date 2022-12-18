@@ -1,6 +1,6 @@
 package co.casterlabs.rakurai.json.element;
 
-import co.casterlabs.rakurai.json.JsonUtil;
+import co.casterlabs.rakurai.json.JsonStringUtil;
 import co.casterlabs.rakurai.json.serialization.JsonSerializationContext;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
@@ -29,7 +29,7 @@ public class JsonString implements JsonElement {
 
     @Override
     public String toString() {
-        return String.format("\"%s\"", JsonUtil.jsonEscape(this.value));
+        return String.format("\"%s\"", JsonStringUtil.jsonEscape(this.value));
     }
 
     @Override

@@ -1,6 +1,6 @@
 package co.casterlabs.rakurai.json.serialization;
 
-import co.casterlabs.rakurai.json.JsonUtil;
+import co.casterlabs.rakurai.json.JsonStringUtil;
 import co.casterlabs.rakurai.json.Rson;
 import co.casterlabs.rakurai.json.Rson.RsonConfig;
 import lombok.Getter;
@@ -61,7 +61,7 @@ public class JsonSerializationContext {
             .append(':')
             .append(this.getOptionalSpace())
             .append('"')
-            .append(JsonUtil.jsonEscape(value)).append('"');
+            .append(JsonStringUtil.jsonEscape(value)).append('"');
 
         this.needsComma = true;
         return this;
@@ -75,7 +75,7 @@ public class JsonSerializationContext {
             .append(this.getFieldName(key))
             .append(':')
             .append(this.getOptionalSpace())
-            .append(JsonUtil.jsonStringNumber(value));
+            .append(JsonStringUtil.jsonStringNumber(value));
 
         this.needsComma = true;
         return this;
@@ -172,7 +172,7 @@ public class JsonSerializationContext {
 
         this.sb
             .append('"')
-            .append(JsonUtil.jsonEscape(value))
+            .append(JsonStringUtil.jsonEscape(value))
             .append('"');
 
         this.needsComma = true;
@@ -183,7 +183,7 @@ public class JsonSerializationContext {
         this.addedContent = true;
         this.insertCommaAndIndent();
 
-        this.sb.append(JsonUtil.jsonStringNumber(value));
+        this.sb.append(JsonStringUtil.jsonStringNumber(value));
 
         this.needsComma = true;
         return this;
@@ -228,10 +228,10 @@ public class JsonSerializationContext {
     }
 
     private String getFieldName(String field) {
-        if (this.config.areJson5FeaturesEnabled() && JsonUtil.isValidJson5FieldName(field)) {
+        if (this.config.areJson5FeaturesEnabled() && JsonStringUtil.isValidJson5FieldName(field)) {
             return field;
         } else {
-            return String.format("\"%s\"", JsonUtil.jsonEscape(field));
+            return String.format("\"%s\"", JsonStringUtil.jsonEscape(field));
         }
     }
 

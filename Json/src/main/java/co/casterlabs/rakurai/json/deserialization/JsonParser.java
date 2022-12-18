@@ -1,6 +1,6 @@
 package co.casterlabs.rakurai.json.deserialization;
 
-import co.casterlabs.rakurai.json.JsonUtil;
+import co.casterlabs.rakurai.json.JsonStringUtil;
 import co.casterlabs.rakurai.json.Rson.RsonConfig;
 import co.casterlabs.rakurai.json.element.JsonArray;
 import co.casterlabs.rakurai.json.element.JsonElement;
@@ -44,9 +44,9 @@ public abstract class JsonParser {
         StringBuilder arrow = new StringBuilder();
         int totalLength = erroredLine.length() + restOfLine.length();
 
-        String escapedErroredLine = JsonUtil.jsonEscape(erroredLine, true);
+        String escapedErroredLine = JsonStringUtil.jsonEscape(erroredLine, true);
         errorLocation += escapedErroredLine.length() - erroredLine.length();
-        escapedErroredLine += JsonUtil.jsonEscape(restOfLine, true);
+        escapedErroredLine += JsonStringUtil.jsonEscape(restOfLine, true);
 
         for (int i = 0; i <= errorLocation; i++) {
             arrow.append(' ');
