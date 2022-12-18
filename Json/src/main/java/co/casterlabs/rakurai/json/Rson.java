@@ -47,12 +47,12 @@ public class Rson {
         .build();
 
     @Getter
-    private final RsonConfig settings;
+    private final RsonConfig config;
 
     private Map<Class<?>, TypeResolver<?>> resolvers = new HashMap<>();
 
     private Rson(Builder builder) {
-        this.settings = builder.toConfig();
+        this.config = builder.toConfig();
         this.resolvers.putAll(builder.resolvers);
     }
 
@@ -171,13 +171,13 @@ public class Rson {
     }
 
     public <T> T fromJson(@NonNull String json, @NonNull Class<T> expected) throws JsonParseException, JsonValidationException {
-        JsonElement e = JsonParser.parseString(json, this.settings);
+        JsonElement e = JsonParser.parseString(json, this.config);
 
         return this.fromJson(e, expected);
     }
 
     public <T> T fromJson(@NonNull String json, @NonNull TypeToken<T> token) throws JsonParseException, JsonValidationException {
-        JsonElement e = JsonParser.parseString(json, this.settings);
+        JsonElement e = JsonParser.parseString(json, this.config);
 
         return this.fromJson(e, token);
     }

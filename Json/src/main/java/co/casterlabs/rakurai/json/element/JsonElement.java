@@ -66,7 +66,7 @@ public interface JsonElement {
     /* Serialization */
 
     default String toString(boolean prettyPrinting) {
-        return toString(Rson.DEFAULT.getSettings(), prettyPrinting);
+        return toString(Rson.DEFAULT.getConfig(), prettyPrinting);
     }
 
     default String toString(RsonConfig config, boolean prettyPrinting) {
