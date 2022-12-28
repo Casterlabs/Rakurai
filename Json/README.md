@@ -14,7 +14,7 @@ Our very own Json library, Rson.
 
     <dependencies>
         <dependency>
-            <groupId>com.github.casterlabs.rakurai</groupId>
+            <groupId>co.casterlabs.Rakurai</groupId>
             <artifactId>Json</artifactId>
             <version>VERSION</version>
             <scope>compile</scope>
@@ -31,7 +31,7 @@ Our very own Json library, Rson.
     }
 
     dependencies {
-        implementation 'com.github.casterlabs.rakurai:Json:VERSION'
+        implementation 'co.casterlabs.Rakurai:Json:VERSION'
     }
 ```
 
