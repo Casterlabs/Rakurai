@@ -146,7 +146,7 @@ public class Rson {
             }
 
             return result;
-        } catch (IllegalArgumentException | SecurityException | InstantiationException | IllegalAccessException e) {
+        } catch (IllegalArgumentException | SecurityException | InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
             throw new JsonSerializeException(e);
         }
     }

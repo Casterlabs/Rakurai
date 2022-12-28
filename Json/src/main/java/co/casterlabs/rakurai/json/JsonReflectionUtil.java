@@ -1,5 +1,6 @@
 package co.casterlabs.rakurai.json;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -29,34 +30,19 @@ import co.casterlabs.rakurai.json.validation.JsonValidate;
 import co.casterlabs.rakurai.json.validation.JsonValidationException;
 import lombok.NonNull;
 import lombok.SneakyThrows;
-import sun.misc.Unsafe;
 
-@SuppressWarnings("restriction")
 class JsonReflectionUtil {
-    private static @Deprecated Unsafe unsafe;
-
-    static {
-        try {
-            Field f = Unsafe.class.getDeclaredField("theUnsafe");
-            f.setAccessible(true);
-            unsafe = (Unsafe) f.get(null);
-        } catch (Exception ignored) {}
-    }
 
     /* -------------------- */
     /* Classes              */
     /* -------------------- */
 
-    @SuppressWarnings("unchecked")
-    static <T> T newInstance(Class<T> clazz) throws InstantiationException, IllegalAccessException {
-        if (unsafe == null) {
-            return clazz.newInstance();
-        }
+    static <T> T newInstance(Class<T> clazz) throws InstantiationException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+        // Find a no-args constructor and make it accessible.
+        Constructor<T> constructor = clazz.getDeclaredConstructor();
+        constructor.setAccessible(true);
 
-        // In an ideal world, we don't want to have to worry about a class having a
-        // constructor or worry about that constructor throwing. We may need to fallback
-        // in the future hence the above code.
-        return (T) unsafe.allocateInstance(clazz);
+        return constructor.newInstance();
     }
 
     static @Nullable Class<?> getCollectionComponent(Class<?> clazz) throws ClassNotFoundException {
