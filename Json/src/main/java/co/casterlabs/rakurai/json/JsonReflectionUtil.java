@@ -73,7 +73,7 @@ class JsonReflectionUtil {
         return null;
     }
 
-    static @Nullable Class<?>[] getCollectionComponentForField(Field field) throws ClassNotFoundException {
+    static Class<?>[] getCollectionComponentForField(Field field) throws ClassNotFoundException {
         Class<?> type = field.getType();
 
         if (type.isArray()) {
@@ -101,7 +101,7 @@ class JsonReflectionUtil {
             };
         }
 
-        return null;
+        return new Class<?>[0];
     }
 
     @SneakyThrows // We assume that no error will be thrown, ever.
