@@ -53,7 +53,6 @@ public class HttpResponse {
      */
     @Deprecated
     public void finalizeResult(HttpSession session, HttpServerBuilder config, FastLogger serverLogger) {
-
         if (!session.hasSessionErrored) {
             return; // Do nothing, ignore it.
         }

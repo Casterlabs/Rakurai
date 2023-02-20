@@ -14,7 +14,7 @@ import co.casterlabs.rakurai.DataSize;
 import lombok.NonNull;
 
 public class IOUtil {
-    public static int DEFAULT_BUFFER_SIZE = (int) DataSize.MEGABYTE.toBytes(16);
+    public static int DEFAULT_BUFFER_SIZE = (int) DataSize.KILOBYTE.toBytes(16);
 
     public static void safeClose(@Nullable Closeable... closeables) {
         if (closeables != null) {

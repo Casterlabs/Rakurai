@@ -81,10 +81,6 @@ public abstract class HttpServerBuilder {
     }
 
     /* Builders */
-    public static HttpServerBuilder getNanoBuilder() {
-        return new NanoHttpServerBuilder();
-    }
-
     public static HttpServerBuilder get(@NonNull HttpServerImplementation implementation) {
         switch (implementation) {
             case NANO:
@@ -93,9 +89,13 @@ public abstract class HttpServerBuilder {
             case UNDERTOW:
                 return getUndertowBuilder();
 
+            default:
+                throw new IllegalArgumentException(); // Hush mr compiley.
         }
+    }
 
-        throw new IllegalArgumentException(); // Hush mr compiley.
+    public static HttpServerBuilder getNanoBuilder() {
+        return new NanoHttpServerBuilder();
     }
 
     public static HttpServerBuilder getUndertowBuilder() {
