@@ -40,7 +40,7 @@ public class Debugging {
         }
 
         // Start logigng.
-        session.printOutput.println("\n\n---- End of log ----");
+        session.printOutput.println("\n---- End of log ----");
 
         // Request
         session.printOutput.println("\n\n---- Start of request ----");
@@ -53,17 +53,19 @@ public class Debugging {
             }
         }
 
+        session.printOutput.print('\n');
+
         if (session.hasBody()) {
             try {
                 byte[] body = session.getRequestBodyBytes();
 
                 session.printOutput.write(body);
             } catch (IOException e) {
-                session.printOutput.format("ERROR, UNABLE TO GET BODY. PRINTING STACK:\n", StringUtil.getExceptionStack(e));
+                session.printOutput.format("<-- ERROR, UNABLE TO GET BODY. PRINTING STACK:\n%s\n-->", StringUtil.getExceptionStack(e));
             }
         }
 
-        session.printOutput.println("\n\n---- End of request ----");
+        session.printOutput.println("\n---- End of request ----");
 
         // Response
         session.printOutput.println("\n\n---- Start of response ----");
@@ -79,6 +81,8 @@ public class Debugging {
                 session.printOutput.format("%s: %s\n", header.getKey(), header.getValue());
             }
 
+            session.printOutput.print('\n');
+
             if (response.getContent() instanceof ByteResponse) {
                 try {
                     ByteResponse resp = (ByteResponse) response.getContent();
@@ -91,7 +95,7 @@ public class Debugging {
             }
         }
 
-        session.printOutput.println("\n\n---- End of response ----");
+        session.printOutput.println("\n---- End of response ----");
 
         // Write to file
         File logFile = new File(config.getLogsDir(), session.getRequestId() + ".httpexchange");

@@ -49,7 +49,7 @@ public abstract class HttpSession {
             this.printResult = new ByteArrayOutputStream();
             this.printOutput = new PrintStream(this.printResult);
 
-            this.printOutput.println("\n\n---- Start of log ----");
+            this.printOutput.println("---- Start of log ----");
         }
 
         this.remoteIp = this.getRequestHops().get(0);
