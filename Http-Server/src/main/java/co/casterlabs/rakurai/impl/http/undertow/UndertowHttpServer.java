@@ -42,6 +42,7 @@ import io.undertow.websockets.core.AbstractReceiveListener;
 import io.undertow.websockets.core.BufferedBinaryMessage;
 import io.undertow.websockets.core.BufferedTextMessage;
 import io.undertow.websockets.core.StreamSourceFrameChannel;
+import io.undertow.websockets.core.WebSocketCallback;
 import io.undertow.websockets.core.WebSocketChannel;
 import io.undertow.websockets.core.WebSockets;
 import io.undertow.websockets.spi.WebSocketHttpExchange;
@@ -174,52 +175,82 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
 
         if (listener == null) {
             IOUtil.safeClose(channel);
-        } else {
-            Websocket websocket = new UndertowWebsocketChannelWrapper(channel, session);
+            return;
+        }
 
-            listener.onOpen(websocket);
+        Websocket websocket = new UndertowWebsocketChannelWrapper(channel, session);
 
-            channel.getReceiveSetter().set(new AbstractReceiveListener() {
+        channel.getReceiveSetter().set(new AbstractReceiveListener() {
+            @Override
+            protected void onFullTextMessage(WebSocketChannel channel, BufferedTextMessage message) {
+                WebsocketFrame frame = new TextWebsocketFrame(message.getData());
+                logger.debug("WebsocketFrame (%s):\n%s", websocket.getSession().getRemoteIpAddress(), frame);
 
-                @Override
-                protected void onFullTextMessage(WebSocketChannel channel, BufferedTextMessage message) {
-                    WebsocketFrame frame = new TextWebsocketFrame(message.getData());
+                listener.onFrame(websocket, frame);
+            }
 
-                    logger.debug("WebsocketFrame (%s):\n%s", websocket.getSession().getRemoteIpAddress(), frame);
-
-                    listener.onFrame(websocket, frame);
-                }
-
-                @Override
-                protected void onFullBinaryMessage(WebSocketChannel channel, BufferedBinaryMessage message) {
-                    byte[] bytes = WebSockets.mergeBuffers(message.getData().getResource()).array();
-
-                    // Free the pool.
-                    message.getData().free();
+            @Override
+            protected void onFullBinaryMessage(WebSocketChannel channel, BufferedBinaryMessage message) {
+                try {
+                    byte[] bytes = WebSockets.mergeBuffers(message.getData().getResource())
+                        .array();
 
                     WebsocketFrame frame = new BinaryWebsocketFrame(bytes);
-
                     logger.debug("WebsocketFrame (%s):\n%s", websocket.getSession().getRemoteIpAddress(), frame);
 
                     listener.onFrame(websocket, frame);
+                } finally {
+                    // Always free the buffer no matter what.
+                    message.getData().free();
                 }
+            }
 
-                @Override
-                protected void onClose(WebSocketChannel webSocketChannel, StreamSourceFrameChannel channel) throws IOException {
-                    try {
-                        listener.onClose(websocket);
-                    } catch (Exception ignored) {}
+            @Override
+            protected void onClose(WebSocketChannel webSocketChannel, StreamSourceFrameChannel channel) throws IOException {
+                try {
+                    listener.onClose(websocket);
+                } catch (Exception ignored) {}
 
-                    webSocketChannel.sendClose();
-                }
+                webSocketChannel.sendClose();
+            }
 
-                @Override
-                protected void onError(WebSocketChannel channel, Throwable ignored) {}
+            @Override
+            protected void onError(WebSocketChannel channel, Throwable ignored) {}
 
-            });
+            @Override
+            protected void onFullPingMessage(WebSocketChannel channel, BufferedBinaryMessage message) throws IOException {
+                WebSockets.sendPong(
+                    message.getData().getResource(), channel,
+                    new WebSocketCallback<Void>() {
+                        @Override
+                        public void complete(WebSocketChannel channel, Void context) {
+                            message.getData().free();
+                        }
 
-            channel.resumeReceives();
+                        @Override
+                        public void onError(WebSocketChannel channel, Void context, Throwable throwable) {
+                            message.getData().free();
+                        }
+                    }
+                );
+            }
+        });
+
+        try {
+            listener.onOpen(websocket);
+        } catch (Throwable t) {
+            // An error occurred, close the connection immediately.
+            IOUtil.safeClose(channel);
+
+            try {
+                // Attempt to tell the listener that we've closed the socket.
+                // May not work as this is technically a "broken" state.
+                listener.onClose(websocket);
+            } catch (Throwable ignored) {}
+            return;
         }
+
+        channel.resumeReceives();
     }
 
     @Override
