@@ -1,9 +1,7 @@
-package co.casterlabs.rakurai.impl.http;
+package co.casterlabs.rakurai.io.http.websocket;
 
 import java.nio.charset.StandardCharsets;
 
-import co.casterlabs.rakurai.io.http.websocket.WebsocketFrame;
-import co.casterlabs.rakurai.io.http.websocket.WebsocketFrameType;
 import lombok.AllArgsConstructor;
 
 @AllArgsConstructor

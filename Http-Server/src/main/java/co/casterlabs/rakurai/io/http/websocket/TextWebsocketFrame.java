@@ -1,7 +1,7 @@
-package co.casterlabs.rakurai.impl.http;
+package co.casterlabs.rakurai.io.http.websocket;
 
-import co.casterlabs.rakurai.io.http.websocket.WebsocketFrame;
-import co.casterlabs.rakurai.io.http.websocket.WebsocketFrameType;
+import java.nio.charset.StandardCharsets;
+
 import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
@@ -20,12 +20,12 @@ public class TextWebsocketFrame extends WebsocketFrame {
 
     @Override
     public byte[] getBytes() {
-        return this.text.getBytes();
+        return this.text.getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
     public int getSize() {
-        return this.text.length();
+        return this.getBytes().length;
     }
 
 }

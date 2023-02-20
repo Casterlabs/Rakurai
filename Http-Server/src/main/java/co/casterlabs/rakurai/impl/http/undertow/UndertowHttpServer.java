@@ -14,8 +14,6 @@ import org.xnio.Options;
 import org.xnio.Sequence;
 
 import co.casterlabs.rakurai.StringUtil;
-import co.casterlabs.rakurai.impl.http.BinaryWebsocketFrame;
-import co.casterlabs.rakurai.impl.http.TextWebsocketFrame;
 import co.casterlabs.rakurai.io.IOUtil;
 import co.casterlabs.rakurai.io.http.DropConnectionException;
 import co.casterlabs.rakurai.io.http.HttpResponse;
@@ -26,6 +24,8 @@ import co.casterlabs.rakurai.io.http.server.HttpListener;
 import co.casterlabs.rakurai.io.http.server.HttpServer;
 import co.casterlabs.rakurai.io.http.server.HttpServerBuilder;
 import co.casterlabs.rakurai.io.http.server.HttpServerImplementation;
+import co.casterlabs.rakurai.io.http.websocket.BinaryWebsocketFrame;
+import co.casterlabs.rakurai.io.http.websocket.TextWebsocketFrame;
 import co.casterlabs.rakurai.io.http.websocket.Websocket;
 import co.casterlabs.rakurai.io.http.websocket.WebsocketFrame;
 import co.casterlabs.rakurai.io.http.websocket.WebsocketListener;

@@ -3,8 +3,8 @@ package co.casterlabs.rakurai.impl.http.nano;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
-import co.casterlabs.rakurai.impl.http.BinaryWebsocketFrame;
-import co.casterlabs.rakurai.impl.http.TextWebsocketFrame;
+import co.casterlabs.rakurai.io.http.websocket.BinaryWebsocketFrame;
+import co.casterlabs.rakurai.io.http.websocket.TextWebsocketFrame;
 import co.casterlabs.rakurai.io.http.websocket.Websocket;
 import co.casterlabs.rakurai.io.http.websocket.WebsocketCloseCode;
 import co.casterlabs.rakurai.io.http.websocket.WebsocketFrame;
