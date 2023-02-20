@@ -49,7 +49,7 @@ public class HttpResponse {
     /* ---------------- */
 
     public HttpResponse setMimeType(String type) {
-        return this.putHeader("content-type", type);
+        return this.putHeader("Content-Type", type);
     }
 
     public HttpResponse putHeader(@NonNull String key, @NonNull String value) {

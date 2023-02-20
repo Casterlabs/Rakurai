@@ -146,6 +146,9 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                 this.logger.debug("Served HTTP %s %s %s (%.2fs)", session.getMethod().name(), session.getRemoteIpAddress(), session.getHost() + session.getUri(), time);
             } catch (DropConnectionException e) {
                 logger.debug("Dropped HTTP %s %s %s", session.getMethod().name(), session.getRemoteIpAddress(), session.getHost() + session.getUri());
+                try {
+                    exchange.getConnection().close();
+                } catch (IOException ignored) {}
                 throw e;
             } catch (Exception e) {
                 if (e.getMessage() != null) {
@@ -158,13 +161,24 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
 
                 session.getLogger().severe("An exception occurred whilst handling request:\n%s", e);
 
-                exchange.setStatusCode(StandardHttpStatus.INTERNAL_ERROR.getStatusCode());
-                exchange.setReasonPhrase(StandardHttpStatus.INTERNAL_ERROR.getDescription());
-                exchange.setResponseContentLength(0);
+                if (exchange.isResponseStarted()) {
+                    // We've already started writing the request. Bail out.
+                    try {
+                        exchange.getConnection().close();
+                    } catch (IOException ignored) {}
+                    throw new DropConnectionException();
+                } else {
+                    exchange.setStatusCode(StandardHttpStatus.INTERNAL_ERROR.getStatusCode());
+                    exchange.setReasonPhrase(StandardHttpStatus.INTERNAL_ERROR.getDescription());
+                    exchange.setResponseContentLength(0);
+                }
             } finally {
                 Debugging.finalizeResult(response, session, this.config, this.logger);
 
-                exchange.endExchange();
+                // We might've already forcibly closed the connection.
+                if (exchange.getConnection().isOpen()) {
+                    exchange.endExchange();
+                }
 
                 if (response != null) {
                     IOUtil.safeClose(response.getContent());
