@@ -56,7 +56,10 @@ public class IOUtil {
     /**
      * @param    source        The data source.
      * @param    dest          The target destination.
-     * @param    length        The expected length of source, can be negative.
+     * @param    length        The expected length of source, can be negative. Note
+     *                         that this value will constrain the amount of bytes
+     *                         read from the source! (Use any negative value for
+     *                         unconstrained reading)
      * @param    maxBufferSize The maximum IO buffer size, constrain this to a
      *                         reasonable number.
      * 
@@ -72,16 +75,30 @@ public class IOUtil {
      *                         try-with-resources block).
      */
     public static void writeInputStreamToOutputStream(@NonNull InputStream source, @NonNull OutputStream dest, long length, int maxBufferSize) throws IOException {
-        if (length < 0 ||
-            length > maxBufferSize) {
-            // Unknown buffer size, default to the max.
-            // OR
-            // Constrain to maxBufferSize.
+        if (length < 0) {
+            // Don't constrain.
             writeInputStreamToOutputStream(source, dest, maxBufferSize);
-        } else {
-            // Source length is of suitable size, use it.
-            writeInputStreamToOutputStream(source, dest, (int) length);
         }
+
+        int bufferSize = length > maxBufferSize ? //
+            maxBufferSize : // Constrain to maxBufferSize.
+            (int) length;// Source length is of suitable size, use it.
+
+        byte[] buffer = new byte[bufferSize];
+        long remaining = length;
+        int read = 0;
+
+        while ((read = source.read(buffer)) != -1) {
+            if (read >= remaining) {
+                dest.write(buffer, 0, (int) remaining);
+                break; // We're done!
+            } else {
+                remaining -= read;
+                dest.write(buffer, 0, read);
+            }
+        }
+
+        dest.flush();
     }
 
     /**
