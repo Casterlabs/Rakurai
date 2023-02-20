@@ -1,5 +1,6 @@
 package co.casterlabs.rakurai.io.http;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -7,15 +8,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import co.casterlabs.rakurai.CharStrings;
+import co.casterlabs.rakurai.DataSize;
 import co.casterlabs.rakurai.io.IOUtil;
-import co.casterlabs.rakurai.io.http.server.HttpServerBuilder;
 import co.casterlabs.rakurai.json.element.JsonArray;
 import co.casterlabs.rakurai.json.element.JsonElement;
 import co.casterlabs.rakurai.json.element.JsonObject;
@@ -24,8 +22,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
-import xyz.e3ndr.fastloggingframework.logging.FastLogger;
-import xyz.e3ndr.fastloggingframework.logging.StringUtil;
 
 @Getter
 public class HttpResponse {
@@ -38,7 +34,7 @@ public class HttpResponse {
     public static final HttpResponse INTERNAL_ERROR = HttpResponse.newFixedLengthResponse(StandardHttpStatus.INTERNAL_ERROR, new byte[0]);
     public static final byte[] EMPTY_BODY = new byte[0];
 
-    private @Getter(AccessLevel.NONE) Map<String, String> headers = new HashMap<>();
+    private @Getter(AccessLevel.PACKAGE) Map<String, String> headers = new HashMap<>();
     private @NonNull @Setter HttpStatus status;
 
     private ResponseContent content;
@@ -46,95 +42,6 @@ public class HttpResponse {
     public HttpResponse(@NonNull ResponseContent content, @NonNull HttpStatus status) {
         this.content = content;
         this.status = status;
-    }
-
-    /**
-     * @deprecated This is only to be used internally.
-     */
-    @Deprecated
-    public void finalizeResult(HttpSession session, HttpServerBuilder config, FastLogger serverLogger) {
-        if (!session.hasSessionErrored) {
-            return; // Do nothing, ignore it.
-        }
-
-        this.putHeader("X-Request-ID", session.getRequestId());
-
-        if (session.printOutput == null) {
-            serverLogger.info(
-                "Request %s produced an error and was logged to console.\n" +
-                    "Consider enabling logging in your config to get more detailed reports of incidents in the future.",
-                session.getRequestId()
-            );
-            return;
-        }
-
-        // Start logigng.
-        session.printOutput.println("\n\n---- End of log ----");
-
-        // Request
-        session.printOutput.println("\n\n---- Start of request ----");
-
-        session.printOutput.format("%s %s\n\n", session.getMethod(), session.getUri());
-
-        for (Map.Entry<String, List<String>> header : session.getHeaders().entrySet()) {
-            for (String value : header.getValue()) {
-                session.printOutput.format("%s: %s\n", header.getKey(), value);
-            }
-        }
-
-        if (session.hasBody()) {
-            try {
-                byte[] body = session.getRequestBodyBytes();
-
-                session.printOutput.write(body);
-            } catch (IOException e) {
-                session.printOutput.format("ERROR, UNABLE TO GET BODY. PRINTING STACK:\n", StringUtil.getExceptionStack(e));
-            }
-        }
-
-        session.printOutput.println("\n\n---- End of request ----");
-
-        // Response
-        session.printOutput.println("\n\n---- Start of response ----");
-
-        session.printOutput.format("%s: %s\n\n", this.status.getStatusCode(), this.status.getDescription());
-
-        for (Entry<String, String> header : this.headers.entrySet()) {
-            session.printOutput.format("%s: %s\n", header.getKey(), header.getValue());
-        }
-
-        if (this.content instanceof ByteResponse) {
-            try {
-                ByteResponse resp = (ByteResponse) this.content;
-                session.printOutput.write(resp.response);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        } else {
-            session.printOutput.print("<-- Stream response, not inspectable -->");
-        }
-
-        session.printOutput.println("\n\n---- End of response ----");
-
-        // Write to file
-        File logFile = new File(config.getLogsDir(), session.getRequestId() + ".httpexchange");
-
-        try {
-            Files.write(logFile.toPath(), session.printResult.toByteArray());
-            serverLogger.info(
-                "Request %s produced an error and was written to %s.",
-                session.getRequestId(),
-                logFile
-            );
-        } catch (IOException e) {
-            serverLogger.severe(
-                "Could not write log file for %s to %s:\n%s",
-                session.getRequestId(),
-                logFile,
-                e
-            );
-            e.printStackTrace();
-        }
     }
 
     /* ---------------- */
@@ -245,7 +152,7 @@ public class HttpResponse {
     /* Responses        */
     /* ---------------- */
 
-    public static interface ResponseContent {
+    public static interface ResponseContent extends Closeable {
 
         public void write(OutputStream out) throws IOException;
 
@@ -256,27 +163,22 @@ public class HttpResponse {
 
     }
 
+    @Getter
     @AllArgsConstructor
-    private static class StreamResponse implements ResponseContent {
+    public static class StreamResponse implements ResponseContent {
         private InputStream response;
         private long length;
 
         @Override
         public void write(OutputStream out) throws IOException {
-            // If we have to, use the less efficient response format.
-            // Otherwise, we want to use the smallest buffer possible (Saves cpu).
-            boolean isInefficient = (this.length == -1) || (this.length > Integer.MAX_VALUE);
-
-            if (isInefficient) {
-                IOUtil.writeInputStreamToOutputStream(this.response, out);
-            } else {
-                IOUtil.writeInputStreamToOutputStream(
-                    this.response,
-                    out,
-                    this.length,
-                    IOUtil.DEFAULT_BUFFER_SIZE
-                );
-            }
+            // Automatically uses the content length or 16MB for the IO buffer, whichever is
+            // smallest.
+            IOUtil.writeInputStreamToOutputStream(
+                this.response,
+                out,
+                this.length,
+                (int) DataSize.MEGABYTE.toBytes(1)
+            );
         }
 
         @Override
@@ -284,10 +186,15 @@ public class HttpResponse {
             return this.length;
         }
 
+        @Override
+        public void close() throws IOException {
+            this.response.close();
+        }
     }
 
+    @Getter
     @AllArgsConstructor
-    private static class ByteResponse implements ResponseContent {
+    public static class ByteResponse implements ResponseContent {
         private byte[] response;
 
         @Override
@@ -300,6 +207,10 @@ public class HttpResponse {
             return this.response.length;
         }
 
+        @Override
+        public void close() throws IOException {
+            this.response = null; // Free, incase of leaks.
+        }
     }
 
 }

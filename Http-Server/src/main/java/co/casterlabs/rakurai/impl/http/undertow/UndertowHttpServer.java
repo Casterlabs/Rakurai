@@ -15,6 +15,7 @@ import org.xnio.Sequence;
 
 import co.casterlabs.rakurai.StringUtil;
 import co.casterlabs.rakurai.io.IOUtil;
+import co.casterlabs.rakurai.io.http.Debugging;
 import co.casterlabs.rakurai.io.http.DropConnectionException;
 import co.casterlabs.rakurai.io.http.HttpResponse;
 import co.casterlabs.rakurai.io.http.HttpResponse.ResponseContent;
@@ -46,6 +47,7 @@ import io.undertow.websockets.core.WebSockets;
 import io.undertow.websockets.spi.WebSocketHttpExchange;
 import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
+@SuppressWarnings("deprecation")
 public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketConnectionCallback {
     private FastLogger logger = new FastLogger("Rakurai UndertowHttpServer");
     private Undertow undertow;
@@ -63,7 +65,6 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
         System.setProperty("org.jboss.logging.provider", "slf4j"); // This mutes it.
     }
 
-    @SuppressWarnings("deprecation")
     private Undertow.Builder makeBuilder(HttpListener server, String hostname, int port, HttpServerBuilder builder) {
         return Undertow.builder()
             .setServerOption(UndertowOptions.ENABLE_SPDY, builder.isSPDYEnabled())
@@ -100,26 +101,24 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
         this.config = builder;
     }
 
-    @SuppressWarnings("deprecation")
     @Override
     public void handleRequest(HttpServerExchange exchange) throws Exception {
         // We want to dispatch in our executor.
         exchange.dispatch(this.executor, () -> {
+            long start = System.currentTimeMillis();
+            HttpSession session = new UndertowHttpSessionWrapper(exchange, this.port, this.config);
+            HttpResponse response = null;
+
             try {
-                long start = System.currentTimeMillis();
-
                 exchange.startBlocking();
-
-                HttpSession session = new UndertowHttpSessionWrapper(exchange, this.port, this.config);
-                HttpResponse response = this.server.serveSession(session.getHost(), session, this.secure);
+                response = this.server.serveSession(session.getHost(), session, this.secure);
 
                 if (response == null) {
                     response = HttpResponse.newFixedLengthResponse(StandardHttpStatus.NOT_IMPLEMENTED);
-                } else if (response.getStatus() == StandardHttpStatus.NO_RESPONSE) {
-                    IOUtil.safeClose(exchange.getConnection());
-                    return;
-                } else {
-                    response.finalizeResult(session, this.config, this.logger);
+                }
+
+                if (response.getStatus() == StandardHttpStatus.NO_RESPONSE) {
+                    throw new DropConnectionException();
                 }
 
                 exchange.setStatusCode(response.getStatus().getStatusCode());
@@ -144,16 +143,26 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                 content.write(out);
 
                 double time = (System.currentTimeMillis() - start) / 1000d;
-
                 this.logger.debug("Served HTTP %s %s %s (%.2fs)", session.getMethod().name(), session.getRemoteIpAddress(), session.getHost() + session.getUri(), time);
+            } catch (DropConnectionException e) {
+                logger.debug("Dropped HTTP %s %s %s", session.getMethod().name(), session.getRemoteIpAddress(), session.getHost() + session.getUri());
+                throw e;
+            } catch (Exception e) {
+                if (e.getMessage().contains("Stream is closed")) return;
+
+                session.getLogger().severe("An exception occurred whilst handling request:\n%s", e);
+
+                exchange.setStatusCode(StandardHttpStatus.INTERNAL_ERROR.getStatusCode());
+                exchange.setReasonPhrase(StandardHttpStatus.INTERNAL_ERROR.getDescription());
+                exchange.setResponseContentLength(0);
+            } finally {
+                Debugging.finalizeResult(response, session, this.config, this.logger);
 
                 exchange.endExchange();
-            } catch (Exception e) {
-                if (!(e instanceof DropConnectionException) && !e.getMessage().contains("Stream is closed")) {
-                    this.logger.fatal("A fatal error occurred whilst processing a request:\n%s", e);
-                }
 
-                IOUtil.safeClose(exchange.getConnection());
+                if (response != null) {
+                    IOUtil.safeClose(response.getContent());
+                }
             }
         });
     }
@@ -181,7 +190,6 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                     listener.onFrame(websocket, frame);
                 }
 
-                @SuppressWarnings("deprecation")
                 @Override
                 protected void onFullBinaryMessage(WebSocketChannel channel, BufferedBinaryMessage message) {
                     byte[] bytes = WebSockets.mergeBuffers(message.getData().getResource()).array();

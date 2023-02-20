@@ -3,16 +3,19 @@ package co.casterlabs.rakurai.impl.http.nano;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import co.casterlabs.rakurai.StringUtil;
+import co.casterlabs.rakurai.io.IOUtil;
+import co.casterlabs.rakurai.io.http.Debugging;
 import co.casterlabs.rakurai.io.http.DropConnectionException;
 import co.casterlabs.rakurai.io.http.HttpResponse;
+import co.casterlabs.rakurai.io.http.HttpResponse.ByteResponse;
 import co.casterlabs.rakurai.io.http.HttpResponse.ResponseContent;
+import co.casterlabs.rakurai.io.http.HttpResponse.StreamResponse;
 import co.casterlabs.rakurai.io.http.HttpStatus;
 import co.casterlabs.rakurai.io.http.StandardHttpStatus;
 import co.casterlabs.rakurai.io.http.server.HttpListener;
@@ -27,6 +30,7 @@ import fi.iki.elonen.NanoWSD;
 import lombok.SneakyThrows;
 import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
+@SuppressWarnings("deprecation")
 public class NanoHttpServer extends NanoWSD implements HttpServer {
     private FastLogger logger = new FastLogger("Rakurai NanoHttpServer");
     private HttpListener server;
@@ -37,11 +41,9 @@ public class NanoHttpServer extends NanoWSD implements HttpServer {
     static {
         try {
             Field field = NanoHTTPD.class.getDeclaredField("LOG");
-
             field.setAccessible(true);
 
             Logger log = (Logger) field.get(null);
-
             log.setLevel(Level.OFF); // Hush
         } catch (IllegalArgumentException | IllegalAccessException | NoSuchFieldException | SecurityException e) {
             e.printStackTrace();
@@ -58,15 +60,11 @@ public class NanoHttpServer extends NanoWSD implements HttpServer {
         this.config = config;
     }
 
-    public NanoHttpServer(HttpListener server, String hostname, int port, WrappedSSLSocketFactory factory, String[] tls, HttpServerBuilder config) {
-        super(hostname, port);
+    public NanoHttpServer(HttpListener server, String hostname, int port, HttpServerBuilder config, WrappedSSLSocketFactory factory, String[] tls) {
+        this(server, hostname, port, config);
 
         this.makeSecure(factory, tls);
-        this.setAsyncRunner(new NanoRunner());
-
         this.secure = true;
-        this.server = server;
-        this.config = config;
     }
 
     @Override
@@ -76,68 +74,88 @@ public class NanoHttpServer extends NanoWSD implements HttpServer {
 
     // Serves http sessions or calls super to serve websockets
     @SneakyThrows
-    @SuppressWarnings("deprecation")
     @Override
     public Response serve(IHTTPSession nanoSession) {
         if (this.isWebsocketRequested(nanoSession)) {
             return super.serve(nanoSession);
-        } else {
-            long start = System.currentTimeMillis();
-            NanoHttpSession session = new NanoHttpSession(nanoSession, logger, this.getListeningPort(), this.config);
+        }
 
-            HttpResponse response = this.server.serveSession(session.getHost(), session, this.secure);
+        long start = System.currentTimeMillis();
+        NanoHttpSession session = new NanoHttpSession(nanoSession, this.getListeningPort(), this.config);
+        HttpResponse response = null;
+
+        try {
+            response = this.server.serveSession(session.getHost(), session, this.secure);
 
             if (response == null) {
                 return NanoHTTPD.newFixedLengthResponse(Status.NOT_IMPLEMENTED, "text/plaintext", "");
-            } else if (response.getStatus() == StandardHttpStatus.NO_RESPONSE) {
-                logger.debug("Dropped HTTP %s %s %s", session.getMethod().name(), session.getRemoteIpAddress(), session.getHost() + session.getUri());
+            }
+
+            if (response.getStatus() == StandardHttpStatus.NO_RESPONSE) {
                 throw new DropConnectionException();
-            } else {
-                response.finalizeResult(session, this.config, this.logger);
+            }
 
-                String mime = response.getAllHeaders().getOrDefault("content-type", "text/plaintext");
+            String mime = response.getAllHeaders().getOrDefault("content-type", "text/plaintext");
+            IStatus status = convertStatus(response.getStatus());
+            ResponseContent content = response.getContent();
 
-                IStatus status = convertStatus(response.getStatus());
-                ResponseContent content = response.getContent();
+            ByteArrayOutputStream responseSink;
 
-                ByteArrayOutputStream responseSink;
+            Response nanoResponse;
+            if (content instanceof ByteResponse) {
+                ByteResponse resp = (ByteResponse) response.getContent();
+                nanoResponse = NanoHTTPD.newFixedLengthResponse(
+                    status,
+                    mime,
+                    new ByteArrayInputStream(resp.getResponse()),
+                    resp.getLength()
+                );
+            } else if (content instanceof StreamResponse) {
+                StreamResponse resp = (StreamResponse) response.getContent();
 
-                long length = content.getLength();
-                if (length >= 0) {
-                    responseSink = new ByteArrayOutputStream((int) length);
+                if (resp.getLength() < 0) {
+                    nanoResponse = NanoHTTPD.newChunkedResponse(status, mime, resp.getResponse());
                 } else {
-                    responseSink = new ByteArrayOutputStream();
-                }
-
-                content.write(responseSink);
-                InputStream responseStream = new ByteArrayInputStream(responseSink.toByteArray());
-
-                Response nanoResponse;
-                if (length >= 0) {
                     nanoResponse = NanoHTTPD.newFixedLengthResponse(
                         status,
                         mime,
-                        responseStream,
-                        content.getLength()
+                        resp.getResponse(),
+                        resp.getLength()
                     );
-                } else {
-                    nanoResponse = NanoHTTPD.newChunkedResponse(status, mime, responseStream);
+                }
+            } else {
+                session.getLogger().fatal("NanoHTTPD only supports the stock ByteResponse and StreamResponse. Unable to further serve request.");
+                throw new DropConnectionException();
+            }
+
+            for (Map.Entry<String, String> header : response.getAllHeaders().entrySet()) {
+                // Check prevents duplicate headers
+                if (header.getKey().equalsIgnoreCase("content-type") ||
+                    header.getKey().equalsIgnoreCase("content-length")) {
+                    continue;
                 }
 
-                for (Map.Entry<String, String> header : response.getAllHeaders().entrySet()) {
-                    // Check prevents duplicate headers
-                    if (!header.getKey().equalsIgnoreCase("content-type") && !header.getKey().equalsIgnoreCase("content-length")) {
-                        String key = StringUtil.prettifyHeader(header.getKey());
-                        String value = header.getValue();
+                nanoResponse.addHeader(
+                    StringUtil.prettifyHeader(header.getKey()),
+                    header.getValue()
+                );
+            }
 
-                        nanoResponse.addHeader(key, value);
-                    }
-                }
+            double time = (System.currentTimeMillis() - start) / 1000d;
+            logger.debug("Served HTTP %s %s %s (%.2fs)", session.getMethod().name(), session.getRemoteIpAddress(), session.getHost() + session.getUri(), time);
 
-                double time = (System.currentTimeMillis() - start) / 1000d;
-                logger.debug("Served HTTP %s %s %s (%.2fs)", session.getMethod().name(), session.getRemoteIpAddress(), session.getHost() + session.getUri(), time);
+            return nanoResponse;
+        } catch (DropConnectionException e) {
+            logger.debug("Dropped HTTP %s %s %s", session.getMethod().name(), session.getRemoteIpAddress(), session.getHost() + session.getUri());
+            throw e;
+        } catch (Exception e) {
+            session.getLogger().severe("An exception occurred whilst handling request:\n%s", e);
+            return NanoHTTPD.newFixedLengthResponse(Status.INTERNAL_ERROR, "text/plaintext", "");
+        } finally {
+            Debugging.finalizeResult(response, session, this.config, this.logger);
 
-                return nanoResponse;
+            if (response != null) {
+                IOUtil.safeClose(response.getContent());
             }
         }
     }
