@@ -148,9 +148,12 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                 logger.debug("Dropped HTTP %s %s %s", session.getMethod().name(), session.getRemoteIpAddress(), session.getHost() + session.getUri());
                 throw e;
             } catch (Exception e) {
-                if (e.getMessage().contains("Stream is closed") ||
-                    e.getMessage().contains("connection was aborted")) {
-                    return;
+                if (e.getMessage() != null) {
+                    String message = e.getMessage();
+                    if (message.contains("Stream is closed") ||
+                        message.contains("connection was aborted")) {
+                        return;
+                    }
                 }
 
                 session.getLogger().severe("An exception occurred whilst handling request:\n%s", e);
