@@ -12,6 +12,7 @@ import org.jetbrains.annotations.Nullable;
 import co.casterlabs.rakurai.io.http.HttpResponse.ByteResponse;
 import co.casterlabs.rakurai.io.http.server.HttpServerBuilder;
 import lombok.NonNull;
+import lombok.SneakyThrows;
 import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 import xyz.e3ndr.fastloggingframework.logging.StringUtil;
 
@@ -20,6 +21,13 @@ import xyz.e3ndr.fastloggingframework.logging.StringUtil;
  */
 @Deprecated
 public class Debugging {
+
+    @SneakyThrows
+    public static void debugThrow(Throwable t) {
+        if (System.getProperty("rakuraithrowtodebug", "").equalsIgnoreCase("true")) {
+            throw t;
+        }
+    }
 
     public static void finalizeResult(@Nullable HttpResponse response, @NonNull HttpSession session, @NonNull HttpServerBuilder config, @NonNull FastLogger serverLogger) {
         if (!session.hasSessionErrored) {
