@@ -11,22 +11,22 @@ import co.casterlabs.rakurai.io.http.HttpSession;
 public abstract class WebsocketSession extends HttpSession {
 
     @Override
-    public boolean hasBody() {
+    public final boolean hasBody() {
         return false;
     }
 
     @Override
-    public @Nullable byte[] getRequestBodyBytes() throws IOException {
+    public final @Nullable byte[] getRequestBodyBytes() throws IOException {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public Map<String, String> parseFormBody() throws IOException {
+    public final Map<String, String> parseFormBody() throws IOException {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public HttpMethod getMethod() {
+    public final HttpMethod getMethod() {
         return HttpMethod.GET;
     }
 
