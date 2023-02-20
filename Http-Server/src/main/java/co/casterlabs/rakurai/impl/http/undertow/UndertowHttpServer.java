@@ -42,7 +42,6 @@ import io.undertow.websockets.core.AbstractReceiveListener;
 import io.undertow.websockets.core.BufferedBinaryMessage;
 import io.undertow.websockets.core.BufferedTextMessage;
 import io.undertow.websockets.core.StreamSourceFrameChannel;
-import io.undertow.websockets.core.WebSocketCallback;
 import io.undertow.websockets.core.WebSocketChannel;
 import io.undertow.websockets.core.WebSockets;
 import io.undertow.websockets.spi.WebSocketHttpExchange;
@@ -216,24 +215,6 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
 
             @Override
             protected void onError(WebSocketChannel channel, Throwable ignored) {}
-
-            @Override
-            protected void onFullPingMessage(WebSocketChannel channel, BufferedBinaryMessage message) throws IOException {
-                WebSockets.sendPong(
-                    message.getData().getResource(), channel,
-                    new WebSocketCallback<Void>() {
-                        @Override
-                        public void complete(WebSocketChannel channel, Void context) {
-                            message.getData().free();
-                        }
-
-                        @Override
-                        public void onError(WebSocketChannel channel, Void context, Throwable throwable) {
-                            message.getData().free();
-                        }
-                    }
-                );
-            }
         });
 
         try {
