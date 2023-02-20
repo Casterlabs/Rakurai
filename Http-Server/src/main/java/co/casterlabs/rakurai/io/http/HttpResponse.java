@@ -177,7 +177,7 @@ public class HttpResponse {
                 this.response,
                 out,
                 this.length,
-                (int) DataSize.MEGABYTE.toBytes(1)
+                (int) DataSize.MEGABYTE.toBytes(16)
             );
         }
 
