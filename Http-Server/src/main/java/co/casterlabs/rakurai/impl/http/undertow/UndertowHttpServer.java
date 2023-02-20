@@ -149,7 +149,6 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                 try {
                     exchange.getConnection().close();
                 } catch (IOException ignored) {}
-                throw e;
             } catch (Exception e) {
                 if (e.getMessage() != null) {
                     String message = e.getMessage();
@@ -166,7 +165,6 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                     try {
                         exchange.getConnection().close();
                     } catch (IOException ignored) {}
-                    throw new DropConnectionException();
                 } else {
                     exchange.setStatusCode(StandardHttpStatus.INTERNAL_ERROR.getStatusCode());
                     exchange.setReasonPhrase(StandardHttpStatus.INTERNAL_ERROR.getDescription());
