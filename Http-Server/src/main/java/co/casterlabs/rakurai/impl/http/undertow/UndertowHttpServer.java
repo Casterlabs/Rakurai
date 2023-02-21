@@ -153,7 +153,8 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                 if (e.getMessage() != null) {
                     String message = e.getMessage();
                     if (message.contains("Stream is closed") ||
-                        message.contains("connection was aborted")) {
+                        message.contains("connection was aborted") ||
+                        message.contains("Broken pipe")) {
                         return;
                     }
                 }
