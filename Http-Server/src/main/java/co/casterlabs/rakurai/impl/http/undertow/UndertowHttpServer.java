@@ -191,6 +191,8 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
 
     @Override
     public void onConnect(WebSocketHttpExchange exchange, WebSocketChannel channel) {
+        long start = System.currentTimeMillis();
+
         WebsocketSession session = new UndertowWebsocketSessionWrapper(exchange, channel, this.port, this.config);
         WebsocketListener listener = this.server.serveWebsocketSession(session.getHost(), session, this.secure);
 
@@ -228,10 +230,11 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
 
             @Override
             protected void onClose(WebSocketChannel webSocketChannel, StreamSourceFrameChannel channel) throws IOException {
+                logger.debug("Closed WebSocket %s %s %s", session.getMethod().name(), session.getRemoteIpAddress(), session.getHost() + session.getUri());
+
                 try {
                     listener.onClose(websocket);
                 } catch (Exception ignored) {}
-
                 webSocketChannel.sendClose();
             }
 
@@ -252,6 +255,9 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
             } catch (Throwable ignored) {}
             return;
         }
+
+        double time = (System.currentTimeMillis() - start) / 1000d;
+        this.logger.debug("Served WebSocket %s %s %s (%.2fs)", session.getMethod().name(), session.getRemoteIpAddress(), session.getHost() + session.getUri(), time);
 
         channel.resumeReceives();
     }
