@@ -78,6 +78,7 @@ public class IOUtil {
         if (length < 0) {
             // Don't constrain.
             writeInputStreamToOutputStream(source, dest, maxBufferSize);
+            return;
         }
 
         int bufferSize = length > maxBufferSize ? //
