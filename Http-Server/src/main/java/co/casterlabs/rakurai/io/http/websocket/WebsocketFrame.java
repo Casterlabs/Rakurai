@@ -30,7 +30,7 @@ public abstract class WebsocketFrame {
     @Override
     public String toString() {
         if (this.getFrameType() == WebsocketFrameType.BINARY) {
-            return String.format(TOSTRING_BIN_FORMAT, StringUtil.bytesToHex(this.getBytes()), this.getSize());
+            return String.format(TOSTRING_BIN_FORMAT, this.getSize(), StringUtil.bytesToHex(this.getBytes()));
         } else {
             return String.format(TOSTRING_TEXT_FORMAT, this.getAsText());
         }
