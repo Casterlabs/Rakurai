@@ -74,8 +74,6 @@ public abstract class HttpSession {
                 return this;
             }
         };
-
-        this.logger.setCurrentLevel(LogLevel.WARNING);
     }
 
     // Request headers
