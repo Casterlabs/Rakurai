@@ -73,6 +73,7 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
 //            .setServerOption(UndertowOptions.ALWAYS_SET_KEEP_ALIVE, false)
 
             .setBufferSize(IOUtil.DEFAULT_BUFFER_SIZE)
+            .setDirectBuffers(false)
 
             .setHandler(Handlers.websocket(this, this));
     }
