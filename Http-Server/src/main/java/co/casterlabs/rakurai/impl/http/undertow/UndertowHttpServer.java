@@ -2,6 +2,7 @@ package co.casterlabs.rakurai.impl.http.undertow;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -29,7 +30,6 @@ import co.casterlabs.rakurai.io.http.websocket.Websocket;
 import co.casterlabs.rakurai.io.http.websocket.WebsocketFrame;
 import co.casterlabs.rakurai.io.http.websocket.WebsocketListener;
 import co.casterlabs.rakurai.io.http.websocket.WebsocketSession;
-import io.undertow.Handlers;
 import io.undertow.Undertow;
 import io.undertow.UndertowOptions;
 import io.undertow.server.HttpHandler;
@@ -37,12 +37,17 @@ import io.undertow.server.HttpServerExchange;
 import io.undertow.server.handlers.BlockingHandler;
 import io.undertow.util.HttpString;
 import io.undertow.websockets.WebSocketConnectionCallback;
+import io.undertow.websockets.WebSocketProtocolHandshakeHandler;
 import io.undertow.websockets.core.AbstractReceiveListener;
 import io.undertow.websockets.core.BufferedBinaryMessage;
 import io.undertow.websockets.core.BufferedTextMessage;
 import io.undertow.websockets.core.StreamSourceFrameChannel;
 import io.undertow.websockets.core.WebSocketChannel;
 import io.undertow.websockets.core.WebSockets;
+import io.undertow.websockets.core.protocol.Handshake;
+import io.undertow.websockets.core.protocol.version07.Hybi07Handshake;
+import io.undertow.websockets.core.protocol.version08.Hybi08Handshake;
+import io.undertow.websockets.core.protocol.version13.Hybi13Handshake;
 import io.undertow.websockets.spi.WebSocketHttpExchange;
 import lombok.Getter;
 import xyz.e3ndr.fastloggingframework.logging.FastLogger;
@@ -64,6 +69,30 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
     }
 
     private Undertow.Builder makeBuilder(HttpListener server, String hostname, int port, HttpServerBuilder builder) {
+        List<Handshake> handshakes = Arrays.asList(
+            new Hybi07Handshake() {
+                @Override
+                protected String supportedSubprotols(String[] requestedSubprotocolArray) {
+                    return requestedSubprotocolArray[0];
+                };
+            },
+            new Hybi08Handshake() {
+                @Override
+                protected String supportedSubprotols(String[] requestedSubprotocolArray) {
+                    return requestedSubprotocolArray[0];
+                };
+            },
+            new Hybi13Handshake() {
+                @Override
+                protected String supportedSubprotols(String[] requestedSubprotocolArray) {
+                    return requestedSubprotocolArray[0];
+                };
+            }
+        );
+
+        BlockingHandler httpHandler = new BlockingHandler(this);
+        WebSocketProtocolHandshakeHandler websocketHandler = new WebSocketProtocolHandshakeHandler(handshakes, this, httpHandler);
+
         return Undertow.builder()
             .setServerOption(UndertowOptions.ENABLE_SPDY, builder.isSPDYEnabled())
             .setServerOption(UndertowOptions.ENABLE_HTTP2, builder.isHttp2Enabled())
@@ -73,7 +102,7 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
             .setBufferSize(IOUtil.DEFAULT_BUFFER_SIZE)
             .setDirectBuffers(false)
 
-            .setHandler(Handlers.websocket(this, new BlockingHandler(this)));
+            .setHandler(websocketHandler);
     }
 
     public UndertowHttpServer(HttpListener server, String hostname, int port, HttpServerBuilder builder) {
@@ -220,13 +249,7 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
             session.getLogger().debug("Got listener, attaching.");
             Websocket websocket = new UndertowWebsocketChannelWrapper(channel, session);
 
-            session.getLogger().debug("Sub-protocols: %s", channel.getSubProtocol());
-
-            String websocketProtocols = session.getHeader("Sec-WebSocket-Protocol");
-            if (websocketProtocols != null) {
-                String first = websocketProtocols.split(",")[0].trim();
-                exchange.setResponseHeader("Sec-WebSocket-Protocol", first);
-            }
+            session.getLogger().debug("Sub-protocol: %s", channel.getSubProtocol());
 
             boolean logWebsocketFrames = System.getProperty("rakurailogwebsocketframes", "").equals("true");
             session.getLogger().debug("-Drakurailogwebsocketframes=%b", logWebsocketFrames);
