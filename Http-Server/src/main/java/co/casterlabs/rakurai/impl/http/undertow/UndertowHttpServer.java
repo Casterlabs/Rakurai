@@ -285,7 +285,7 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                 return;
             }
 
-            double time = System.currentTimeMillis() - start;
+            long time = System.currentTimeMillis() - start;
             this.logger.debug("Successfully served request in %,dms.", time);
 
             this.logger.debug("Processing frames...");
