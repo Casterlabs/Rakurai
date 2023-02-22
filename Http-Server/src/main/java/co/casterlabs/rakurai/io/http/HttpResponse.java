@@ -12,7 +12,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import co.casterlabs.rakurai.CharStrings;
-import co.casterlabs.rakurai.DataSize;
 import co.casterlabs.rakurai.io.IOUtil;
 import co.casterlabs.rakurai.json.element.JsonArray;
 import co.casterlabs.rakurai.json.element.JsonElement;
@@ -177,7 +176,7 @@ public class HttpResponse {
                 this.response,
                 out,
                 this.length,
-                (int) DataSize.MEGABYTE.toBytes(16)
+                IOUtil.DEFAULT_BUFFER_SIZE
             );
         }
 

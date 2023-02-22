@@ -10,11 +10,10 @@ import java.nio.charset.StandardCharsets;
 
 import org.jetbrains.annotations.Nullable;
 
-import co.casterlabs.rakurai.DataSize;
 import lombok.NonNull;
 
 public class IOUtil {
-    public static int DEFAULT_BUFFER_SIZE = (int) DataSize.KILOBYTE.toBytes(16);
+    public static int DEFAULT_BUFFER_SIZE = Integer.parseInt(System.getProperty("rakuraidefaultbuffersize", "16384")); // Default to 16k
 
     /**
      * @param closeables The closeables to... close...
