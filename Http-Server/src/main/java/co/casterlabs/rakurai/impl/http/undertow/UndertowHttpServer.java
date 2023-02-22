@@ -275,6 +275,8 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
             try {
                 listener.onOpen(websocket);
             } catch (Throwable t) {
+                session.getLogger().severe("Uncaught:\n%s", t);
+
                 // An error occurred, close the connection immediately.
                 IOUtil.safeClose(channel);
 
