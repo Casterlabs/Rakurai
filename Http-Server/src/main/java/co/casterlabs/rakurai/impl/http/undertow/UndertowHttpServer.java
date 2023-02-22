@@ -172,8 +172,6 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                     exchange.setReasonPhrase(StandardHttpStatus.INTERNAL_ERROR.getDescription());
                     exchange.setResponseContentLength(0);
                 }
-
-                Debugging.debugThrow(e);
             } finally {
                 Debugging.finalizeResult(response, session, this.config, this.logger);
 
