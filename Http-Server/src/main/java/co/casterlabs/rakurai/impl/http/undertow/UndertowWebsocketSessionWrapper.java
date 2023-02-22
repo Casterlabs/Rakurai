@@ -11,6 +11,7 @@ import co.casterlabs.rakurai.io.http.server.HttpServerBuilder;
 import co.casterlabs.rakurai.io.http.websocket.WebsocketSession;
 import io.undertow.websockets.core.WebSocketChannel;
 import io.undertow.websockets.spi.WebSocketHttpExchange;
+import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
 public class UndertowWebsocketSessionWrapper extends WebsocketSession {
     private WebSocketHttpExchange exchange;
@@ -21,7 +22,7 @@ public class UndertowWebsocketSessionWrapper extends WebsocketSession {
     private Map<String, String> queryParameters = new HashMap<>();
     private HeaderMap headers;
 
-    public UndertowWebsocketSessionWrapper(WebSocketHttpExchange exchange, WebSocketChannel channel, int port, HttpServerBuilder config) {
+    public UndertowWebsocketSessionWrapper(WebSocketHttpExchange exchange, WebSocketChannel channel, int port, HttpServerBuilder config, FastLogger parentLogger) {
         this.exchange = exchange;
         this.channel = channel;
         this.port = port;
@@ -33,7 +34,7 @@ public class UndertowWebsocketSessionWrapper extends WebsocketSession {
 
         this.headers = new HeaderMap.Builder().putMap(exchange.getRequestHeaders()).build();
 
-        super.postConstruct(config);
+        super.postConstruct(config, parentLogger);
     }
 
     // Request headers

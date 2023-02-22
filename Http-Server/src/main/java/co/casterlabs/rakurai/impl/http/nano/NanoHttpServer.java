@@ -1,7 +1,6 @@
 package co.casterlabs.rakurai.impl.http.nano;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.Map;
@@ -27,12 +26,13 @@ import fi.iki.elonen.NanoHTTPD;
 import fi.iki.elonen.NanoHTTPD.Response.IStatus;
 import fi.iki.elonen.NanoHTTPD.Response.Status;
 import fi.iki.elonen.NanoWSD;
+import lombok.Getter;
 import lombok.SneakyThrows;
 import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
 @SuppressWarnings("deprecation")
 public class NanoHttpServer extends NanoWSD implements HttpServer {
-    private FastLogger logger = new FastLogger("Rakurai NanoHttpServer");
+    private @Getter FastLogger logger = new FastLogger("Rakurai NanoHttpServer");
     private HttpListener server;
     private boolean secure;
 
@@ -81,7 +81,7 @@ public class NanoHttpServer extends NanoWSD implements HttpServer {
         }
 
         long start = System.currentTimeMillis();
-        NanoHttpSession session = new NanoHttpSession(nanoSession, this.getListeningPort(), this.config);
+        NanoHttpSession session = new NanoHttpSession(nanoSession, this.getListeningPort(), this.config, this.logger);
         HttpResponse response = null;
 
         try {
@@ -98,8 +98,6 @@ public class NanoHttpServer extends NanoWSD implements HttpServer {
             String mime = response.getAllHeaders().getOrDefault("content-type", "text/plaintext");
             IStatus status = convertStatus(response.getStatus());
             ResponseContent content = response.getContent();
-
-            ByteArrayOutputStream responseSink;
 
             Response nanoResponse;
             if (content instanceof ByteResponse) {
@@ -163,7 +161,7 @@ public class NanoHttpServer extends NanoWSD implements HttpServer {
     @Override
     protected WebSocket openWebSocket(IHTTPSession nanoSession) {
         long start = System.currentTimeMillis();
-        NanoWebsocketSessionWrapper session = new NanoWebsocketSessionWrapper(nanoSession, this.getListeningPort(), this.config);
+        NanoWebsocketSessionWrapper session = new NanoWebsocketSessionWrapper(nanoSession, this.getListeningPort(), this.config, this.logger);
 
         WebsocketListener listener = this.server.serveWebsocketSession(session.getHost(), session, this.secure);
 

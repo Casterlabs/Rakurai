@@ -2,6 +2,8 @@ package co.casterlabs.rakurai.io.http.server;
 
 import java.io.IOException;
 
+import xyz.e3ndr.fastloggingframework.logging.FastLogger;
+
 public interface HttpServer {
 
     public void start() throws IOException;
@@ -11,6 +13,8 @@ public interface HttpServer {
     public int getPort();
 
     public boolean isAlive();
+
+    public FastLogger getLogger();
 
     public HttpServerImplementation getImplementation();
 

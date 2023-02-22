@@ -36,7 +36,7 @@ public abstract class HttpSession {
     private @Getter boolean isProxied;
     private String remoteIp;
 
-    protected void postConstruct(HttpServerBuilder config) {
+    protected void postConstruct(HttpServerBuilder config, FastLogger parentLogger) {
         this.isProxied = config.isBehindProxy();
 
         FastLogger realLogger = new FastLogger("Rakurai Session: " + this.requestId);
@@ -58,7 +58,7 @@ public abstract class HttpSession {
                     hasSessionErrored = true;
                 }
 
-                if (level.canLog(this.getCurrentLevel())) {
+                if (level.canLog(parentLogger.getCurrentLevel())) {
                     realLogger.log(level, object, args);
                 }
 

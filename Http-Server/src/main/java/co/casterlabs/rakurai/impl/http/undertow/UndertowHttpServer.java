@@ -45,11 +45,12 @@ import io.undertow.websockets.core.StreamSourceFrameChannel;
 import io.undertow.websockets.core.WebSocketChannel;
 import io.undertow.websockets.core.WebSockets;
 import io.undertow.websockets.spi.WebSocketHttpExchange;
+import lombok.Getter;
 import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
 @SuppressWarnings("deprecation")
 public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketConnectionCallback {
-    private FastLogger logger = new FastLogger("Rakurai UndertowHttpServer");
+    private @Getter FastLogger logger = new FastLogger("Rakurai UndertowHttpServer");
     private Undertow undertow;
     private HttpListener server;
     private int port;
@@ -107,7 +108,7 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
         // We want to dispatch in our executor.
         exchange.dispatch(this.executor, () -> {
             long start = System.currentTimeMillis();
-            HttpSession session = new UndertowHttpSessionWrapper(exchange, this.port, this.config);
+            HttpSession session = new UndertowHttpSessionWrapper(exchange, this.port, this.config, this.logger);
             HttpResponse response = null;
 
             session.getLogger().debug(
@@ -201,7 +202,7 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
     @Override
     public void onConnect(WebSocketHttpExchange exchange, WebSocketChannel channel) {
         long start = System.currentTimeMillis();
-        WebsocketSession session = new UndertowWebsocketSessionWrapper(exchange, channel, this.port, this.config);
+        WebsocketSession session = new UndertowWebsocketSessionWrapper(exchange, channel, this.port, this.config, this.logger);
 
         session.getLogger().debug(
             "Processing websocket request for %s, resource: %s%s",

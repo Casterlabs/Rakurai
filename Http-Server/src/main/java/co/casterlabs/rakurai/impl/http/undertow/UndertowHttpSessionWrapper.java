@@ -22,6 +22,7 @@ import io.undertow.server.handlers.form.FormDataParser;
 import io.undertow.server.handlers.form.FormParserFactory;
 import io.undertow.util.HeaderValues;
 import io.undertow.util.HttpString;
+import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
 public class UndertowHttpSessionWrapper extends HttpSession {
     private HttpServerExchange exchange;
@@ -34,7 +35,7 @@ public class UndertowHttpSessionWrapper extends HttpSession {
     private byte[] body;
 
     @SuppressWarnings("deprecation")
-    public UndertowHttpSessionWrapper(HttpServerExchange exchange, int port, HttpServerBuilder config) {
+    public UndertowHttpSessionWrapper(HttpServerExchange exchange, int port, HttpServerBuilder config, FastLogger parentLogger) {
         this.exchange = exchange;
         this.port = port;
 
@@ -65,7 +66,7 @@ public class UndertowHttpSessionWrapper extends HttpSession {
             this.queryParameters.put(entry.getKey(), values.get(0));
         }
 
-        super.postConstruct(config);
+        super.postConstruct(config, parentLogger);
     }
 
     // Request headers
