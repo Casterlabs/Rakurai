@@ -34,6 +34,7 @@ import io.undertow.Undertow;
 import io.undertow.UndertowOptions;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
+import io.undertow.server.handlers.BlockingHandler;
 import io.undertow.util.HttpString;
 import io.undertow.websockets.WebSocketConnectionCallback;
 import io.undertow.websockets.core.AbstractReceiveListener;
@@ -72,7 +73,7 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
             .setBufferSize(IOUtil.DEFAULT_BUFFER_SIZE)
             .setDirectBuffers(false)
 
-            .setHandler(Handlers.websocket(this, this));
+            .setHandler(Handlers.websocket(this, new BlockingHandler(this)));
     }
 
     public UndertowHttpServer(HttpListener server, String hostname, int port, HttpServerBuilder builder) {
