@@ -110,21 +110,30 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
             HttpSession session = new UndertowHttpSessionWrapper(exchange, this.port, this.config);
             HttpResponse response = null;
 
+            session.getLogger().debug(
+                "Processing http %s request for %s, resource: %s%s",
+                session.getMethod().name(), session.getRemoteIpAddress(), session.getHost(), session.getUri()
+            );
+
             try {
                 exchange.startBlocking();
                 response = this.server.serveSession(session.getHost(), session, this.secure);
 
                 if (response == null) {
                     response = HttpResponse.newFixedLengthResponse(StandardHttpStatus.NOT_IMPLEMENTED);
+                    session.getLogger().debug("No response, returning NOT_IMPLEMENTED.");
                 }
 
                 if (response.getStatus() == StandardHttpStatus.NO_RESPONSE) {
+                    session.getLogger().debug("Got 444 (NO_RESPONSE), dropping request.");
                     throw new DropConnectionException();
                 }
 
+                session.getLogger().debug("Response status: %d (%s)", response.getStatus().getStatusCode(), response.getStatus().getDescription());
                 exchange.setStatusCode(response.getStatus().getStatusCode());
                 exchange.setReasonPhrase(response.getStatus().getDescription());
 
+                // Write out the response headers.
                 for (Map.Entry<String, String> entry : response.getAllHeaders().entrySet()) {
                     String key = StringUtil.prettifyHeader(entry.getKey());
                     String value = entry.getValue();
@@ -138,15 +147,18 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                 // If it's a fixed-length response we want to add that info.
                 long length = content.getLength();
                 if (length >= 0) {
+                    session.getLogger().debug("Response transport is fixed-length. (len=%,d)", length);
                     exchange.setResponseContentLength(length);
+                } else {
+                    session.getLogger().debug("Response transport is chunked.");
                 }
 
                 content.write(out);
 
-                double time = (System.currentTimeMillis() - start) / 1000d;
-                this.logger.debug("Served HTTP %s %s %s (%.2fs)", session.getMethod().name(), session.getRemoteIpAddress(), session.getHost() + session.getUri(), time);
+                long time = System.currentTimeMillis() - start;
+                this.logger.debug("Successfully served request in %,dms.", time);
             } catch (DropConnectionException e) {
-                logger.debug("Dropped HTTP %s %s %s", session.getMethod().name(), session.getRemoteIpAddress(), session.getHost() + session.getUri());
+                logger.debug("Dropped request.");
                 try {
                     exchange.getConnection().close();
                 } catch (IOException ignored) {}
@@ -164,10 +176,8 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                 session.getLogger().severe("An exception occurred whilst handling request:\n%s", e);
 
                 if (exchange.isResponseStarted()) {
-                    // We've already started writing the request. Bail out.
-                    try {
-                        exchange.getConnection().close();
-                    } catch (IOException ignored) {}
+                    // We've already started writing the request, bail out.
+                    IOUtil.safeClose(exchange.getConnection());
                 } else {
                     exchange.setStatusCode(StandardHttpStatus.INTERNAL_ERROR.getStatusCode());
                     exchange.setReasonPhrase(StandardHttpStatus.INTERNAL_ERROR.getDescription());
@@ -191,74 +201,99 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
     @Override
     public void onConnect(WebSocketHttpExchange exchange, WebSocketChannel channel) {
         long start = System.currentTimeMillis();
-
         WebsocketSession session = new UndertowWebsocketSessionWrapper(exchange, channel, this.port, this.config);
-        WebsocketListener listener = this.server.serveWebsocketSession(session.getHost(), session, this.secure);
 
-        if (listener == null) {
-            IOUtil.safeClose(channel);
-            return;
-        }
-
-        Websocket websocket = new UndertowWebsocketChannelWrapper(channel, session);
-
-        channel.getReceiveSetter().set(new AbstractReceiveListener() {
-            @Override
-            protected void onFullTextMessage(WebSocketChannel channel, BufferedTextMessage message) {
-                WebsocketFrame frame = new TextWebsocketFrame(message.getData());
-                logger.debug("WebsocketFrame (%s):\n%s", websocket.getSession().getRemoteIpAddress(), frame);
-
-                listener.onFrame(websocket, frame);
-            }
-
-            @Override
-            protected void onFullBinaryMessage(WebSocketChannel channel, BufferedBinaryMessage message) {
-                try {
-                    byte[] bytes = WebSockets.mergeBuffers(message.getData().getResource())
-                        .array();
-
-                    WebsocketFrame frame = new BinaryWebsocketFrame(bytes);
-                    logger.debug("WebsocketFrame (%s):\n%s", websocket.getSession().getRemoteIpAddress(), frame);
-
-                    listener.onFrame(websocket, frame);
-                } finally {
-                    // Always free the buffer no matter what.
-                    message.getData().free();
-                }
-            }
-
-            @Override
-            protected void onClose(WebSocketChannel webSocketChannel, StreamSourceFrameChannel channel) throws IOException {
-                logger.debug("Closed WebSocket %s %s %s", session.getMethod().name(), session.getRemoteIpAddress(), session.getHost() + session.getUri());
-
-                try {
-                    listener.onClose(websocket);
-                } catch (Exception ignored) {}
-                webSocketChannel.sendClose();
-            }
-
-            @Override
-            protected void onError(WebSocketChannel channel, Throwable ignored) {}
-        });
+        session.getLogger().debug(
+            "Processing websocket request for %s, resource: %s%s",
+            session.getRemoteIpAddress(), session.getHost(), session.getUri()
+        );
 
         try {
-            listener.onOpen(websocket);
-        } catch (Throwable t) {
-            // An error occurred, close the connection immediately.
-            IOUtil.safeClose(channel);
+            WebsocketListener listener = this.server.serveWebsocketSession(session.getHost(), session, this.secure);
+
+            if (listener == null) {
+                session.getLogger().debug("No listener provided, dropping request.");
+                IOUtil.safeClose(exchange);
+                return;
+            }
+
+            session.getLogger().debug("Got listener, attaching.");
+            Websocket websocket = new UndertowWebsocketChannelWrapper(channel, session);
+
+            boolean logWebsocketFrames = System.getProperty("rakurailogwebsocketframes", "").equals("true");
+            session.getLogger().debug("-Drakurailogwebsocketframes=%b", logWebsocketFrames);
+
+            channel.getReceiveSetter().set(new AbstractReceiveListener() {
+                @Override
+                protected void onFullTextMessage(WebSocketChannel channel, BufferedTextMessage message) {
+                    WebsocketFrame frame = new TextWebsocketFrame(message.getData());
+
+                    if (logWebsocketFrames) {
+                        session.getLogger().trace("WebsocketFrame (%s):\n%s", websocket.getSession().getRemoteIpAddress(), frame);
+                    }
+
+                    listener.onFrame(websocket, frame);
+                }
+
+                @Override
+                protected void onFullBinaryMessage(WebSocketChannel channel, BufferedBinaryMessage message) {
+                    try {
+                        byte[] bytes = WebSockets
+                            .mergeBuffers(message.getData().getResource())
+                            .array();
+                        WebsocketFrame frame = new BinaryWebsocketFrame(bytes);
+
+                        if (logWebsocketFrames) {
+                            session.getLogger().trace("WebsocketFrame (%s):\n%s", websocket.getSession().getRemoteIpAddress(), frame);
+                        }
+
+                        listener.onFrame(websocket, frame);
+                    } finally {
+                        // Always free the buffer no matter what.
+                        message.getData().free();
+                    }
+                }
+
+                @Override
+                protected void onClose(WebSocketChannel webSocketChannel, StreamSourceFrameChannel channel) throws IOException {
+                    session.getLogger().debug("Closed WebSocket session.");
+                    Debugging.finalizeResult(null, session, config, logger);
+
+                    try {
+                        listener.onClose(websocket);
+                    } catch (Exception ignored) {}
+                    webSocketChannel.sendClose();
+                }
+
+                @Override
+                protected void onError(WebSocketChannel channel, Throwable t) {
+                    session.getLogger().severe("Uncaught:\n%s", t);
+                }
+            });
 
             try {
-                // Attempt to tell the listener that we've closed the socket.
-                // May not work as this is technically a "broken" state.
-                listener.onClose(websocket);
-            } catch (Throwable ignored) {}
-            return;
+                listener.onOpen(websocket);
+            } catch (Throwable t) {
+                // An error occurred, close the connection immediately.
+                IOUtil.safeClose(channel);
+
+                try {
+                    // Attempt to tell the listener that we've closed the socket.
+                    // May not work as this is technically a "broken" state.
+                    listener.onClose(websocket);
+                } catch (Throwable ignored) {}
+                return;
+            }
+
+            double time = System.currentTimeMillis() - start;
+            this.logger.debug("Successfully served request in %,dms.", time);
+
+            this.logger.debug("Processing frames...");
+            channel.resumeReceives();
+        } catch (Exception e) {
+            session.getLogger().severe("An exception occurred whilst handling request:\n%s", e);
+            Debugging.finalizeResult(null, session, this.config, this.logger);
         }
-
-        double time = (System.currentTimeMillis() - start) / 1000d;
-        this.logger.debug("Served WebSocket %s %s %s (%.2fs)", session.getMethod().name(), session.getRemoteIpAddress(), session.getHost() + session.getUri(), time);
-
-        channel.resumeReceives();
     }
 
     @Override

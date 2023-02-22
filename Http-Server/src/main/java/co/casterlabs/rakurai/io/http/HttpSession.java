@@ -13,7 +13,6 @@ import org.jetbrains.annotations.Nullable;
 
 import co.casterlabs.rakurai.collections.HeaderMap;
 import co.casterlabs.rakurai.io.http.server.HttpServerBuilder;
-import co.casterlabs.rakurai.io.http.websocket.WebsocketSession;
 import co.casterlabs.rakurai.json.Rson;
 import co.casterlabs.rakurai.json.element.JsonArray;
 import co.casterlabs.rakurai.json.element.JsonElement;
@@ -43,9 +42,7 @@ public abstract class HttpSession {
         FastLogger realLogger = new FastLogger("Rakurai Session: " + this.requestId);
         realLogger.setCurrentLevel(LogLevel.ALL);
 
-        boolean logsEnabled = !(this instanceof WebsocketSession) && (config.getLogsDir() != null);
-
-        if (logsEnabled) {
+        if (config.getLogsDir() != null) {
             this.printResult = new ByteArrayOutputStream();
             this.printOutput = new PrintStream(this.printResult);
 
@@ -65,7 +62,7 @@ public abstract class HttpSession {
                     realLogger.log(level, object, args);
                 }
 
-                if (logsEnabled) {
+                if (printOutput != null) {
                     String line = StringUtil.parseFormat(object, args);
 
                     printOutput.println(line);
