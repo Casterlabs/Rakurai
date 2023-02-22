@@ -4,8 +4,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.TrustManager;
@@ -60,8 +58,6 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
 
     private HttpServerBuilder config;
 
-    private ExecutorService executor = Executors.newCachedThreadPool();
-
     static {
         System.setProperty("org.jboss.logging.provider", "slf4j"); // This mutes it.
     }
@@ -105,98 +101,95 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
 
     @Override
     public void handleRequest(HttpServerExchange exchange) throws Exception {
-        // We want to dispatch in our executor.
-        exchange.dispatch(this.executor, () -> {
-            long start = System.currentTimeMillis();
-            HttpSession session = new UndertowHttpSessionWrapper(exchange, this.port, this.config, this.logger);
-            HttpResponse response = null;
+        long start = System.currentTimeMillis();
+        HttpSession session = new UndertowHttpSessionWrapper(exchange, this.port, this.config, this.logger);
+        HttpResponse response = null;
 
-            session.getLogger().debug(
-                "Processing http %s request for %s, resource: %s%s",
-                session.getMethod().name(), session.getRemoteIpAddress(), session.getHost(), session.getUri()
-            );
+        session.getLogger().debug(
+            "Processing http %s request for %s, resource: %s%s",
+            session.getMethod().name(), session.getRemoteIpAddress(), session.getHost(), session.getUri()
+        );
 
+        try {
+            exchange.startBlocking();
+            response = this.server.serveSession(session.getHost(), session, this.secure);
+
+            if (response == null) {
+                response = HttpResponse.newFixedLengthResponse(StandardHttpStatus.NOT_IMPLEMENTED);
+                session.getLogger().debug("No response, returning NOT_IMPLEMENTED.");
+            }
+
+            if (response.getStatus() == StandardHttpStatus.NO_RESPONSE) {
+                session.getLogger().debug("Got 444 (NO_RESPONSE), dropping request.");
+                throw new DropConnectionException();
+            }
+
+            session.getLogger().debug("Response status: %d (%s)", response.getStatus().getStatusCode(), response.getStatus().getDescription());
+            exchange.setStatusCode(response.getStatus().getStatusCode());
+            exchange.setReasonPhrase(response.getStatus().getDescription());
+
+            // Write out the response headers.
+            for (Map.Entry<String, String> entry : response.getAllHeaders().entrySet()) {
+                String key = StringUtil.prettifyHeader(entry.getKey());
+                String value = entry.getValue();
+
+                exchange.getResponseHeaders().add(HttpString.tryFromString(key), value);
+            }
+
+            ResponseContent content = response.getContent();
+            OutputStream out = exchange.getOutputStream();
+
+            // If it's a fixed-length response we want to add that info.
+            long length = content.getLength();
+            if (length >= 0) {
+                session.getLogger().debug("Response transport is fixed-length. (len=%,d)", length);
+                exchange.setResponseContentLength(length);
+            } else {
+                session.getLogger().debug("Response transport is chunked.");
+            }
+
+            content.write(out);
+
+            long time = System.currentTimeMillis() - start;
+            this.logger.debug("Successfully served request in %,dms.", time);
+        } catch (DropConnectionException e) {
+            logger.debug("Dropped request.");
             try {
-                exchange.startBlocking();
-                response = this.server.serveSession(session.getHost(), session, this.secure);
-
-                if (response == null) {
-                    response = HttpResponse.newFixedLengthResponse(StandardHttpStatus.NOT_IMPLEMENTED);
-                    session.getLogger().debug("No response, returning NOT_IMPLEMENTED.");
-                }
-
-                if (response.getStatus() == StandardHttpStatus.NO_RESPONSE) {
-                    session.getLogger().debug("Got 444 (NO_RESPONSE), dropping request.");
-                    throw new DropConnectionException();
-                }
-
-                session.getLogger().debug("Response status: %d (%s)", response.getStatus().getStatusCode(), response.getStatus().getDescription());
-                exchange.setStatusCode(response.getStatus().getStatusCode());
-                exchange.setReasonPhrase(response.getStatus().getDescription());
-
-                // Write out the response headers.
-                for (Map.Entry<String, String> entry : response.getAllHeaders().entrySet()) {
-                    String key = StringUtil.prettifyHeader(entry.getKey());
-                    String value = entry.getValue();
-
-                    exchange.getResponseHeaders().add(HttpString.tryFromString(key), value);
-                }
-
-                ResponseContent content = response.getContent();
-                OutputStream out = exchange.getOutputStream();
-
-                // If it's a fixed-length response we want to add that info.
-                long length = content.getLength();
-                if (length >= 0) {
-                    session.getLogger().debug("Response transport is fixed-length. (len=%,d)", length);
-                    exchange.setResponseContentLength(length);
-                } else {
-                    session.getLogger().debug("Response transport is chunked.");
-                }
-
-                content.write(out);
-
-                long time = System.currentTimeMillis() - start;
-                this.logger.debug("Successfully served request in %,dms.", time);
-            } catch (DropConnectionException e) {
-                logger.debug("Dropped request.");
-                try {
-                    exchange.getConnection().close();
-                } catch (IOException ignored) {}
-            } catch (Exception e) {
-                if (e.getMessage() != null) {
-                    String message = e.getMessage();
-                    if (message.contains("Stream is closed") ||
-                        message.contains("connection was aborted") ||
-                        message.contains("reset by peer") ||
-                        message.contains("Broken pipe")) {
-                        return;
-                    }
-                }
-
-                session.getLogger().severe("An exception occurred whilst handling request:\n%s", e);
-
-                if (exchange.isResponseStarted()) {
-                    // We've already started writing the request, bail out.
-                    IOUtil.safeClose(exchange.getConnection());
-                } else {
-                    exchange.setStatusCode(StandardHttpStatus.INTERNAL_ERROR.getStatusCode());
-                    exchange.setReasonPhrase(StandardHttpStatus.INTERNAL_ERROR.getDescription());
-                    exchange.setResponseContentLength(0);
-                }
-            } finally {
-                Debugging.finalizeResult(response, session, this.config, this.logger);
-
-                // We might've already forcibly closed the connection.
-                if (exchange.getConnection().isOpen()) {
-                    exchange.endExchange();
-                }
-
-                if (response != null) {
-                    IOUtil.safeClose(response.getContent());
+                exchange.getConnection().close();
+            } catch (IOException ignored) {}
+        } catch (Exception e) {
+            if (e.getMessage() != null) {
+                String message = e.getMessage();
+                if (message.contains("Stream is closed") ||
+                    message.contains("connection was aborted") ||
+                    message.contains("reset by peer") ||
+                    message.contains("Broken pipe")) {
+                    return;
                 }
             }
-        });
+
+            session.getLogger().severe("An exception occurred whilst handling request:\n%s", e);
+
+            if (exchange.isResponseStarted()) {
+                // We've already started writing the request, bail out.
+                IOUtil.safeClose(exchange.getConnection());
+            } else {
+                exchange.setStatusCode(StandardHttpStatus.INTERNAL_ERROR.getStatusCode());
+                exchange.setReasonPhrase(StandardHttpStatus.INTERNAL_ERROR.getDescription());
+                exchange.setResponseContentLength(0);
+            }
+        } finally {
+            Debugging.finalizeResult(response, session, this.config, this.logger);
+
+            // We might've already forcibly closed the connection.
+            if (exchange.getConnection().isOpen()) {
+                exchange.endExchange();
+            }
+
+            if (response != null) {
+                IOUtil.safeClose(response.getContent());
+            }
+        }
     }
 
     @Override
@@ -291,7 +284,7 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
             long time = System.currentTimeMillis() - start;
             this.logger.debug("Successfully served request in %,dms.", time);
 
-            this.logger.debug("Processing frames...");
+            session.getLogger().debug("Processing frames...");
             channel.resumeReceives();
         } catch (Exception e) {
             session.getLogger().severe("An exception occurred whilst handling request:\n%s", e);
