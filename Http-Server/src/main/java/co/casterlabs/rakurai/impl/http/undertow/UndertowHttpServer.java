@@ -220,6 +220,12 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
             session.getLogger().debug("Got listener, attaching.");
             Websocket websocket = new UndertowWebsocketChannelWrapper(channel, session);
 
+            String websocketProtocols = session.getHeader("Sec-WebSocket-Protocol");
+            if (websocketProtocols != null) {
+                String first = websocketProtocols.split(",")[0].trim();
+                exchange.setResponseHeader("Sec-Websocket-Protocol", first);
+            }
+
             boolean logWebsocketFrames = System.getProperty("rakurailogwebsocketframes", "").equals("true");
             session.getLogger().debug("-Drakurailogwebsocketframes=%b", logWebsocketFrames);
 
