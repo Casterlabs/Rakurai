@@ -35,6 +35,7 @@ import co.casterlabs.rakurai.io.http.websocket.WebsocketListener;
 import co.casterlabs.rakurai.io.http.websocket.WebsocketSession;
 import io.undertow.Undertow;
 import io.undertow.UndertowOptions;
+import io.undertow.server.DefaultByteBufferPool;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.server.handlers.BlockingHandler;
@@ -96,6 +97,8 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
         BlockingHandler httpHandler = new BlockingHandler(this);
         WebSocketProtocolHandshakeHandler websocketHandler = new WebSocketProtocolHandshakeHandler(handshakes, this, httpHandler);
 
+        boolean enableUndertowLeakDetector = System.getProperty("rakuraileakdetect", "").equals("true");
+
         return Undertow.builder()
             .setServerOption(UndertowOptions.ENABLE_SPDY, builder.isSPDYEnabled())
             .setServerOption(UndertowOptions.ENABLE_HTTP2, builder.isHttp2Enabled())
@@ -104,6 +107,7 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
 
             .setBufferSize(IOUtil.DEFAULT_BUFFER_SIZE)
             .setDirectBuffers(false)
+            .setByteBufferPool(new DefaultByteBufferPool(false, 1024 * 16 - 20, 1000, 4, enableUndertowLeakDetector ? 100 : 0))
 
             .setHandler(websocketHandler);
     }
@@ -309,6 +313,7 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                     }
 
                     listener.onFrame(websocket, frame);
+
                 }
 
                 @Override
@@ -326,7 +331,7 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                         listener.onFrame(websocket, frame);
                     } finally {
                         // Always free the buffer no matter what.
-                        message.getData().free();
+                        message.getData().close();
                     }
                 }
 
