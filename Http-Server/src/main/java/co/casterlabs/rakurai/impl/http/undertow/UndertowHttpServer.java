@@ -179,7 +179,7 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
 
             String chosenEncoding = null;
 
-            if (HttpServerUtil.compressibleMimes.contains(response.getAllHeaders().get("Content-Type"))) {
+            if (HttpServerUtil.shouldCompress(response.getAllHeaders().get("Content-Type"))) {
                 List<String> acceptedEncodings = HttpServerUtil.getAcceptedEncodings(session);
 
                 // Brotli looks to be difficult. Not going to be supported for a while.
