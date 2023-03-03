@@ -1,6 +1,7 @@
 package co.casterlabs.rakurai.impl.http.undertow;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URLDecoder;
 import java.util.Deque;
 import java.util.HashMap;
@@ -102,7 +103,11 @@ public class UndertowHttpSessionWrapper extends HttpSession {
     // Request body
     @Override
     public boolean hasBody() {
-        return this.exchange.getRequestContentLength() != -1;
+        try {
+            return this.getRequestBodyStream().available() != -1;
+        } catch (IOException e) {
+            return false;
+        }
     }
 
     @Override
@@ -120,6 +125,11 @@ public class UndertowHttpSessionWrapper extends HttpSession {
         } else {
             return this.body;
         }
+    }
+
+    @Override
+    public InputStream getRequestBodyStream() throws IOException {
+        return this.exchange.getInputStream();
     }
 
     @Override

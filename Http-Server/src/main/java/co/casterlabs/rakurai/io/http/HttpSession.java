@@ -2,6 +2,7 @@ package co.casterlabs.rakurai.io.http;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -135,6 +136,8 @@ public abstract class HttpSession {
     }
 
     public abstract @Nullable byte[] getRequestBodyBytes() throws IOException;
+
+    public abstract InputStream getRequestBodyStream() throws IOException;
 
     public abstract Map<String, String> parseFormBody() throws IOException;
 

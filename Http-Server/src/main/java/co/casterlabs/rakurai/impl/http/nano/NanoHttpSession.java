@@ -1,6 +1,7 @@
 package co.casterlabs.rakurai.impl.http.nano;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -83,6 +84,11 @@ public class NanoHttpSession extends HttpSession {
         } else {
             return this.body;
         }
+    }
+
+    @Override
+    public InputStream getRequestBodyStream() throws IOException {
+        return this.nanoSession.getInputStream();
     }
 
     @Override
