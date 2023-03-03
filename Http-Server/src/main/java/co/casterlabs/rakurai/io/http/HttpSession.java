@@ -144,7 +144,11 @@ public abstract class HttpSession {
     public abstract int getPort();
 
     // Misc
-    public abstract HttpMethod getMethod();
+    public final HttpMethod getMethod() {
+        return HttpMethod.from(this.getRawMethod());
+    }
+
+    public abstract String getRawMethod();
 
     public abstract HttpVersion getVersion();
 

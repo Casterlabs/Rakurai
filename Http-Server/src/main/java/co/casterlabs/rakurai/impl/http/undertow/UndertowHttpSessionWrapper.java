@@ -12,7 +12,6 @@ import org.jetbrains.annotations.Nullable;
 
 import co.casterlabs.rakurai.collections.HeaderMap;
 import co.casterlabs.rakurai.io.IOUtil;
-import co.casterlabs.rakurai.io.http.HttpMethod;
 import co.casterlabs.rakurai.io.http.HttpSession;
 import co.casterlabs.rakurai.io.http.HttpVersion;
 import co.casterlabs.rakurai.io.http.server.HttpServerBuilder;
@@ -162,8 +161,8 @@ public class UndertowHttpSessionWrapper extends HttpSession {
 
     // Misc
     @Override
-    public HttpMethod getMethod() {
-        return HttpMethod.valueOf(this.exchange.getRequestMethod().toString());
+    public String getRawMethod() {
+        return this.exchange.getRequestMethod().toString();
     }
 
     @Override

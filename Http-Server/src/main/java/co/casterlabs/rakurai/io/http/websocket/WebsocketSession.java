@@ -5,7 +5,6 @@ import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
-import co.casterlabs.rakurai.io.http.HttpMethod;
 import co.casterlabs.rakurai.io.http.HttpSession;
 
 public abstract class WebsocketSession extends HttpSession {
@@ -26,8 +25,8 @@ public abstract class WebsocketSession extends HttpSession {
     }
 
     @Override
-    public final HttpMethod getMethod() {
-        return HttpMethod.GET;
+    public final String getRawMethod() {
+        return "GET";
     }
 
 }

@@ -15,6 +15,16 @@ public enum HttpMethod {
     /* Other */
     CONNECT,
     TRACE,
-    OPTIONS
+    OPTIONS,
+    __OTHER;
+
+    public static HttpMethod from(String string) {
+        for (HttpMethod e : values()) {
+            if (e.name().equals(string)) {
+                return e;
+            }
+        }
+        return __OTHER;
+    }
 
 }
