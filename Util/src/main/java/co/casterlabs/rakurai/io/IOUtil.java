@@ -91,14 +91,14 @@ public class IOUtil {
         while ((read = source.read(buffer)) != -1) {
             if (read >= remaining) {
                 dest.write(buffer, 0, (int) remaining);
+                dest.flush();
                 break; // We're done!
-            } else {
-                remaining -= read;
-                dest.write(buffer, 0, read);
             }
-        }
 
-        dest.flush();
+            remaining -= read;
+            dest.write(buffer, 0, read);
+            dest.flush();
+        }
     }
 
     /**
