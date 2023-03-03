@@ -208,11 +208,13 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                     exchange.setResponseContentLength(length);
                 } else {
                     session.getLogger().debug("Using chunked response.");
+                    exchange.setResponseContentLength(-1);
                 }
 
                 content.write(out);
             } else {
                 session.getLogger().debug("Using chunked response for encoded content.");
+                exchange.setResponseContentLength(-1);
 
                 exchange.getResponseHeaders().add(HttpString.tryFromString("Content-Encoding"), chosenEncoding);
                 exchange.getResponseHeaders().add(HttpString.tryFromString("Vary"), "Accept-Encoding");
