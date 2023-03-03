@@ -4,11 +4,15 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.jetbrains.annotations.Nullable;
+
 import co.casterlabs.rakurai.io.http.HttpSession;
 
 public class HttpServerUtil {
 
-    public static boolean shouldCompress(String mimeType) {
+    public static boolean shouldCompress(@Nullable String mimeType) {
+        if (mimeType == null) return false;
+
         // Source: https://cdn.jsdelivr.net/gh/jshttp/mime-db@master/db.json
 
         // Literal text.
