@@ -210,8 +210,8 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
             } else {
                 session.getLogger().debug("Using chunked response for encoded content.");
 
-                response.putHeader("Content-Encodng", chosenEncoding);
-                response.putHeader("Vary", "Accept-Encoding");
+                exchange.getResponseHeaders().add(HttpString.tryFromString("Content-Encoding"), chosenEncoding);
+                exchange.getResponseHeaders().add(HttpString.tryFromString("Vary"), "Accept-Encoding");
 
                 switch (chosenEncoding) {
                     case "gzip": {
