@@ -44,6 +44,20 @@ public abstract class HttpServerBuilder {
     public abstract HttpServerImplementation getImplementation();
 
     /* Util */
+
+    @Override
+    public HttpServerBuilder clone() {
+        HttpServerBuilder nu = get(this.getImplementation());
+        nu.hostname = this.hostname;
+        nu.port = this.port;
+        if (this.ssl != null) nu.ssl = this.ssl.clone();
+        nu.behindProxy = this.behindProxy;
+        nu.SPDYEnabled = this.SPDYEnabled;
+        nu.http2Enabled = this.http2Enabled;
+        nu.logsDir = this.logsDir;
+        return nu;
+    }
+
     protected String[] convertTLS() {
         TLSVersion[] tls = this.ssl.getEnabledTlsVersions();
         String[] versions = new String[tls.length];
