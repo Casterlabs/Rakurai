@@ -19,8 +19,6 @@ public class SSLConfiguration {
     private @Nullable List<String> enabledCipherSuites;
     private @Setter int DHSize = 2048;
 
-    private @Setter int port = 443;
-
     private File keystoreLocation;
     private char[] keystorePassword;
 
@@ -45,7 +43,6 @@ public class SSLConfiguration {
         nu.enabledTlsVersions = this.enabledTlsVersions;
         nu.enabledCipherSuites = this.enabledCipherSuites;
         nu.DHSize = this.DHSize;
-        nu.port = this.port;
         return nu;
     }
 

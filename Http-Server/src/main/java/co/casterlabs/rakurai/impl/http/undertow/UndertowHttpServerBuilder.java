@@ -40,7 +40,7 @@ public class UndertowHttpServerBuilder extends HttpServerBuilder {
         return new UndertowHttpServer(
             listener,
             this.hostname,
-            this.ssl.getPort(),
+            this.port,
             managerFactory.getKeyManagers(),
             trustManagerFactory.getTrustManagers(),
             this.convertTLS(),

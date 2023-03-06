@@ -37,7 +37,7 @@ public class NanoHttpServerBuilder extends HttpServerBuilder {
 
         SSLServerSocketFactory factory = NanoHTTPD.makeSSLSocketFactory(keystore, managerFactory);
 
-        return new NanoHttpServer(listener, this.hostname, this.ssl.getPort(), this, new WrappedSSLSocketFactory(factory, this.ssl), this.convertTLS());
+        return new NanoHttpServer(listener, this.hostname, this.port, this, new WrappedSSLSocketFactory(factory, this.ssl), this.convertTLS());
     }
 
     @Override
