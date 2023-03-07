@@ -66,12 +66,11 @@ public abstract class RHSProtocol {
                 readCharacter = '\n';
 
                 // Peek at the next byte, if it's a \n then we need to consume it.
-                try {
-                    in.mark(1);
-                    if (in.read() == '\n') {
-                        in.skip(1);
-                    }
-                } finally {
+                in.mark(1);
+                if (in.read() == '\n') {
+                    in.reset();
+                    in.skip(1);
+                } else {
                     in.reset();
                 }
             }
@@ -206,12 +205,11 @@ public abstract class RHSProtocol {
                 readCharacter = '\n';
 
                 // Peek at the next byte, if it's a \n then we need to consume it.
-                try {
-                    in.mark(1);
-                    if (in.read() == '\n') {
-                        in.skip(1);
-                    }
-                } finally {
+                in.mark(1);
+                if (in.read() == '\n') {
+                    in.reset();
+                    in.skip(1);
+                } else {
                     in.reset();
                 }
             }
