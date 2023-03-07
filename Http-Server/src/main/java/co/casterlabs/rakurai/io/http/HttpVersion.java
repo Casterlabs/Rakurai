@@ -1,11 +1,16 @@
 package co.casterlabs.rakurai.io.http;
 
+import lombok.AllArgsConstructor;
+
+@AllArgsConstructor
 public enum HttpVersion {
-    HTTP_0_9,
-    HTTP_1_0,
-    HTTP_1_1,
-    HTTP_2_0,
-    HTTP_3_0;
+    HTTP_0_9(0.9),
+    HTTP_1_0(1.0),
+    HTTP_1_1(1.1),
+    HTTP_2_0(2.0),
+    HTTP_3_0(3.0);
+
+    public final double value;
 
     public static HttpVersion fromString(String str) {
         str = str.trim();
