@@ -8,21 +8,36 @@ import java.nio.charset.Charset;
 import co.casterlabs.rakurai.collections.HeaderMap;
 import co.casterlabs.rakurai.io.http.HttpSession;
 import co.casterlabs.rakurai.io.http.HttpStatus;
+import co.casterlabs.rakurai.io.http.HttpVersion;
 
 public abstract class RHSProtocol {
     public static final Charset HEADER_CHARSET = Charset.forName(System.getProperty("rakurai.http.headercharset", "ISO-8859-1"));
 
     // @formatter:off
     static final int     MAX_METHOD_LENGTH = 512 /*b*/; // Also used for the http version.
-    static final int     MAX_URL_LENGTH    =  64 /*kb*/ * 1024;
+    static final int     MAX_URI_LENGTH    =  64 /*kb*/ * 1024;
     static final int     MAX_HEADER_LENGTH =  16 /*kb*/ * 1024;
     // @formatter:on
 
-    public HttpSession accept(RakuraiHttpServer server, Socket client, BufferedInputStream in) throws IOException, RHSHttpException {
-        String method = readMethod(in);
-//        String uri = readURI(in);
-//        HttpVersion version = readVersion(in);
-//        HeaderMap headers = readHeaders(in);
+    public static HttpSession accept(RakuraiHttpServer server, Socket client, BufferedInputStream in) throws IOException, RHSHttpException {
+        // Request line
+        int[] $currentLinePosition = new int[1]; // int pointer :D
+        int[] $endOfLinePosition = new int[1]; // int pointer :D
+        byte[] requestLine = readRequestLine(in, $endOfLinePosition);
+
+        String method = readMethod(requestLine, $currentLinePosition, $endOfLinePosition[0]);
+        String uri = readURI(requestLine, $currentLinePosition, $endOfLinePosition[0]);
+        HttpVersion version = readVersion(requestLine, $currentLinePosition, $endOfLinePosition[0]);
+
+        // Headers
+        HeaderMap headers = // Http 0.9 doesn't have headers.
+            version == HttpVersion.HTTP_0_9 ? //
+                new HeaderMap.Builder().build() : readHeaders(in);
+
+        System.out.println(method);
+        System.out.println(uri);
+        System.out.println(version);
+        System.out.println(headers);
 
         return null;
 //        return new RHSHttpSession(
@@ -36,17 +51,32 @@ public abstract class RHSProtocol {
 //        );
     }
 
-    public static String readMethod(BufferedInputStream in) throws IOException, RHSHttpException {
-        byte[] buffer = new byte[MAX_METHOD_LENGTH];
+    public static byte[] readRequestLine(BufferedInputStream in, int[] $endOfLinePosition) throws IOException, RHSHttpException {
+        byte[] buffer = new byte[MAX_METHOD_LENGTH + MAX_URI_LENGTH + MAX_METHOD_LENGTH];
         int bufferWritePos = 0;
         while (true) {
             int readCharacter = in.read();
 
             if (readCharacter == -1) {
-                throw new IOException("Reached end of stream before method was read.");
+                throw new IOException("Reached end of stream before request line was fully read.");
             }
 
-            if (readCharacter == ' ') {
+            // Convert the \r character to \n, dealing with the consequences if necessary.
+            if (readCharacter == '\r') {
+                readCharacter = '\n';
+
+                // Peek at the next byte, if it's a \n then we need to consume it.
+                try {
+                    in.mark(1);
+                    if (in.read() == '\n') {
+                        in.skip(1);
+                    }
+                } finally {
+                    in.reset();
+                }
+            }
+
+            if (readCharacter == '\n') {
                 break; // End of method name, break!
             }
 
@@ -54,11 +84,103 @@ public abstract class RHSProtocol {
         }
 
         if (bufferWritePos == 0) {
-            // We will not send an ALLOW header.
-            throw new RHSHttpException(HttpStatus.adapt(405, "Method was blank."));
+            throw new RHSHttpException(HttpStatus.adapt(400, "Request line was blank"));
         }
 
-        return new String(buffer, 0, bufferWritePos, HEADER_CHARSET);
+        $endOfLinePosition[0] = bufferWritePos; // Update the pointer.
+        return buffer;
+    }
+
+    public static String readMethod(byte[] buffer, int[] $currentLinePosition, int endOfLinePosition) throws IOException, RHSHttpException {
+        final int startPos = $currentLinePosition[0];
+        int bufferReadPos = startPos;
+        int length = -1;
+        while (true) {
+            if (bufferReadPos == endOfLinePosition) {
+                break;
+            }
+
+            int readCharacter = buffer[bufferReadPos++];
+
+            if (readCharacter == ' ') {
+                length = bufferReadPos - startPos - 1;
+
+                // Consume any trailing spaces.
+                while (true) {
+                    if (buffer[bufferReadPos] == ' ') {
+                        bufferReadPos++;
+                    } else {
+                        break;
+                    }
+                }
+
+                break; // End of method name, break!
+            }
+        }
+
+        if (length == 0) {
+            // We will not send an ALLOW header.
+            throw new RHSHttpException(HttpStatus.adapt(405, "Method was blank"));
+        }
+
+        $currentLinePosition[0] = bufferReadPos; // Update the pointer.
+        return new String(buffer, startPos, length, HEADER_CHARSET);
+    }
+
+    public static String readURI(byte[] buffer, int[] $currentLinePosition, int endOfLinePosition) throws IOException, RHSHttpException {
+        final int startPos = $currentLinePosition[0];
+        int bufferReadPos = startPos;
+        int length = -1;
+        while (true) {
+            if (bufferReadPos == endOfLinePosition) {
+                break;
+            }
+
+            int readCharacter = buffer[bufferReadPos++];
+
+            if (readCharacter == ' ') {
+                length = bufferReadPos - startPos - 1;
+
+                // Consume any trailing spaces.
+                while (true) {
+                    if (buffer[bufferReadPos] == ' ') {
+                        bufferReadPos++;
+                    } else {
+                        break;
+                    }
+                }
+
+                break; // End of URI, break!
+            }
+        }
+
+        if (length == 0) {
+            throw new RHSHttpException(HttpStatus.adapt(404, "No URI specified"));
+        }
+
+        String uri = new String(buffer, startPos, length, HEADER_CHARSET);
+
+        if (uri.startsWith("http://")) {
+            uri = uri.substring(uri.indexOf('/', "http://".length()));
+        }
+
+        if (uri.startsWith("https://")) {
+            uri = uri.substring(uri.indexOf('/', "https://".length()));
+        }
+
+        $currentLinePosition[0] = bufferReadPos; // Update the pointer.
+        return uri;
+    }
+
+    public static HttpVersion readVersion(byte[] buffer, int[] $currentLinePosition, int endOfLinePosition) throws IOException, RHSHttpException {
+        final int startPos = $currentLinePosition[0];
+        String version = new String(buffer, startPos, endOfLinePosition - startPos, HEADER_CHARSET);
+
+        try {
+            return HttpVersion.fromString(version);
+        } catch (IllegalArgumentException e) {
+            throw new RHSHttpException(HttpStatus.adapt(400, "Unsupported HTTP version"));
+        }
     }
 
     public static HeaderMap readHeaders(BufferedInputStream in) throws IOException {
@@ -76,7 +198,7 @@ public abstract class RHSProtocol {
             int readCharacter = in.read();
 
             if (readCharacter == -1) {
-                throw new IOException("Reached end of stream before headers were completely read.");
+                throw new IOException("Reached end of stream before headers were fully read.");
             }
 
             // Convert the \r character to \n, dealing with the consequences if necessary.
