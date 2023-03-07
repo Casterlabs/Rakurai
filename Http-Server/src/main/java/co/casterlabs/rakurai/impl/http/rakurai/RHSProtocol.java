@@ -13,10 +13,12 @@ import co.casterlabs.rakurai.io.http.HttpVersion;
 public abstract class RHSProtocol {
     public static final Charset HEADER_CHARSET = Charset.forName(System.getProperty("rakurai.http.headercharset", "ISO-8859-1"));
 
+    private static final byte[] CONTINUE_STATUS = "HTTP/1.1 100 Continue\r\n\r\n".getBytes(HEADER_CHARSET);
+
     // @formatter:off
-    static final int     MAX_METHOD_LENGTH = 512 /*b*/; // Also used for the http version.
-    static final int     MAX_URI_LENGTH    =  64 /*kb*/ * 1024;
-    static final int     MAX_HEADER_LENGTH =  16 /*kb*/ * 1024;
+    private static final int MAX_METHOD_LENGTH = 512 /*b*/; // Also used for the http version.
+    private static final int MAX_URI_LENGTH    =  64 /*kb*/ * 1024;
+    private static final int MAX_HEADER_LENGTH =  16 /*kb*/ * 1024;
     // @formatter:on
 
     public static HttpSession accept(RakuraiHttpServer server, Socket client, BufferedInputStream in) throws IOException, RHSHttpException {
@@ -33,6 +35,24 @@ public abstract class RHSProtocol {
         HeaderMap headers = // Http 0.9 doesn't have headers.
             version == HttpVersion.HTTP_0_9 ? //
                 new HeaderMap.Builder().build() : readHeaders(in);
+
+        switch (version) {
+//            case HTTP_1_1:
+//                if (!headers.containsKey("Host")) {
+//                    throw new RHSHttpException(HttpStatus.adapt(400, "Missing Host header"));
+//                }
+//                client.getOutputStream().write(CONTINUE_STATUS); // Immediately write a CONTINUE so that the client knows we're a 1.1 server.
+//                break;
+
+            // s00n
+            case HTTP_1_1:
+            case HTTP_2_0:
+            case HTTP_3_0:
+                throw new RHSHttpException(HttpStatus.adapt(400, "Unsupported HTTP version"));
+
+            default:
+                break;
+        }
 
         System.out.println(method);
         System.out.println(uri);
