@@ -4,6 +4,10 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.nio.charset.Charset;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import co.casterlabs.rakurai.collections.HeaderMap;
 import co.casterlabs.rakurai.io.http.HttpSession;
@@ -13,7 +17,7 @@ import co.casterlabs.rakurai.io.http.HttpVersion;
 public abstract class RHSProtocol {
     public static final Charset HEADER_CHARSET = Charset.forName(System.getProperty("rakurai.http.headercharset", "ISO-8859-1"));
 
-    private static final byte[] CONTINUE_STATUS = "HTTP/1.1 100 Continue\r\n\r\n".getBytes(HEADER_CHARSET);
+//    private static final byte[] CONTINUE_STATUS = "HTTP/1.1 100 Continue\r\n\r\n".getBytes(HEADER_CHARSET);
 
     // @formatter:off
     private static final int MAX_METHOD_LENGTH = 512 /*b*/; // Also used for the http version.
@@ -32,7 +36,7 @@ public abstract class RHSProtocol {
         HttpVersion version = readVersion(requestLine, $currentLinePosition, $endOfLinePosition[0]);
 
         // Headers
-        HeaderMap headers = // Http 0.9 doesn't have headers.
+        HeaderMap headers = // HTTP/0.9 doesn't have headers.
             version == HttpVersion.HTTP_0_9 ? //
                 new HeaderMap.Builder().build() : readHeaders(in);
 
@@ -54,21 +58,42 @@ public abstract class RHSProtocol {
                 break;
         }
 
-        System.out.println(method);
-        System.out.println(uri);
-        System.out.println(version);
-        System.out.println(headers);
+        int indexOfQuery = uri.indexOf('?');
+        String queryString = "";
+        Map<String, List<String>> allQueryParameters = new HashMap<>();
 
-        return null;
-//        return new RHSHttpSession(
-//            headers,
-//            "/", // TODO Path
-//            "", // TODO Query
-//            server.getPort(),
-//            version,
-//            method,
-//            client.getInetAddress().getHostAddress()
-//        );
+        if (indexOfQuery != -1) {
+            uri = uri.substring(0, indexOfQuery);
+            queryString = uri.substring(indexOfQuery);
+            parseAllQueryParameters(queryString, allQueryParameters);
+        }
+
+        // Copy the query parameters to a singleton map.
+        // Also copy to another map, this time making the list unmodifiable.
+        Map<String, List<String>> unmodQueryParameters = new HashMap<>();
+        Map<String, String> queryParameters = new HashMap<>();
+        for (Map.Entry<String, List<String>> entry : allQueryParameters.entrySet()) {
+            String key = entry.getKey();
+            List<String> values = entry.getValue();
+
+            unmodQueryParameters.put(key, Collections.unmodifiableList(values));
+
+            if (!values.isEmpty()) {
+                queryParameters.put(key, values.get(0));
+            }
+        }
+
+        return new RHSHttpSession(
+            headers,
+            uri,
+            queryString,
+            Collections.unmodifiableMap(unmodQueryParameters),
+            Collections.unmodifiableMap(queryParameters),
+            server.getPort(),
+            version,
+            method,
+            client.getInetAddress().getHostAddress()
+        );
     }
 
     public static byte[] readRequestLine(BufferedInputStream in, int[] $endOfLinePosition) throws IOException, RHSHttpException {
@@ -315,6 +340,10 @@ public abstract class RHSProtocol {
 
         int length = endPos - startPos;
         return new String(buffer, startPos, length, HEADER_CHARSET);
+    }
+
+    private static void parseAllQueryParameters(String queryString, Map<String, List<String>> allQueryParameters) {
+        // TODO
     }
 
 }
