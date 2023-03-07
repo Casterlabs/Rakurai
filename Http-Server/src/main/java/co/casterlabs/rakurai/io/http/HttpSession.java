@@ -92,7 +92,7 @@ public abstract class HttpSession {
 
     // Request body
     public final @Nullable String getBodyMimeType() {
-        return this.getHeader("content-type");
+        return this.getHeader("Content-Type");
     }
 
     public abstract boolean hasBody();
@@ -146,7 +146,11 @@ public abstract class HttpSession {
      * @return the value from the HOST header.
      */
     public final @Nullable String getHost() {
-        return this.getHeader("Host");
+        if (this.getVersion().value >= 2) {
+            return this.getHeader(":authority");
+        } else {
+            return this.getHeader("Host");
+        }
     }
 
     public abstract int getPort();
