@@ -19,6 +19,8 @@ public class RHSHttpSession extends HttpSession {
 
     private @NonNull String uri;
     private @NonNull String queryString;
+    private @NonNull Map<String, List<String>> allQueryParameters;
+    private @NonNull Map<String, String> queryParameters;
 
     private int port;
 
@@ -35,25 +37,22 @@ public class RHSHttpSession extends HttpSession {
     // URI
     @Override
     public String getUri() {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public Map<String, List<String>> getAllQueryParameters() {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public Map<String, String> getQueryParameters() {
-        // TODO Auto-generated method stub
-        return null;
+        return this.uri;
     }
 
     @Override
     public String getQueryString() {
         return this.queryString;
+    }
+
+    @Override
+    public Map<String, String> getQueryParameters() {
+        return this.queryParameters;
+    }
+
+    @Override
+    public Map<String, List<String>> getAllQueryParameters() {
+        return this.allQueryParameters;
     }
 
     // Request body
