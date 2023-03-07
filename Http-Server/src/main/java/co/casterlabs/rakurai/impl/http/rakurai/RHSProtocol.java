@@ -211,11 +211,10 @@ public abstract class RHSProtocol {
 
         String uri = new String(buffer, startPos, length, HEADER_CHARSET);
 
+        // Absolute URLs must be accepted but ignored.
         if (uri.startsWith("http://")) {
             uri = uri.substring(uri.indexOf('/', "http://".length()));
-        }
-
-        if (uri.startsWith("https://")) {
+        } else if (uri.startsWith("https://")) {
             uri = uri.substring(uri.indexOf('/', "https://".length()));
         }
 
@@ -350,6 +349,7 @@ public abstract class RHSProtocol {
     }
 
     private static void parseAllQueryParameters(String queryString, Map<String, List<String>> allQueryParameters) {
+        // Magic.
         Arrays
             .stream(queryString.substring(1).split("&"))
             .map((it) -> {
