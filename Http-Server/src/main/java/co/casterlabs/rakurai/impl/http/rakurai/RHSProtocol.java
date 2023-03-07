@@ -68,8 +68,8 @@ public abstract class RHSProtocol {
         Map<String, List<String>> allQueryParameters = new HashMap<>();
 
         if (indexOfQuery != -1) {
-            uri = uri.substring(0, indexOfQuery);
             queryString = uri.substring(indexOfQuery);
+            uri = uri.substring(0, indexOfQuery);
             parseAllQueryParameters(queryString, allQueryParameters);
         }
 
