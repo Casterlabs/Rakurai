@@ -122,12 +122,10 @@ public enum StandardHttpStatus implements HttpStatus {
         }
     }
 
-    private String statusString;
     private String description;
     private int statusCode;
 
     private StandardHttpStatus(int statusCode, String description) {
-        this.statusString = statusCode + " " + description;
         this.description = description;
         this.statusCode = statusCode;
     }
@@ -149,7 +147,7 @@ public enum StandardHttpStatus implements HttpStatus {
 
     @Override
     public String toString() {
-        return this.statusString;
+        return this.getStatusString();
     }
 
 }
