@@ -7,35 +7,61 @@ import java.nio.charset.Charset;
 
 import co.casterlabs.rakurai.collections.HeaderMap;
 import co.casterlabs.rakurai.io.http.HttpSession;
-import co.casterlabs.rakurai.io.http.HttpVersion;
+import co.casterlabs.rakurai.io.http.HttpStatus;
 
 public abstract class RHSProtocol {
+    public static final Charset HEADER_CHARSET = Charset.forName(System.getProperty("rakurai.http.headercharset", "ISO-8859-1"));
+
     // @formatter:off
-    static final Charset HEADER_CHARSET    = Charset.forName(System.getProperty("rakurai.http.headercharset", "ISO-8859-1"));
     static final int     MAX_METHOD_LENGTH = 512 /*b*/; // Also used for the http version.
     static final int     MAX_URL_LENGTH    =  64 /*kb*/ * 1024;
     static final int     MAX_HEADER_LENGTH =  16 /*kb*/ * 1024;
     // @formatter:on
 
-    public HttpSession accept(RakuraiHttpServer server, Socket client, BufferedInputStream in) {
-        HeaderMap.Builder headers = new HeaderMap.Builder();
-        String method = null;
+    public HttpSession accept(RakuraiHttpServer server, Socket client, BufferedInputStream in) throws IOException, RHSHttpException {
+        String method = readMethod(in);
+//        String uri = readURI(in);
+//        HttpVersion version = readVersion(in);
+//        HeaderMap headers = readHeaders(in);
 
-        return new RHSHttpSession(
-            headers.build(),
-            "/", // TODO Path
-            "", // TODO Query
-            server.getPort(),
-            HttpVersion.HTTP_1_0,
-            method,
-            client.getInetAddress().getHostAddress()
-        );
+        return null;
+//        return new RHSHttpSession(
+//            headers,
+//            "/", // TODO Path
+//            "", // TODO Query
+//            server.getPort(),
+//            version,
+//            method,
+//            client.getInetAddress().getHostAddress()
+//        );
     }
 
-    /**
-     * @throws IllegalStateException if the headers are malformed.
-     */
-    public static HeaderMap readHeaders(BufferedInputStream in) throws IOException, IllegalStateException {
+    public static String readMethod(BufferedInputStream in) throws IOException, RHSHttpException {
+        byte[] buffer = new byte[MAX_METHOD_LENGTH];
+        int bufferWritePos = 0;
+        while (true) {
+            int readCharacter = in.read();
+
+            if (readCharacter == -1) {
+                throw new IOException("Reached end of stream before method was read.");
+            }
+
+            if (readCharacter == ' ') {
+                break; // End of method name, break!
+            }
+
+            buffer[bufferWritePos++] = (byte) (readCharacter & 0xff);
+        }
+
+        if (bufferWritePos == 0) {
+            // We will not send an ALLOW header.
+            throw new RHSHttpException(HttpStatus.adapt(405, "Method was blank."));
+        }
+
+        return new String(buffer, 0, bufferWritePos, HEADER_CHARSET);
+    }
+
+    public static HeaderMap readHeaders(BufferedInputStream in) throws IOException {
         HeaderMap.Builder headers = new HeaderMap.Builder();
 
         byte[] keyBuffer = new byte[MAX_HEADER_LENGTH];
@@ -50,7 +76,7 @@ public abstract class RHSProtocol {
             int readCharacter = in.read();
 
             if (readCharacter == -1) {
-                throw new IllegalStateException("Reached end of stream before headers were completely read.");
+                throw new IOException("Reached end of stream before headers were completely read.");
             }
 
             // Convert the \r character to \n, dealing with the consequences if necessary.
