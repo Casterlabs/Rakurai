@@ -146,6 +146,7 @@ public abstract class RHSProtocol {
         int length = -1;
         while (true) {
             if (bufferReadPos == endOfLinePosition) {
+                length = bufferReadPos - startPos - 1;
                 break;
             }
 
@@ -167,7 +168,7 @@ public abstract class RHSProtocol {
             }
         }
 
-        if (length == 0) {
+        if (length <= 0) {
             // We will not send an ALLOW header.
             throw new RHSHttpException(HttpStatus.adapt(405, "Method was blank"));
         }
@@ -182,6 +183,7 @@ public abstract class RHSProtocol {
         int length = -1;
         while (true) {
             if (bufferReadPos == endOfLinePosition) {
+                length = bufferReadPos - startPos - 1;
                 break;
             }
 
@@ -203,7 +205,7 @@ public abstract class RHSProtocol {
             }
         }
 
-        if (length == 0) {
+        if (length <= 0) {
             throw new RHSHttpException(HttpStatus.adapt(404, "No URI specified"));
         }
 

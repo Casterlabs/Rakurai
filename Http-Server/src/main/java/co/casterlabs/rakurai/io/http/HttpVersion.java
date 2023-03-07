@@ -13,6 +13,10 @@ public enum HttpVersion {
     public final double value;
 
     public static HttpVersion fromString(String str) {
+        if (str.length() == 0) {
+            return HTTP_0_9; // 0.9 did not have a version identifier.
+        }
+
         str = str.trim();
 
         int indexOfSlash = str.indexOf('/');
@@ -22,10 +26,6 @@ public enum HttpVersion {
 
         // Chop off the leading "HTTP/"
         str = str.substring(indexOfSlash + 1);
-
-        if (str.length() == 0) {
-            return HTTP_0_9; // 0.9 did not have a version identifier.
-        }
 
         switch (str) {
             case "1":
