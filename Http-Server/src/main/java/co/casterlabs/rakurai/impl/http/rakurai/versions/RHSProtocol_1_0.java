@@ -13,6 +13,9 @@ import co.casterlabs.rakurai.io.http.HttpVersion;
 
 public class RHSProtocol_1_0 implements RHSProtocol {
     private static final int MAX_HEADER_SIZE = 16 /*kb*/ * 1024;
+    // @formatter:off
+    static final Charset HEADER_CHARSET    = Charset.forName(System.getProperty("rakurai.http.headercharset", "ISO-8859-1"));
+    // @formatter:on
 
     @Override
     public HttpSession accept(RakuraiHttpServer server, Socket client, BufferedInputStream in) {
