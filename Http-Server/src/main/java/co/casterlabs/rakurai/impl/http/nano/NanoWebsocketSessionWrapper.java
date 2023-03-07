@@ -58,11 +58,6 @@ public class NanoWebsocketSessionWrapper extends WebsocketSession {
 
     // Server info
     @Override
-    public String getHost() {
-        return this.getHeader("host");
-    }
-
-    @Override
     public int getPort() {
         return this.port;
     }

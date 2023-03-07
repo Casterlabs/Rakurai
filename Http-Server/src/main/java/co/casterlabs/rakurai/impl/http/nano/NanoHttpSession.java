@@ -106,11 +106,6 @@ public class NanoHttpSession extends HttpSession {
 
     // Server info
     @Override
-    public String getHost() {
-        return this.getHeader("host");
-    }
-
-    @Override
     public int getPort() {
         return this.port;
     }

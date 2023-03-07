@@ -142,7 +142,12 @@ public abstract class HttpSession {
     public abstract Map<String, String> parseFormBody() throws IOException;
 
     // Server info
-    public abstract String getHost();
+    /**
+     * @return the value from the HOST header.
+     */
+    public final @Nullable String getHost() {
+        return this.getHeader("Host");
+    }
 
     public abstract int getPort();
 

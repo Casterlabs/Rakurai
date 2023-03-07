@@ -70,11 +70,6 @@ public class UndertowWebsocketSessionWrapper extends WebsocketSession {
 
     // Server Info
     @Override
-    public String getHost() {
-        return this.getHeader("host");
-    }
-
-    @Override
     public int getPort() {
         return this.port;
     }

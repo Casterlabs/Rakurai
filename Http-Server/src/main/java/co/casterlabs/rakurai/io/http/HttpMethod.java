@@ -16,6 +16,7 @@ public enum HttpMethod {
     CONNECT,
     TRACE,
     OPTIONS,
+
     __OTHER;
 
     public static HttpMethod from(String string) {

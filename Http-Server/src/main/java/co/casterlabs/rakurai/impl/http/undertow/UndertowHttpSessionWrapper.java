@@ -158,13 +158,6 @@ public class UndertowHttpSessionWrapper extends HttpSession {
 
     // Server Info
     @Override
-    public String getHost() {
-        String host = this.getHeader("host");
-        if (host == null) host = ""; // Fallback.
-        return host;
-    }
-
-    @Override
     public int getPort() {
         return this.port;
     }
