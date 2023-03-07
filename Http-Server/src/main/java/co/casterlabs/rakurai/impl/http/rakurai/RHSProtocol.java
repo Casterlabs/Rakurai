@@ -2,12 +2,17 @@ package co.casterlabs.rakurai.impl.http.rakurai;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.Socket;
+import java.net.URLDecoder;
 import java.nio.charset.Charset;
+import java.util.AbstractMap.SimpleImmutableEntry;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import co.casterlabs.rakurai.collections.HeaderMap;
 import co.casterlabs.rakurai.io.http.HttpSession;
@@ -89,10 +94,10 @@ public abstract class RHSProtocol {
             queryString,
             Collections.unmodifiableMap(unmodQueryParameters),
             Collections.unmodifiableMap(queryParameters),
-            server.getPort(),
+            -1, // server.getPort(),
             version,
             method,
-            client.getInetAddress().getHostAddress()
+            "127.0.0.1" // client.getInetAddress().getHostAddress()
         );
     }
 
@@ -343,7 +348,46 @@ public abstract class RHSProtocol {
     }
 
     private static void parseAllQueryParameters(String queryString, Map<String, List<String>> allQueryParameters) {
-        // TODO
+        Arrays
+            .stream(queryString.substring(1).split("&"))
+            .map((it) -> {
+                try {
+                    int eqIdx = it.indexOf("=");
+
+                    if (eqIdx == -1) {
+                        return new SimpleImmutableEntry<>(
+                            URLDecoder.decode(it, "UTF-8"),
+                            null
+                        );
+                    }
+
+                    String key = it.substring(0, eqIdx);
+                    String value = it.substring(eqIdx + 1);
+
+                    return new SimpleImmutableEntry<>(
+                        URLDecoder.decode(key, "UTF-8"),
+                        URLDecoder.decode(value, "UTF-8")
+                    );
+                } catch (UnsupportedEncodingException ignored) {
+                    return null;
+                }
+            })
+            .collect(
+                Collectors.groupingBy(
+                    SimpleImmutableEntry::getKey,
+                    HashMap::new,
+                    Collectors.mapping(Map.Entry::getValue, Collectors.toList())
+                )
+            )
+            .forEach((key, values) -> {
+                @SuppressWarnings("unchecked")
+                List<String> actualValues = (List<String>) values
+                    .parallelStream()
+                    .filter((v) -> v != null)
+                    .collect(Collectors.toList());
+
+                allQueryParameters.put(key, actualValues);
+            });
     }
 
 }
