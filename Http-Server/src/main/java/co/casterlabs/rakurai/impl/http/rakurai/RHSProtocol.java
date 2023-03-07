@@ -1,23 +1,22 @@
-package co.casterlabs.rakurai.impl.http.rakurai.versions;
+package co.casterlabs.rakurai.impl.http.rakurai;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 
 import co.casterlabs.rakurai.collections.HeaderMap;
-import co.casterlabs.rakurai.impl.http.rakurai.RHSHttpSession;
-import co.casterlabs.rakurai.impl.http.rakurai.RakuraiHttpServer;
 import co.casterlabs.rakurai.io.http.HttpSession;
 import co.casterlabs.rakurai.io.http.HttpVersion;
 
-public class RHSProtocol_1_0 implements RHSProtocol {
-    private static final int MAX_HEADER_SIZE = 16 /*kb*/ * 1024;
+public abstract class RHSProtocol {
     // @formatter:off
     static final Charset HEADER_CHARSET    = Charset.forName(System.getProperty("rakurai.http.headercharset", "ISO-8859-1"));
+    static final int     MAX_METHOD_LENGTH = 512 /*b*/; // Also used for the http version.
+    static final int     MAX_URL_LENGTH    =  64 /*kb*/ * 1024;
+    static final int     MAX_HEADER_LENGTH =  16 /*kb*/ * 1024;
     // @formatter:on
 
-    @Override
     public HttpSession accept(RakuraiHttpServer server, Socket client, BufferedInputStream in) {
         HeaderMap.Builder headers = new HeaderMap.Builder();
         String method = null;
@@ -39,10 +38,10 @@ public class RHSProtocol_1_0 implements RHSProtocol {
     public static HeaderMap readHeaders(BufferedInputStream in) throws IOException, IllegalStateException {
         HeaderMap.Builder headers = new HeaderMap.Builder();
 
-        byte[] keyBuffer = new byte[MAX_HEADER_SIZE];
+        byte[] keyBuffer = new byte[MAX_HEADER_LENGTH];
         int keyBufferWritePos = 0;
 
-        byte[] valueBuffer = new byte[MAX_HEADER_SIZE];
+        byte[] valueBuffer = new byte[MAX_HEADER_LENGTH];
         int valueBufferWritePos = 0;
 
         boolean isCurrentLineBlank = true;
@@ -149,7 +148,7 @@ public class RHSProtocol_1_0 implements RHSProtocol {
         }
 
         int length = endPos - startPos;
-        return new String(buffer, startPos, length, StandardCharsets.ISO_8859_1);
+        return new String(buffer, startPos, length, HEADER_CHARSET);
     }
 
 }
