@@ -207,12 +207,13 @@ public abstract class HttpSession {
 
         sb.append("\n    method=").append(this.getMethod());
         sb.append("\n    version=").append(this.getVersion());
-        sb.append("\n    port=").append(this.getPort());
+        sb.append("\n    uri=").append(this.getUri()).append(this.getQueryString());
+        sb.append("\n    queryParameters=").append(this.getAllQueryParameters());
+        sb.append("\n    headers=").append(this.getHeaders());
         sb.append("\n    host=").append(this.getHost());
+        sb.append("\n    port=").append(this.getPort());
         sb.append("\n    remoteIpAddress=").append(this.getRemoteIpAddress());
         sb.append("\n    hops=").append(this.getRequestHops());
-        sb.append("\n    headers=").append(this.getHeaders());
-        sb.append("\n    uri=").append(this.getUri()).append(this.getQueryString());
 
         sb.append("\n)");
 
