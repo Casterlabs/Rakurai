@@ -1,11 +1,17 @@
 package co.casterlabs.rakurai.io.http.server;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.zip.DeflaterOutputStream;
+import java.util.zip.GZIPOutputStream;
 
 import org.jetbrains.annotations.Nullable;
 
+import co.casterlabs.rakurai.io.http.HttpResponse;
+import co.casterlabs.rakurai.io.http.HttpResponse.ResponseContent;
 import co.casterlabs.rakurai.io.http.HttpSession;
 
 public class HttpServerUtil {
@@ -46,6 +52,58 @@ public class HttpServerUtil {
         }
 
         return accepted;
+    }
+
+    public static String pickEncoding(HttpSession session, HttpResponse response) {
+        if (!shouldCompress(response.getAllHeaders().get("Content-Type"))) {
+            session.getLogger().debug("Format does not appear to be compressible, sending without encoding.");
+        }
+
+        List<String> acceptedEncodings = getAcceptedEncodings(session);
+        String chosenEncoding = null;
+
+        // Order of our preference.
+        if (acceptedEncodings.contains("gzip")) {
+            chosenEncoding = "gzip";
+            session.getLogger().debug("Client supports GZip encoding, using that.");
+        } else if (acceptedEncodings.contains("deflate")) {
+            chosenEncoding = "deflate";
+            session.getLogger().debug("Client supports Deflate encoding, using that.");
+        }
+        // Brotli looks to be difficult. Not going to be supported for a while.
+
+        if (chosenEncoding != null) {
+            response.putHeader("Content-Encoding", chosenEncoding);
+            response.putHeader("Vary", "Accept-Encoding");
+        }
+
+        return chosenEncoding;
+    }
+
+    public static void writeWithEncoding(@Nullable String encoding, OutputStream out, ResponseContent content) throws IOException {
+        if (encoding == null) {
+            encoding = ""; // Switch doesn't support nulls :/
+        }
+
+        switch (encoding) {
+            case "gzip": {
+                GZIPOutputStream enc = new GZIPOutputStream(out);
+                content.write(enc);
+                enc.finish(); // Do not close.
+                break;
+            }
+
+            case "deflate": {
+                DeflaterOutputStream enc = new DeflaterOutputStream(out);
+                content.write(enc);
+                enc.finish(); // Do not close.
+                break;
+            }
+
+            default:
+                content.write(out);
+                break;
+        }
     }
 
 }
