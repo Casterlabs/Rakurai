@@ -10,8 +10,10 @@ import org.jetbrains.annotations.Nullable;
 import co.casterlabs.rakurai.collections.HeaderMap;
 import co.casterlabs.rakurai.io.http.HttpSession;
 import co.casterlabs.rakurai.io.http.HttpVersion;
+import co.casterlabs.rakurai.io.http.server.HttpServerBuilder;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
+import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
 @AllArgsConstructor
 public class RHSHttpSession extends HttpSession {
@@ -29,6 +31,11 @@ public class RHSHttpSession extends HttpSession {
     private @NonNull String remoteAddress;
 
     private @Nullable InputStream bodyIn;
+
+    @Override
+    public void postConstruct(HttpServerBuilder config, FastLogger parentLogger) {
+        super.postConstruct(config, parentLogger);
+    }
 
     // Request headers
     @Override

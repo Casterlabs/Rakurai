@@ -55,6 +55,10 @@ public class HttpServerUtil {
     }
 
     public static String pickEncoding(HttpSession session, HttpResponse response) {
+        if (session.getVersion().value <= 1.0) {
+            return null;
+        }
+
         if (!shouldCompress(response.getAllHeaders().get("Content-Type"))) {
             session.getLogger().debug("Format does not appear to be compressible, sending without encoding.");
         }
