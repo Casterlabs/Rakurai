@@ -21,9 +21,9 @@ import co.casterlabs.rakurai.json.element.JsonObject;
 import co.casterlabs.rakurai.json.serialization.JsonParseException;
 import lombok.Getter;
 import lombok.NonNull;
+import xyz.e3ndr.fastloggingframework.LogUtil;
 import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 import xyz.e3ndr.fastloggingframework.logging.LogLevel;
-import xyz.e3ndr.fastloggingframework.logging.StringUtil;
 
 public abstract class HttpSession {
     private final @Getter String requestId = UUID.randomUUID().toString();
@@ -40,8 +40,7 @@ public abstract class HttpSession {
     protected void postConstruct(HttpServerBuilder config, FastLogger parentLogger) {
         this.isProxied = config.isBehindProxy();
 
-        FastLogger realLogger = new FastLogger("Rakurai Session: " + this.requestId);
-        realLogger.setCurrentLevel(LogLevel.ALL);
+        FastLogger realLogger = parentLogger.createChild("Session: " + this.requestId);
 
         if (config.getLogsDir() != null) {
             this.printResult = new ByteArrayOutputStream();
@@ -59,13 +58,10 @@ public abstract class HttpSession {
                     hasSessionErrored = true;
                 }
 
-                if (level.canLog(parentLogger.getCurrentLevel())) {
-                    realLogger.log(level, object, args);
-                }
+                realLogger.log(level, object, args);
 
                 if (printOutput != null) {
-                    String line = StringUtil.parseFormat(object, args);
-
+                    String line = LogUtil.parseFormat(object, args);
                     printOutput.println(line);
                 }
 

@@ -12,8 +12,8 @@ import org.jetbrains.annotations.Nullable;
 import co.casterlabs.rakurai.io.http.HttpResponse.ByteResponse;
 import co.casterlabs.rakurai.io.http.server.HttpServerBuilder;
 import lombok.NonNull;
+import xyz.e3ndr.fastloggingframework.LogUtil;
 import xyz.e3ndr.fastloggingframework.logging.FastLogger;
-import xyz.e3ndr.fastloggingframework.logging.StringUtil;
 
 /**
  * @deprecated This is only to be used internally.
@@ -61,7 +61,7 @@ public class Debugging {
 
                 session.printOutput.write(body);
             } catch (IOException e) {
-                session.printOutput.format("<-- ERROR, UNABLE TO GET BODY. PRINTING STACK:\n%s\n-->", StringUtil.getExceptionStack(e));
+                session.printOutput.format("<-- ERROR, UNABLE TO GET BODY. PRINTING STACK:\n%s\n-->", LogUtil.getExceptionStack(e));
             }
         }
 
