@@ -54,10 +54,15 @@ public abstract class RHSProtocol {
 //                break;
 
             // s00n
-            case HTTP_1_1:
+            case HTTP_1_1: {
+                // Treat it as if it were http 1.0
+                version = HttpVersion.HTTP_1_0;
+                break;
+            }
+
             case HTTP_2_0:
             case HTTP_3_0:
-                throw new RHSHttpException(HttpStatus.adapt(400, "Unsupported HTTP version"));
+                throw new RHSHttpException(HttpStatus.adapt(505, "HTTP Version Not Supported"));
 
             default:
                 break;

@@ -142,7 +142,11 @@ public abstract class HttpSession {
      * @return the value from the HOST header.
      */
     public final @Nullable String getHost() {
-        if (this.getVersion().value >= 2) {
+        double version = this.getVersion().value;
+
+        if (version < 1) {
+            return null;
+        } else if (version >= 2) {
             return this.getHeader(":authority");
         } else {
             return this.getHeader("Host");
