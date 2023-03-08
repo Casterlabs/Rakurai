@@ -1,7 +1,7 @@
 package co.casterlabs.rakurai.impl.http.rakurai;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -55,7 +55,9 @@ public class RakuraiHttpServer implements HttpServer {
         FastLogger logger = this.logger.createChild(clientSocket.getInetAddress().getHostAddress() + ':' + clientSocket.getPort());
         HttpResponse response = null;
 
-        try (BufferedInputStream in = new BufferedInputStream(clientSocket.getInputStream())) {
+        try {
+            InputStream in = clientSocket.getInputStream();
+
             // Set some SO flags.
             clientSocket.setTcpNoDelay(true);
 

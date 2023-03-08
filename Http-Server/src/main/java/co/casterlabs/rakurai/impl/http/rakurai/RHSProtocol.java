@@ -2,6 +2,7 @@ package co.casterlabs.rakurai.impl.http.rakurai;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.URLDecoder;
@@ -30,11 +31,13 @@ public abstract class RHSProtocol {
     private static final int MAX_HEADER_LENGTH =  16 /*kb*/ * 1024;
     // @formatter:on
 
-    public static HttpSession accept(RakuraiHttpServer server, Socket client, BufferedInputStream in) throws IOException, RHSHttpException {
+    public static HttpSession accept(RakuraiHttpServer server, Socket client, InputStream in) throws IOException, RHSHttpException {
+        BufferedInputStream bufferedIn = new BufferedInputStream(in);
+
         // Request line
         int[] $currentLinePosition = new int[1]; // int pointer :D
         int[] $endOfLinePosition = new int[1]; // int pointer :D
-        byte[] requestLine = readRequestLine(in, $endOfLinePosition);
+        byte[] requestLine = readRequestLine(bufferedIn, $endOfLinePosition);
 
         String method = readMethod(requestLine, $currentLinePosition, $endOfLinePosition[0]);
         String uri = readURI(requestLine, $currentLinePosition, $endOfLinePosition[0]);
@@ -43,7 +46,9 @@ public abstract class RHSProtocol {
         // Headers
         HeaderMap headers = // HTTP/0.9 doesn't have headers.
             version == HttpVersion.HTTP_0_9 ? //
-                new HeaderMap.Builder().build() : readHeaders(in);
+                new HeaderMap.Builder().build() : readHeaders(bufferedIn);
+
+        InputStream bodyInput = null;
 
         switch (version) {
 //            case HTTP_1_1:
@@ -53,10 +58,19 @@ public abstract class RHSProtocol {
 //                client.getOutputStream().write(CONTINUE_STATUS); // Immediately write a CONTINUE so that the client knows we're a 1.1 server.
 //                break;
 
-            // s00n
             case HTTP_1_1: {
-                // Treat it as if it were http 1.0
+                // Treat it as if it were http 1.0, TODO
                 version = HttpVersion.HTTP_1_0;
+                if (headers.containsKey("Transfer-Encoding")) {
+                    throw new RHSHttpException(HttpStatus.adapt(411, "Chunked Transfer Not Supported"));
+                }
+            }
+
+            case HTTP_1_0: {
+                // If there's a Content-Length header then there's a body.
+                if (headers.containsKey("Content-Length")) {
+                    bodyInput = in;
+                }
                 break;
             }
 
@@ -102,7 +116,8 @@ public abstract class RHSProtocol {
             server.getPort(),
             version,
             method,
-            client.getInetAddress().getHostAddress()
+            client.getInetAddress().getHostAddress(),
+            bodyInput
         );
     }
 

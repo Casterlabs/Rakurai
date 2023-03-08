@@ -28,6 +28,8 @@ public class RHSHttpSession extends HttpSession {
     private @NonNull String method;
     private @NonNull String remoteAddress;
 
+    private @Nullable InputStream bodyIn;
+
     // Request headers
     @Override
     public HeaderMap getHeaders() {
@@ -58,8 +60,7 @@ public class RHSHttpSession extends HttpSession {
     // Request body
     @Override
     public boolean hasBody() {
-        // TODO Auto-generated method stub
-        return false;
+        return this.bodyIn != null;
     }
 
     @Override
