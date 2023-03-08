@@ -10,6 +10,7 @@ import java.security.cert.CertificateException;
 import org.jetbrains.annotations.Nullable;
 
 import co.casterlabs.rakurai.impl.http.nano.NanoHttpServerBuilder;
+import co.casterlabs.rakurai.impl.http.rakurai.RakuraiHttpServerBuilder;
 import co.casterlabs.rakurai.impl.http.undertow.UndertowHttpServerBuilder;
 import co.casterlabs.rakurai.io.http.TLSVersion;
 import lombok.Data;
@@ -103,9 +104,11 @@ public abstract class HttpServerBuilder {
             case UNDERTOW:
                 return getUndertowBuilder();
 
-            default:
-                throw new IllegalArgumentException(); // Hush mr compiley.
+            case RAKURAI:
+                return getRakuraiBuilder();
         }
+
+        throw new IllegalArgumentException(); // Hush mr compiley.
     }
 
     public static HttpServerBuilder getNanoBuilder() {
@@ -114,6 +117,10 @@ public abstract class HttpServerBuilder {
 
     public static HttpServerBuilder getUndertowBuilder() {
         return new UndertowHttpServerBuilder();
+    }
+
+    public static HttpServerBuilder getRakuraiBuilder() {
+        return new RakuraiHttpServerBuilder();
     }
 
 }

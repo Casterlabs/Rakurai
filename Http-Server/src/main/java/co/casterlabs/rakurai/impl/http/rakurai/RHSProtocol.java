@@ -99,10 +99,10 @@ public abstract class RHSProtocol {
             queryString,
             Collections.unmodifiableMap(unmodQueryParameters),
             Collections.unmodifiableMap(queryParameters),
-            -1, // server.getPort(),
+            server.getPort(),
             version,
             method,
-            "127.0.0.1" // client.getInetAddress().getHostAddress()
+            client.getInetAddress().getHostAddress()
         );
     }
 
