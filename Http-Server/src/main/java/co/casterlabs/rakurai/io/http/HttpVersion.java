@@ -4,13 +4,19 @@ import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
 public enum HttpVersion {
-    HTTP_0_9(0.9),
-    HTTP_1_0(1.0),
-    HTTP_1_1(1.1),
-    HTTP_2_0(2.0),
-    HTTP_3_0(3.0);
+    HTTP_0_9(0.9, "HTTP/0.9"),
+    HTTP_1_0(1.0, "HTTP/1.0"),
+    HTTP_1_1(1.1, "HTTP/1.1"),
+    HTTP_2_0(2.0, "HTTP/2"),
+    HTTP_3_0(3.0, "HTTP/3");
 
     public final double value;
+    private final String name;
+
+    @Override
+    public String toString() {
+        return this.name;
+    }
 
     public static HttpVersion fromString(String str) {
         if (str.length() == 0) {
