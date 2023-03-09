@@ -2,6 +2,7 @@ package co.casterlabs.rakurai.io.http.server;
 
 import java.io.IOException;
 
+import co.casterlabs.rakurai.io.http.server.config.HttpServerImplementation;
 import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
 public interface HttpServer {

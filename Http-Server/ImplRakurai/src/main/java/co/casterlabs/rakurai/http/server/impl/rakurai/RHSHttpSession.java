@@ -8,9 +8,9 @@ import java.util.Map;
 import org.jetbrains.annotations.Nullable;
 
 import co.casterlabs.rakurai.collections.HeaderMap;
-import co.casterlabs.rakurai.io.http.HttpSession;
 import co.casterlabs.rakurai.io.http.HttpVersion;
-import co.casterlabs.rakurai.io.http.server.HttpServerBuilder;
+import co.casterlabs.rakurai.io.http.server.HttpSession;
+import co.casterlabs.rakurai.io.http.server.config.HttpServerBuilder;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import xyz.e3ndr.fastloggingframework.logging.FastLogger;

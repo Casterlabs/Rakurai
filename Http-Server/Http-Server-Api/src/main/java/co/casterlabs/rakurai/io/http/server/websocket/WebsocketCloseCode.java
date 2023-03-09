@@ -1,4 +1,4 @@
-package co.casterlabs.rakurai.io.http.websocket;
+package co.casterlabs.rakurai.io.http.server.websocket;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

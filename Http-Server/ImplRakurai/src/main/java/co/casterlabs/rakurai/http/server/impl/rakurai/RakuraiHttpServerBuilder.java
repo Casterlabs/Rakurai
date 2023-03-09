@@ -8,8 +8,8 @@ import java.security.cert.CertificateException;
 
 import co.casterlabs.rakurai.io.http.server.HttpListener;
 import co.casterlabs.rakurai.io.http.server.HttpServer;
-import co.casterlabs.rakurai.io.http.server.HttpServerBuilder;
-import co.casterlabs.rakurai.io.http.server.HttpServerImplementation;
+import co.casterlabs.rakurai.io.http.server.config.HttpServerBuilder;
+import co.casterlabs.rakurai.io.http.server.config.HttpServerImplementation;
 import lombok.NonNull;
 
 public class RakuraiHttpServerBuilder extends HttpServerBuilder {

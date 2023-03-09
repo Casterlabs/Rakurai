@@ -9,7 +9,7 @@ import java.util.List;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
 
-import co.casterlabs.rakurai.io.http.server.SSLConfiguration;
+import co.casterlabs.rakurai.io.http.server.config.SSLConfiguration;
 import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 import xyz.e3ndr.fastloggingframework.logging.LogLevel;
 

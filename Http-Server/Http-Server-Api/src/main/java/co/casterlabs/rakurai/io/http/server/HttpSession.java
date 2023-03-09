@@ -1,4 +1,4 @@
-package co.casterlabs.rakurai.io.http;
+package co.casterlabs.rakurai.io.http.server;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -13,7 +13,9 @@ import java.util.UUID;
 import org.jetbrains.annotations.Nullable;
 
 import co.casterlabs.rakurai.collections.HeaderMap;
-import co.casterlabs.rakurai.io.http.server.HttpServerBuilder;
+import co.casterlabs.rakurai.io.http.HttpMethod;
+import co.casterlabs.rakurai.io.http.HttpVersion;
+import co.casterlabs.rakurai.io.http.server.config.HttpServerBuilder;
 import co.casterlabs.rakurai.json.Rson;
 import co.casterlabs.rakurai.json.element.JsonArray;
 import co.casterlabs.rakurai.json.element.JsonElement;

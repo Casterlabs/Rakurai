@@ -10,9 +10,7 @@ import java.util.zip.GZIPOutputStream;
 
 import org.jetbrains.annotations.Nullable;
 
-import co.casterlabs.rakurai.io.http.HttpResponse;
-import co.casterlabs.rakurai.io.http.HttpResponse.ResponseContent;
-import co.casterlabs.rakurai.io.http.HttpSession;
+import co.casterlabs.rakurai.io.http.server.HttpResponse.ResponseContent;
 
 public class HttpServerUtil {
 

@@ -1,4 +1,4 @@
-package co.casterlabs.rakurai.io.http.server;
+package co.casterlabs.rakurai.io.http.server.config;
 
 public enum HttpServerImplementation {
     NANO,

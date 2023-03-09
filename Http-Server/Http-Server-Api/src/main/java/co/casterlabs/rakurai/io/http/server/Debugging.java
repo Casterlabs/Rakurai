@@ -1,4 +1,4 @@
-package co.casterlabs.rakurai.io.http;
+package co.casterlabs.rakurai.io.http.server;
 
 import java.io.File;
 import java.io.IOException;
@@ -9,8 +9,8 @@ import java.util.Map.Entry;
 
 import org.jetbrains.annotations.Nullable;
 
-import co.casterlabs.rakurai.io.http.HttpResponse.ByteResponse;
-import co.casterlabs.rakurai.io.http.server.HttpServerBuilder;
+import co.casterlabs.rakurai.io.http.server.HttpResponse.ByteResponse;
+import co.casterlabs.rakurai.io.http.server.config.HttpServerBuilder;
 import lombok.NonNull;
 import xyz.e3ndr.fastloggingframework.LogUtil;
 import xyz.e3ndr.fastloggingframework.logging.FastLogger;

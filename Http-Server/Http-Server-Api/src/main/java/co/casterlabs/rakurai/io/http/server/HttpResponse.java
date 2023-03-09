@@ -1,4 +1,4 @@
-package co.casterlabs.rakurai.io.http;
+package co.casterlabs.rakurai.io.http.server;
 
 import java.io.Closeable;
 import java.io.File;
@@ -13,6 +13,8 @@ import java.util.Map;
 
 import co.casterlabs.rakurai.CharStrings;
 import co.casterlabs.rakurai.io.IOUtil;
+import co.casterlabs.rakurai.io.http.HttpStatus;
+import co.casterlabs.rakurai.io.http.StandardHttpStatus;
 import co.casterlabs.rakurai.json.element.JsonArray;
 import co.casterlabs.rakurai.json.element.JsonElement;
 import co.casterlabs.rakurai.json.element.JsonObject;

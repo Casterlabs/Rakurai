@@ -1,4 +1,4 @@
-package co.casterlabs.rakurai.io.http.websocket;
+package co.casterlabs.rakurai.io.http.server.websocket;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -6,7 +6,7 @@ import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
-import co.casterlabs.rakurai.io.http.HttpSession;
+import co.casterlabs.rakurai.io.http.server.HttpSession;
 
 public abstract class WebsocketSession extends HttpSession {
 
