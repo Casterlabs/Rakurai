@@ -32,7 +32,7 @@ public class RHSHttpSession extends HttpSession {
 
     private @Nullable InputStream bodyIn;
 
-    RHSHttpSession rhsPostConstruct(HttpServerBuilder config, FastLogger parentLogger) {
+    public RHSHttpSession rhsPostConstruct(HttpServerBuilder config, FastLogger parentLogger) {
         super.postConstruct(config, parentLogger);
         return this;
     }

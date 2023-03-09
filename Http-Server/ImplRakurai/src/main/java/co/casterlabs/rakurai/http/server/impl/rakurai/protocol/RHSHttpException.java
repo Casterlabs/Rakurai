@@ -1,4 +1,4 @@
-package co.casterlabs.rakurai.http.server.impl.rakurai;
+package co.casterlabs.rakurai.http.server.impl.rakurai.protocol;
 
 import co.casterlabs.rakurai.io.http.HttpStatus;
 

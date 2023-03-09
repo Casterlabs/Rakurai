@@ -1,12 +1,16 @@
-package co.casterlabs.rakurai.http.server.impl.rakurai;
+package co.casterlabs.rakurai.http.server.impl.rakurai.protocol;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.URLDecoder;
 import java.nio.charset.Charset;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Arrays;
 import java.util.Collections;
@@ -16,6 +20,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import co.casterlabs.rakurai.collections.HeaderMap;
+import co.casterlabs.rakurai.http.server.impl.rakurai.RHSHttpSession;
+import co.casterlabs.rakurai.http.server.impl.rakurai.RakuraiHttpServer;
 import co.casterlabs.rakurai.io.http.HttpStatus;
 import co.casterlabs.rakurai.io.http.HttpVersion;
 import co.casterlabs.rakurai.io.http.server.HttpSession;
@@ -23,6 +29,7 @@ import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
 public abstract class RHSProtocol {
     public static final Charset HEADER_CHARSET = Charset.forName(System.getProperty("rakurai.http.headercharset", "ISO-8859-1"));
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss O");
 
     private static final byte[] HTTP_CONTINUE_LINE = "HTTP/1.1 100 Continue\r\n\r\n".getBytes(HEADER_CHARSET);
 
@@ -31,6 +38,14 @@ public abstract class RHSProtocol {
     private static final int MAX_URI_LENGTH    =  64 /*kb*/ * 1024;
     private static final int MAX_HEADER_LENGTH =  16 /*kb*/ * 1024;
     // @formatter:on
+
+    public static void writeString(String str, OutputStream out) throws IOException {
+        out.write(str.getBytes(RHSProtocol.HEADER_CHARSET));
+    }
+
+    public static String getHttpTime() {
+        return TIME_FORMATTER.format(ZonedDateTime.now(ZoneOffset.UTC));
+    }
 
     public static HttpSession accept(FastLogger sessionLogger, RakuraiHttpServer server, Socket client, InputStream in) throws IOException, RHSHttpException {
         BufferedInputStream bufferedIn = new BufferedInputStream(in);
@@ -51,16 +66,24 @@ public abstract class RHSProtocol {
             version == HttpVersion.HTTP_0_9 ? //
                 new HeaderMap.Builder().build() : readHeaders(bufferedIn);
 
-        InputStream bodyInput = null;
+        // HTTP/1.1 handshaking.
+        if (version == HttpVersion.HTTP_1_1) {
+            if (!headers.containsKey("Host")) {
+                throw new RHSHttpException(HttpStatus.adapt(400, "Missing Host header"));
+            }
+            client.getOutputStream().write(HTTP_CONTINUE_LINE); // Immediately write a CONTINUE so that the client knows we're a 1.1 server.
+            sessionLogger.trace("Response status line: HTTP/1.1 100 Continue");
+        }
 
+        // Retrieve the body, if any.
+        InputStream bodyInput = null;
         switch (version) {
             case HTTP_1_1:
-                if (!headers.containsKey("Host")) {
-                    throw new RHSHttpException(HttpStatus.adapt(400, "Missing Host header"));
+                // Look for a chunked body.
+                if ("chunked".equalsIgnoreCase(headers.getSingle("Transfer-Encoding"))) {
+
+                    break;
                 }
-                client.getOutputStream().write(HTTP_CONTINUE_LINE); // Immediately write a CONTINUE so that the client knows we're a 1.1 server.
-                sessionLogger.trace("Response status line: HTTP/1.1 100 Continue");
-                break;
 
             case HTTP_1_0: {
                 // If there's a Content-Length header then there's a body.
@@ -69,10 +92,6 @@ public abstract class RHSProtocol {
                 }
                 break;
             }
-
-            case HTTP_2_0:
-            case HTTP_3_0:
-                throw new RHSHttpException(HttpStatus.adapt(505, "HTTP Version Not Supported"));
 
             default:
                 break;

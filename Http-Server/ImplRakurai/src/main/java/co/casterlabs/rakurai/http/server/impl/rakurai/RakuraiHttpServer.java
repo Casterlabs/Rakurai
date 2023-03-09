@@ -6,9 +6,6 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -16,6 +13,9 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import co.casterlabs.rakurai.http.server.impl.rakurai.io.HttpChunkedOutputStream;
+import co.casterlabs.rakurai.http.server.impl.rakurai.protocol.RHSHttpException;
+import co.casterlabs.rakurai.http.server.impl.rakurai.protocol.RHSProtocol;
 import co.casterlabs.rakurai.io.IOUtil;
 import co.casterlabs.rakurai.io.http.HttpVersion;
 import co.casterlabs.rakurai.io.http.server.DropConnectionException;
@@ -26,13 +26,11 @@ import co.casterlabs.rakurai.io.http.server.HttpServerUtil;
 import co.casterlabs.rakurai.io.http.server.HttpSession;
 import co.casterlabs.rakurai.io.http.server.config.HttpServerBuilder;
 import co.casterlabs.rakurai.io.http.server.config.HttpServerImplementation;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
 @Getter
 public class RakuraiHttpServer implements HttpServer {
-    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss O");
     private static final int READ_TIMEOUT = 1;
 
     private final FastLogger logger = new FastLogger("Rakurai RakuraiHttpServer");
@@ -139,10 +137,10 @@ public class RakuraiHttpServer implements HttpServer {
                     sessionLogger.trace("Response status line: %s %s", version, response.getStatus().getStatusString());
 
                     // Write status.
-                    writeString(version.toString(), out);
-                    writeString(" ", out);
-                    writeString(response.getStatus().getStatusString(), out);
-                    writeString("\r\n", out);
+                    RHSProtocol.writeString(version.toString(), out);
+                    RHSProtocol.writeString(" ", out);
+                    RHSProtocol.writeString(response.getStatus().getStatusString(), out);
+                    RHSProtocol.writeString("\r\n", out);
 
                     if (keepConnectionAlive) {
                         // Add the keepalive headers.
@@ -155,7 +153,7 @@ public class RakuraiHttpServer implements HttpServer {
 
                     // Write out a Date header for HTTP/1.1 requests with a non-100 status code.
                     if ((version.value >= 1.1) && (response.getStatus().getStatusCode() >= 200)) {
-                        response.putHeader("Date", getHttpTime());
+                        response.putHeader("Date", RHSProtocol.getHttpTime());
                     }
 
                     if (!response.hasHeader("Content-Type")) {
@@ -180,14 +178,14 @@ public class RakuraiHttpServer implements HttpServer {
 
                     // Write headers.
                     for (Map.Entry<String, String> entry : response.getAllHeaders().entrySet()) {
-                        writeString(entry.getKey(), out);
-                        writeString(": ", out);
-                        writeString(entry.getValue(), out);
-                        writeString("\r\n", out);
+                        RHSProtocol.writeString(entry.getKey(), out);
+                        RHSProtocol.writeString(": ", out);
+                        RHSProtocol.writeString(entry.getValue(), out);
+                        RHSProtocol.writeString("\r\n", out);
                     }
 
                     // Write the separation line.
-                    writeString("\r\n", out);
+                    RHSProtocol.writeString("\r\n", out);
                 }
 
                 if (useChunkedResponse) {
@@ -296,53 +294,6 @@ public class RakuraiHttpServer implements HttpServer {
     @Override
     public HttpServerImplementation getImplementation() {
         return HttpServerImplementation.RAKURAI;
-    }
-
-    private static void writeString(String str, OutputStream out) throws IOException {
-        out.write(str.getBytes(RHSProtocol.HEADER_CHARSET));
-    }
-
-    public static String getHttpTime() {
-        return TIME_FORMATTER.format(ZonedDateTime.now(ZoneOffset.UTC));
-    }
-
-    @AllArgsConstructor
-    private static class HttpChunkedOutputStream extends OutputStream {
-        private OutputStream out;
-
-        @Override
-        public void write(int b) throws IOException {
-            this.out.write('1');
-            writeString("\r\n", this.out);
-            this.out.write(b);
-            writeString("\r\n", this.out);
-        }
-
-        @Override
-        public void write(byte[] b) throws IOException {
-            if (b.length == 0) return;
-
-            writeString(Integer.toHexString(b.length), this.out);
-            writeString("\r\n", this.out);
-            this.out.write(b);
-            writeString("\r\n", this.out);
-        }
-
-        @Override
-        public void write(byte[] b, int off, int len) throws IOException {
-            if (len == 0) return;
-
-            writeString(Integer.toHexString(len), this.out);
-            writeString("\r\n", this.out);
-            this.out.write(b, off, len);
-            writeString("\r\n", this.out);
-        }
-
-        @Override
-        public void close() throws IOException {
-            writeString("0\r\n\r\n", this.out);
-            // Don't actually close the outputstream.
-        }
     }
 
 }
