@@ -12,7 +12,6 @@ import java.util.Map;
 import org.jetbrains.annotations.Nullable;
 
 import co.casterlabs.rakurai.collections.HeaderMap;
-import co.casterlabs.rakurai.io.IOUtil;
 import co.casterlabs.rakurai.io.http.HttpVersion;
 import co.casterlabs.rakurai.io.http.server.HttpSession;
 import co.casterlabs.rakurai.io.http.server.config.HttpServerBuilder;
@@ -31,8 +30,6 @@ public class UndertowHttpSessionWrapper extends HttpSession {
     private Map<String, List<String>> allQueryParameters = new HashMap<>();
     private Map<String, String> queryParameters = new HashMap<>();
     private HeaderMap headers;
-
-    private byte[] body;
 
     @SuppressWarnings("deprecation")
     public UndertowHttpSessionWrapper(HttpServerExchange exchange, int port, HttpServerBuilder config, FastLogger parentLogger) {
@@ -105,30 +102,13 @@ public class UndertowHttpSessionWrapper extends HttpSession {
     public boolean hasBody() {
         try {
             return this.getRequestBodyStream().available() != -1;
-        } catch (IOException e) {
+        } catch (Exception e) {
             return false;
         }
     }
 
     @Override
-    public @Nullable byte[] getRequestBodyBytes() throws IOException {
-        if (this.body == null) {
-            long length = this.exchange.getRequestContentLength();
-
-            if (length != -1) {
-                this.body = IOUtil.readInputStreamBytes(this.exchange.getInputStream());
-
-                return this.body;
-            } else {
-                throw new IOException("No body was sent");
-            }
-        } else {
-            return this.body;
-        }
-    }
-
-    @Override
-    public InputStream getRequestBodyStream() throws IOException {
+    public @Nullable InputStream getRequestBodyStream() throws IOException {
         return this.exchange.getInputStream();
     }
 

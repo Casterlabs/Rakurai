@@ -71,15 +71,8 @@ public class RHSHttpSession extends HttpSession {
     }
 
     @Override
-    public @Nullable byte[] getRequestBodyBytes() throws IOException {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public InputStream getRequestBodyStream() throws IOException {
-        // TODO Auto-generated method stub
-        return null;
+    public @Nullable InputStream getRequestBodyStream() throws IOException {
+        return this.bodyIn;
     }
 
     @Override

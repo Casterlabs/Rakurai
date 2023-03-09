@@ -13,6 +13,7 @@ import java.util.UUID;
 import org.jetbrains.annotations.Nullable;
 
 import co.casterlabs.rakurai.collections.HeaderMap;
+import co.casterlabs.rakurai.io.IOUtil;
 import co.casterlabs.rakurai.io.http.HttpMethod;
 import co.casterlabs.rakurai.io.http.HttpVersion;
 import co.casterlabs.rakurai.io.http.server.config.HttpServerBuilder;
@@ -38,6 +39,8 @@ public abstract class HttpSession {
 
     private @Getter boolean isProxied;
     private String remoteIp;
+
+    private byte[] cachedBody;
 
     protected void postConstruct(HttpServerBuilder config, FastLogger parentLogger) {
         this.isProxied = config.isBehindProxy();
@@ -133,9 +136,17 @@ public abstract class HttpSession {
         }
     }
 
-    public abstract @Nullable byte[] getRequestBodyBytes() throws IOException;
+    public @Nullable byte[] getRequestBodyBytes() throws IOException {
+        if (!this.hasBody()) return null;
 
-    public abstract InputStream getRequestBodyStream() throws IOException;
+        if (this.cachedBody == null) {
+            this.cachedBody = IOUtil.readInputStreamBytes(this.getRequestBodyStream());
+        }
+
+        return this.cachedBody;
+    }
+
+    public abstract @Nullable InputStream getRequestBodyStream() throws IOException;
 
     public abstract Map<String, String> parseFormBody() throws IOException;
 

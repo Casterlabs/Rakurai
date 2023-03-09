@@ -6,10 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.jetbrains.annotations.Nullable;
-
 import co.casterlabs.rakurai.collections.HeaderMap;
-import co.casterlabs.rakurai.io.IOUtil;
 import co.casterlabs.rakurai.io.http.HttpVersion;
 import co.casterlabs.rakurai.io.http.server.HttpSession;
 import co.casterlabs.rakurai.io.http.server.config.HttpServerBuilder;
@@ -23,7 +20,6 @@ public class NanoHttpSession extends HttpSession {
     private int port;
 
     private HeaderMap headers;
-    private byte[] body;
 
     public NanoHttpSession(IHTTPSession nanoSession, int port, HttpServerBuilder config, FastLogger parentLogger) {
         this.port = port;
@@ -72,21 +68,6 @@ public class NanoHttpSession extends HttpSession {
     }
 
     @Override
-    public @Nullable byte[] getRequestBodyBytes() throws IOException {
-        if (this.body == null) {
-            if (this.hasBody()) {
-                this.body = IOUtil.readInputStreamBytes(this.nanoSession.getInputStream());
-
-                return this.body;
-            } else {
-                return this.body = new byte[0];
-            }
-        } else {
-            return this.body;
-        }
-    }
-
-    @Override
     public InputStream getRequestBodyStream() throws IOException {
         return this.nanoSession.getInputStream();
     }
@@ -95,9 +76,7 @@ public class NanoHttpSession extends HttpSession {
     public Map<String, String> parseFormBody() throws IOException {
         try {
             Map<String, String> files = new HashMap<>();
-
             this.nanoSession.parseBody(files);
-
             return files;
         } catch (ResponseException e) {
             throw new IOException(e);
