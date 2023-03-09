@@ -11,6 +11,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.jetbrains.annotations.Nullable;
+
 import co.casterlabs.rakurai.CharStrings;
 import co.casterlabs.rakurai.io.IOUtil;
 import co.casterlabs.rakurai.io.http.HttpStatus;
@@ -49,7 +51,8 @@ public class HttpResponse {
     /* Headers          */
     /* ---------------- */
 
-    public HttpResponse setMimeType(String type) {
+    public HttpResponse setMimeType(@Nullable String type) {
+        if (type == null) type = "application/octet-stream";
         return this.putHeader("Content-Type", type);
     }
 
