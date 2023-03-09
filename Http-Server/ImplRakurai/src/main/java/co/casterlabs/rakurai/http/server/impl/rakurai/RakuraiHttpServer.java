@@ -9,6 +9,7 @@ import java.net.Socket;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -52,7 +53,7 @@ public class RakuraiHttpServer implements HttpServer {
 
     private void doRead() {
         try {
-            Socket clientSocket = serverSocket.accept();
+            Socket clientSocket = this.serverSocket.accept();
             this.connectedClients.add(clientSocket);
 
             // Better logging format for v6 addresses :^)
@@ -273,7 +274,8 @@ public class RakuraiHttpServer implements HttpServer {
         try {
             this.serverSocket.close();
 
-            this.connectedClients.forEach((s) -> IOUtil.safeClose(s));
+            new ArrayList<>(this.connectedClients)
+                .forEach(IOUtil::safeClose);
             this.connectedClients.clear();
         } finally {
             this.serverSocket = null;
