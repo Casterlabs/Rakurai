@@ -2,19 +2,11 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<artifactId>Http-Server</artifactId>
-	<packaging>pom</packaging>
-
-	<modules>
-		<module>Http-Server-Api</module>
-		<module>ImplNano</module>
-		<module>ImplUndertow</module>
-		<module>ImplRakurai</module>
-	</modules>
+	<artifactId>Http-Server-Api</artifactId>
 
 	<parent>
 		<groupId>co.casterlabs</groupId>
-		<artifactId>Rakurai</artifactId>
+		<artifactId>Http-Server</artifactId>
 		<version>1.17.0</version>
 		<relativePath>../pom.xml</relativePath>
 	</parent>
@@ -86,7 +78,6 @@
 			<version>${project.parent.version}</version>
 			<scope>compile</scope>
 		</dependency>
-
 		<dependency>
 			<groupId>co.casterlabs</groupId>
 			<artifactId>Json</artifactId>
@@ -94,25 +85,6 @@
 			<scope>compile</scope>
 		</dependency>
 
-		<dependency>
-			<groupId>io.undertow</groupId>
-			<artifactId>undertow-core</artifactId>
-			<version>2.2.23.Final</version> <!-- Use 2.3.3 if you're on JDK11 -->
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.nanohttpd</groupId>
-			<artifactId>nanohttpd-websocket</artifactId>
-			<version>2.3.1</version>
-			<scope>provided</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-nop</artifactId>
-			<version>1.7.30</version>
-			<scope>compile</scope>
-		</dependency>
 		<dependency>
 			<groupId>com.github.e3ndr</groupId>
 			<artifactId>FastLoggingFramework</artifactId>
