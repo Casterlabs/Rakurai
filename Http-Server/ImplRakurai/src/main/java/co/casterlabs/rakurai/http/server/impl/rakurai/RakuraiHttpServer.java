@@ -53,6 +53,8 @@ public class RakuraiHttpServer implements HttpServer {
     }
 
     private void handle(Socket clientSocket) {
+        // We create a logger here so that we have one incase the connection errors
+        // before the session is created. Janky IK.
         FastLogger sessionLogger = this.logger.createChild(clientSocket.getInetAddress().getHostAddress() + ':' + clientSocket.getPort());
         HttpResponse response = null;
 
@@ -70,8 +72,9 @@ public class RakuraiHttpServer implements HttpServer {
                 // Catch any RHSHttpExceptions and convert them into responses.
                 try {
                     session = RHSProtocol.accept(this, clientSocket, in);
+                    ((RHSHttpSession) session).postConstruct(this.config, this.logger);
                     version = session.getVersion();
-                    ((RHSHttpSession) session).postConstruct(this.config, sessionLogger);
+                    sessionLogger = session.getLogger();
                 } catch (RHSHttpException e) {
                     sessionLogger.severe("An error occurred whilst handling a request:\n%s", e);
                     response = HttpResponse.newFixedLengthResponse(e.status);
