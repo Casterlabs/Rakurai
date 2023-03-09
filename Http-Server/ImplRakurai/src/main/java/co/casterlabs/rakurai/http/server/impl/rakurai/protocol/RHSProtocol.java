@@ -22,6 +22,8 @@ import java.util.stream.Collectors;
 import co.casterlabs.rakurai.collections.HeaderMap;
 import co.casterlabs.rakurai.http.server.impl.rakurai.RHSHttpSession;
 import co.casterlabs.rakurai.http.server.impl.rakurai.RakuraiHttpServer;
+import co.casterlabs.rakurai.http.server.impl.rakurai.io.HttpChunkedInputStream;
+import co.casterlabs.rakurai.http.server.impl.rakurai.io.UncloseableInputStream;
 import co.casterlabs.rakurai.io.http.HttpStatus;
 import co.casterlabs.rakurai.io.http.HttpVersion;
 import co.casterlabs.rakurai.io.http.server.HttpSession;
@@ -29,8 +31,8 @@ import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
 public abstract class RHSProtocol {
     public static final Charset HEADER_CHARSET = Charset.forName(System.getProperty("rakurai.http.headercharset", "ISO-8859-1"));
-    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss O");
 
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss O");
     private static final byte[] HTTP_CONTINUE_LINE = "HTTP/1.1 100 Continue\r\n\r\n".getBytes(HEADER_CHARSET);
 
     // @formatter:off
@@ -81,14 +83,15 @@ public abstract class RHSProtocol {
             case HTTP_1_1:
                 // Look for a chunked body.
                 if ("chunked".equalsIgnoreCase(headers.getSingle("Transfer-Encoding"))) {
-
+                    bodyInput = new HttpChunkedInputStream(sessionLogger, bufferedIn);
                     break;
                 }
 
             case HTTP_1_0: {
                 // If there's a Content-Length header then there's a body.
                 if (headers.containsKey("Content-Length")) {
-                    bodyInput = in;
+                    // We don't want the user accidentally killing their http connections.
+                    bodyInput = new UncloseableInputStream(in);
                 }
                 break;
             }

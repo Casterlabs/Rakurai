@@ -11,6 +11,12 @@ public class HttpChunkedOutputStream extends OutputStream {
     private OutputStream out;
 
     @Override
+    public void close() throws IOException {
+        RHSProtocol.writeString("0\r\n\r\n", this.out);
+        // Don't actually close the outputstream.
+    }
+
+    @Override
     public void write(int b) throws IOException {
         this.out.write('1');
         RHSProtocol.writeString("\r\n", this.out);
@@ -38,9 +44,4 @@ public class HttpChunkedOutputStream extends OutputStream {
         RHSProtocol.writeString("\r\n", this.out);
     }
 
-    @Override
-    public void close() throws IOException {
-        RHSProtocol.writeString("0\r\n\r\n", this.out);
-        // Don't actually close the outputstream.
-    }
 }
