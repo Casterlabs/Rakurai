@@ -23,7 +23,7 @@ import co.casterlabs.rakurai.io.http.server.HttpSession;
 public abstract class RHSProtocol {
     public static final Charset HEADER_CHARSET = Charset.forName(System.getProperty("rakurai.http.headercharset", "ISO-8859-1"));
 
-//    private static final byte[] CONTINUE_STATUS = "HTTP/1.1 100 Continue\r\n\r\n".getBytes(HEADER_CHARSET);
+    private static final byte[] HTTP_CONTINUE_LINE = "HTTP/1.1 100 Continue\r\n\r\n".getBytes(HEADER_CHARSET);
 
     // @formatter:off
     private static final int MAX_METHOD_LENGTH = 512 /*b*/; // Also used for the http version.
@@ -51,20 +51,12 @@ public abstract class RHSProtocol {
         InputStream bodyInput = null;
 
         switch (version) {
-//            case HTTP_1_1:
-//                if (!headers.containsKey("Host")) {
-//                    throw new RHSHttpException(HttpStatus.adapt(400, "Missing Host header"));
-//                }
-//                client.getOutputStream().write(CONTINUE_STATUS); // Immediately write a CONTINUE so that the client knows we're a 1.1 server.
-//                break;
-
-            case HTTP_1_1: {
-                // Treat it as if it were http 1.0, TODO
-                version = HttpVersion.HTTP_1_0;
-                if (headers.containsKey("Transfer-Encoding")) {
-                    throw new RHSHttpException(HttpStatus.adapt(411, "Chunked Transfer Not Supported"));
+            case HTTP_1_1:
+                if (!headers.containsKey("Host")) {
+                    throw new RHSHttpException(HttpStatus.adapt(400, "Missing Host header"));
                 }
-            }
+                client.getOutputStream().write(HTTP_CONTINUE_LINE); // Immediately write a CONTINUE so that the client knows we're a 1.1 server.
+                break;
 
             case HTTP_1_0: {
                 // If there's a Content-Length header then there's a body.

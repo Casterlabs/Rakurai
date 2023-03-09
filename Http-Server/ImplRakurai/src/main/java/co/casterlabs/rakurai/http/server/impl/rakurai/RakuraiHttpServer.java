@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import co.casterlabs.rakurai.io.IOUtil;
 import co.casterlabs.rakurai.io.http.HttpVersion;
@@ -22,11 +23,14 @@ import co.casterlabs.rakurai.io.http.server.HttpServerUtil;
 import co.casterlabs.rakurai.io.http.server.HttpSession;
 import co.casterlabs.rakurai.io.http.server.config.HttpServerBuilder;
 import co.casterlabs.rakurai.io.http.server.config.HttpServerImplementation;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
 @Getter
 public class RakuraiHttpServer implements HttpServer {
+    private static final int READ_TIMEOUT = (int) TimeUnit.SECONDS.toMillis(5);
+
     private final FastLogger logger = new FastLogger("Rakurai RakuraiHttpServer");
 
     private final HttpListener listener;
@@ -46,7 +50,20 @@ public class RakuraiHttpServer implements HttpServer {
     private void doRead() {
         try {
             Socket clientSocket = serverSocket.accept();
-            this.executor.execute(() -> this.handle(clientSocket));
+            this.connectedClients.add(clientSocket);
+
+            // Better logging format for v6 addresses :^)
+            String addr = clientSocket.getInetAddress().getHostAddress();
+            if (addr.indexOf(':') != -1) {
+                this.logger.debug("New connection from [%s]:%d", addr, clientSocket.getPort());
+            } else {
+                this.logger.debug("New connection from %s:%d", addr, clientSocket.getPort());
+            }
+
+            this.executor.execute(() -> {
+                this.handle(clientSocket);
+                this.connectedClients.remove(clientSocket);
+            });
         } catch (IOException e) {
             this.logger.severe("An error occurred whilst accepting a new connection:\n%s", e);
         }
@@ -55,7 +72,9 @@ public class RakuraiHttpServer implements HttpServer {
     private void handle(Socket clientSocket) {
         // We create a logger here so that we have one incase the connection errors
         // before the session is created. Janky IK.
-        FastLogger sessionLogger = this.logger.createChild(clientSocket.getInetAddress().getHostAddress() + ':' + clientSocket.getPort());
+        FastLogger sessionLogger = this.logger.createChild("<unknown session> " + clientSocket.getPort());
+        sessionLogger.debug("Handling request...");
+
         HttpResponse response = null;
 
         try {
@@ -63,16 +82,17 @@ public class RakuraiHttpServer implements HttpServer {
 
             // Set some SO flags.
             clientSocket.setTcpNoDelay(true);
+            clientSocket.setSoTimeout(READ_TIMEOUT); // This will automatically close persistent HTTP/1.1 requests.
 
             while (true) {
                 HttpSession session = null;
                 HttpVersion version = HttpVersion.HTTP_1_0; // Our default.
-                // Note that we don't support 2.0 or 3.0, check this in RHSProtocol.
+                // Note that we don't support 2.0 or 3.0, confirm this in RHSProtocol.
 
                 // Catch any RHSHttpExceptions and convert them into responses.
                 try {
                     session = RHSProtocol.accept(this, clientSocket, in);
-                    ((RHSHttpSession) session).postConstruct(this.config, this.logger);
+                    ((RHSHttpSession) session).postConstruct(this.config, sessionLogger);
                     version = session.getVersion();
                     sessionLogger = session.getLogger();
                 } catch (RHSHttpException e) {
@@ -94,6 +114,7 @@ public class RakuraiHttpServer implements HttpServer {
                 // result.
                 OutputStream out = clientSocket.getOutputStream();
                 String contentEncoding = null;
+                boolean useChunkedResponse = false;
 
                 // 0.9 doesn't have a status line or anything, so we don't write it out.
                 if (version.value >= 1.0) {
@@ -116,6 +137,7 @@ public class RakuraiHttpServer implements HttpServer {
                         }
 
                         response.putHeader("Transfer-Encoding", "chunked");
+                        useChunkedResponse = true;
                     } else {
                         response.putHeader("Content-Length", String.valueOf(length));
                     }
@@ -134,19 +156,46 @@ public class RakuraiHttpServer implements HttpServer {
                     writeString("\r\n", out);
                 }
 
+                if (useChunkedResponse) {
+                    out = new HttpChunkedOutputStream(out);
+                }
+
                 // Write out the response, defaulting to non-encoded responses.
                 HttpServerUtil.writeWithEncoding(contentEncoding, out, response.getContent());
 
-                if (version.value <= 1.0) {
-                    return;  // Close the connection.
+                if (useChunkedResponse) {
+                    // Chunked output streams have special close implementations that don't actually
+                    // close the connection.
+                    out.close();
+                }
+
+                switch (version) {
+                    case HTTP_1_1:
+                        if ("keep-alive".equals(session.getHeader("Connection"))) {
+                            break; // Client requested the connection be kept open.
+                        }
+
+                    case HTTP_0_9:
+                    case HTTP_1_0:
+                    default:
+                        return; // Close the connection.
                 }
                 // Subsequent requests are handled by the while block.
+
+                // Reset the logger.
+                sessionLogger = this.logger.createChild("<unknown (persistent) session> " + clientSocket.getPort());
             }
         } catch (DropConnectionException ignored) {
             // Automatically handled by the finally {}.
             sessionLogger.debug("Dropping connection.");
         } catch (IOException e) {
-            sessionLogger.trace("An error occurred whilst handling a request:\n%s", e);
+            String message = e.getMessage();
+            if ("Read timed out".equals(message)) {
+                sessionLogger.debug("Persistent timed out, closing.");
+                return;
+            }
+
+            sessionLogger.trace("An error occurred whilst handling a request:\n%s", e.toString());
         } finally {
             if (response != null) {
                 try {
@@ -161,6 +210,8 @@ public class RakuraiHttpServer implements HttpServer {
             } catch (IOException e) {
                 sessionLogger.severe("An error occurred whilst closing a socket:\n%s", e);
             }
+
+            sessionLogger.trace("Closed the connection.");
         }
     }
 
@@ -219,6 +270,45 @@ public class RakuraiHttpServer implements HttpServer {
 
     private static void writeString(String str, OutputStream out) throws IOException {
         out.write(str.getBytes(RHSProtocol.HEADER_CHARSET));
+    }
+
+    @AllArgsConstructor
+    private static class HttpChunkedOutputStream extends OutputStream {
+        private OutputStream out;
+
+        @Override
+        public void write(int b) throws IOException {
+            this.out.write('1');
+            writeString("\r\n", this.out);
+            this.out.write(b);
+            writeString("\r\n", this.out);
+        }
+
+        @Override
+        public void write(byte[] b) throws IOException {
+            if (b.length == 0) return;
+
+            writeString(Integer.toHexString(b.length), this.out);
+            writeString("\r\n", this.out);
+            this.out.write(b);
+            writeString("\r\n", this.out);
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) throws IOException {
+            if (len == 0) return;
+
+            writeString(Integer.toHexString(len), this.out);
+            writeString("\r\n", this.out);
+            this.out.write(b, off, len);
+            writeString("\r\n", this.out);
+        }
+
+        @Override
+        public void close() throws IOException {
+            writeString("0\r\n\r\n", this.out);
+            // Don't actually close the outputstream.
+        }
     }
 
 }
