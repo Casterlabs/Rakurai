@@ -6,12 +6,14 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 import co.casterlabs.rakurai.io.IOUtil;
 import co.casterlabs.rakurai.io.http.HttpVersion;
@@ -29,7 +31,8 @@ import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
 @Getter
 public class RakuraiHttpServer implements HttpServer {
-    private static final int READ_TIMEOUT = (int) TimeUnit.SECONDS.toMillis(5);
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss O");
+    private static final int READ_TIMEOUT = 1;
 
     private final FastLogger logger = new FastLogger("Rakurai RakuraiHttpServer");
 
@@ -82,7 +85,7 @@ public class RakuraiHttpServer implements HttpServer {
 
             // Set some SO flags.
             clientSocket.setTcpNoDelay(true);
-            clientSocket.setSoTimeout(READ_TIMEOUT); // This will automatically close persistent HTTP/1.1 requests.
+            clientSocket.setSoTimeout(READ_TIMEOUT * 1000); // This will automatically close persistent HTTP/1.1 requests.
 
             while (true) {
                 HttpSession session = null;
@@ -91,8 +94,7 @@ public class RakuraiHttpServer implements HttpServer {
 
                 // Catch any RHSHttpExceptions and convert them into responses.
                 try {
-                    session = RHSProtocol.accept(this, clientSocket, in);
-                    ((RHSHttpSession) session).postConstruct(this.config, sessionLogger);
+                    session = RHSProtocol.accept(sessionLogger, this, clientSocket, in);
                     version = session.getVersion();
                     sessionLogger = session.getLogger();
                 } catch (RHSHttpException e) {
@@ -101,6 +103,21 @@ public class RakuraiHttpServer implements HttpServer {
                 }
 
                 sessionLogger.debug("Using version: %s", version);
+
+                boolean keepConnectionAlive;
+                switch (version) {
+                    case HTTP_1_1:
+                        if ("keep-alive".equalsIgnoreCase(session.getHeader("Connection"))) {
+                            keepConnectionAlive = true;
+                            break;
+                        }
+
+                    case HTTP_0_9:
+                    case HTTP_1_0:
+                    default:
+                        keepConnectionAlive = false;
+                        break;
+                }
 
                 // We have a valid session, try to serve it.
                 // Note that response will always be null at this location IF session isn't.
@@ -118,11 +135,27 @@ public class RakuraiHttpServer implements HttpServer {
 
                 // 0.9 doesn't have a status line or anything, so we don't write it out.
                 if (version.value >= 1.0) {
+                    sessionLogger.trace("Response status line: %s %s", version, response.getStatus().getStatusString());
+
                     // Write status.
                     writeString(version.toString(), out);
                     writeString(" ", out);
                     writeString(response.getStatus().getStatusString(), out);
                     writeString("\r\n", out);
+
+                    if (keepConnectionAlive) {
+                        // Add the keepalive headers.
+                        response.putHeader("Connection", "keep-alive");
+                        response.putHeader("Keep-Alive", "timeout=" + READ_TIMEOUT);
+                    } else {
+                        // Let the client know that we will be closing the socket.
+                        response.putHeader("Connection", "close");
+                    }
+
+                    // Write out a Date header for HTTP/1.1 requests with a non-100 status code.
+                    if ((version.value >= 1.1) && (response.getStatus().getStatusCode() >= 200)) {
+                        response.putHeader("Date", getHttpTime());
+                    }
 
                     if (!response.hasHeader("Content-Type")) {
                         response.putHeader("Content-Type", "application/octet-stream");
@@ -169,21 +202,16 @@ public class RakuraiHttpServer implements HttpServer {
                     out.close();
                 }
 
-                switch (version) {
-                    case HTTP_1_1:
-                        if ("keep-alive".equals(session.getHeader("Connection"))) {
-                            break; // Client requested the connection be kept open.
-                        }
-
-                    case HTTP_0_9:
-                    case HTTP_1_0:
-                    default:
-                        return; // Close the connection.
+                // Close the connection.
+                if (!keepConnectionAlive) {
+                    return;
                 }
-                // Subsequent requests are handled by the while block.
 
                 // Reset the logger.
                 sessionLogger = this.logger.createChild("<unknown (persistent) session> " + clientSocket.getPort());
+
+                // Subsequent requests are handled by the while block.
+                sessionLogger.debug("Keeping connection alive for subsequent requests.");
             }
         } catch (DropConnectionException ignored) {
             // Automatically handled by the finally {}.
@@ -208,7 +236,7 @@ public class RakuraiHttpServer implements HttpServer {
             try {
                 clientSocket.close();
             } catch (IOException e) {
-                sessionLogger.severe("An error occurred whilst closing a socket:\n%s", e);
+                sessionLogger.severe("An error occurred whilst closing the socket:\n%s", e);
             }
 
             sessionLogger.trace("Closed the connection.");
@@ -270,6 +298,10 @@ public class RakuraiHttpServer implements HttpServer {
 
     private static void writeString(String str, OutputStream out) throws IOException {
         out.write(str.getBytes(RHSProtocol.HEADER_CHARSET));
+    }
+
+    public static String getHttpTime() {
+        return TIME_FORMATTER.format(ZonedDateTime.now(ZoneOffset.UTC));
     }
 
     @AllArgsConstructor

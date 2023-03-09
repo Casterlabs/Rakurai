@@ -32,9 +32,9 @@ public class RHSHttpSession extends HttpSession {
 
     private @Nullable InputStream bodyIn;
 
-    @Override
-    protected void postConstruct(HttpServerBuilder config, FastLogger parentLogger) {
+    RHSHttpSession rhsPostConstruct(HttpServerBuilder config, FastLogger parentLogger) {
         super.postConstruct(config, parentLogger);
+        return this;
     }
 
     // Request headers

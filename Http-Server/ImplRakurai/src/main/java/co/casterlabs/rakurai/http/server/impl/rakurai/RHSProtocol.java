@@ -19,6 +19,7 @@ import co.casterlabs.rakurai.collections.HeaderMap;
 import co.casterlabs.rakurai.io.http.HttpStatus;
 import co.casterlabs.rakurai.io.http.HttpVersion;
 import co.casterlabs.rakurai.io.http.server.HttpSession;
+import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
 public abstract class RHSProtocol {
     public static final Charset HEADER_CHARSET = Charset.forName(System.getProperty("rakurai.http.headercharset", "ISO-8859-1"));
@@ -31,7 +32,7 @@ public abstract class RHSProtocol {
     private static final int MAX_HEADER_LENGTH =  16 /*kb*/ * 1024;
     // @formatter:on
 
-    public static HttpSession accept(RakuraiHttpServer server, Socket client, InputStream in) throws IOException, RHSHttpException {
+    public static HttpSession accept(FastLogger sessionLogger, RakuraiHttpServer server, Socket client, InputStream in) throws IOException, RHSHttpException {
         BufferedInputStream bufferedIn = new BufferedInputStream(in);
 
         // Request line
@@ -42,6 +43,8 @@ public abstract class RHSProtocol {
         String method = readMethod(requestLine, $currentLinePosition, $endOfLinePosition[0]);
         String uri = readURI(requestLine, $currentLinePosition, $endOfLinePosition[0]);
         HttpVersion version = readVersion(requestLine, $currentLinePosition, $endOfLinePosition[0]);
+
+        sessionLogger.trace("Request status line: %s", new String(requestLine, 0, $endOfLinePosition[0], HEADER_CHARSET));
 
         // Headers
         HeaderMap headers = // HTTP/0.9 doesn't have headers.
@@ -56,6 +59,7 @@ public abstract class RHSProtocol {
                     throw new RHSHttpException(HttpStatus.adapt(400, "Missing Host header"));
                 }
                 client.getOutputStream().write(HTTP_CONTINUE_LINE); // Immediately write a CONTINUE so that the client knows we're a 1.1 server.
+                sessionLogger.trace("Response status line: HTTP/1.1 100 Continue");
                 break;
 
             case HTTP_1_0: {
@@ -110,7 +114,7 @@ public abstract class RHSProtocol {
             method,
             client.getInetAddress().getHostAddress(),
             bodyInput
-        );
+        ).rhsPostConstruct(server.getConfig(), sessionLogger);
     }
 
     public static byte[] readRequestLine(BufferedInputStream in, int[] $endOfLinePosition) throws IOException, RHSHttpException {
