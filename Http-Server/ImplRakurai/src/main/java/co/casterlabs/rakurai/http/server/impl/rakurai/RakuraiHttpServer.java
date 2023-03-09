@@ -1,7 +1,7 @@
 package co.casterlabs.rakurai.http.server.impl.rakurai;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -31,7 +31,7 @@ import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
 @Getter
 public class RakuraiHttpServer implements HttpServer {
-    private static final int READ_TIMEOUT = 1;
+    private static final int READ_TIMEOUT = 10;
 
     private final FastLogger logger = new FastLogger("Rakurai RakuraiHttpServer");
 
@@ -80,7 +80,7 @@ public class RakuraiHttpServer implements HttpServer {
         HttpResponse response = null;
 
         try {
-            InputStream in = clientSocket.getInputStream();
+            BufferedInputStream in = new BufferedInputStream(clientSocket.getInputStream());
 
             // Set some SO flags.
             clientSocket.setTcpNoDelay(true);
@@ -96,6 +96,8 @@ public class RakuraiHttpServer implements HttpServer {
                     session = RHSProtocol.accept(sessionLogger, this, clientSocket, in);
                     version = session.getVersion();
                     sessionLogger = session.getLogger();
+
+                    sessionLogger.debug("Request headers: %s", session.getHeaders());
                 } catch (RHSHttpException e) {
                     sessionLogger.severe("An error occurred whilst handling a request:\n%s", e);
                     response = HttpResponse.newFixedLengthResponse(e.status);
@@ -218,12 +220,12 @@ public class RakuraiHttpServer implements HttpServer {
         } catch (IOException e) {
             String message = e.getMessage();
             if ("Read timed out".equals(message)) {
-                sessionLogger.debug("Persistent timed out, closing.");
+                sessionLogger.debug("Read timed out, closing.");
                 return;
             }
 
-            sessionLogger.trace("An error occurred whilst handling a request:\n%s", e.toString());
-        } finally {
+            sessionLogger.trace("An error occurred whilst handling a request:\n%s", e);
+        } catch (IllegalStateException e) {} finally {
             if (response != null) {
                 try {
                     response.getContent().close();

@@ -23,7 +23,7 @@ import co.casterlabs.rakurai.collections.HeaderMap;
 import co.casterlabs.rakurai.http.server.impl.rakurai.RHSHttpSession;
 import co.casterlabs.rakurai.http.server.impl.rakurai.RakuraiHttpServer;
 import co.casterlabs.rakurai.http.server.impl.rakurai.io.HttpChunkedInputStream;
-import co.casterlabs.rakurai.http.server.impl.rakurai.io.UncloseableInputStream;
+import co.casterlabs.rakurai.http.server.impl.rakurai.io.LimitedInputStream;
 import co.casterlabs.rakurai.io.http.HttpStatus;
 import co.casterlabs.rakurai.io.http.HttpVersion;
 import co.casterlabs.rakurai.io.http.server.HttpSession;
@@ -49,13 +49,11 @@ public abstract class RHSProtocol {
         return TIME_FORMATTER.format(ZonedDateTime.now(ZoneOffset.UTC));
     }
 
-    public static HttpSession accept(FastLogger sessionLogger, RakuraiHttpServer server, Socket client, InputStream in) throws IOException, RHSHttpException {
-        BufferedInputStream bufferedIn = new BufferedInputStream(in);
-
+    public static HttpSession accept(FastLogger sessionLogger, RakuraiHttpServer server, Socket client, BufferedInputStream in) throws IOException, RHSHttpException {
         // Request line
         int[] $currentLinePosition = new int[1]; // int pointer :D
         int[] $endOfLinePosition = new int[1]; // int pointer :D
-        byte[] requestLine = readRequestLine(bufferedIn, $endOfLinePosition);
+        byte[] requestLine = readRequestLine(in, $endOfLinePosition);
 
         String method = readMethod(requestLine, $currentLinePosition, $endOfLinePosition[0]);
         String uri = readURI(requestLine, $currentLinePosition, $endOfLinePosition[0]);
@@ -66,7 +64,7 @@ public abstract class RHSProtocol {
         // Headers
         HeaderMap headers = // HTTP/0.9 doesn't have headers.
             version == HttpVersion.HTTP_0_9 ? //
-                new HeaderMap.Builder().build() : readHeaders(bufferedIn);
+                new HeaderMap.Builder().build() : readHeaders(in);
 
         // HTTP/1.1 handshaking.
         if (version == HttpVersion.HTTP_1_1) {
@@ -83,15 +81,17 @@ public abstract class RHSProtocol {
             case HTTP_1_1:
                 // Look for a chunked body.
                 if ("chunked".equalsIgnoreCase(headers.getSingle("Transfer-Encoding"))) {
-                    bodyInput = new HttpChunkedInputStream(sessionLogger, bufferedIn);
+                    bodyInput = new HttpChunkedInputStream(in);
+                    sessionLogger.debug("Detected chunked body.");
                     break;
                 }
 
             case HTTP_1_0: {
                 // If there's a Content-Length header then there's a body.
-                if (headers.containsKey("Content-Length")) {
-                    // We don't want the user accidentally killing their http connections.
-                    bodyInput = new UncloseableInputStream(in);
+                String contentLength = headers.getSingle("Content-Length");
+                if (contentLength != null) {
+                    bodyInput = new LimitedInputStream(in, Long.parseLong(contentLength));
+                    sessionLogger.debug("Detected fixed-length body.");
                 }
                 break;
             }

@@ -5,11 +5,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
-import xyz.e3ndr.fastloggingframework.logging.FastLogger;
+import co.casterlabs.rakurai.http.server.impl.rakurai.protocol.RHSProtocol;
 
 public class HttpChunkedInputStream extends InputStream {
-    private FastLogger sessionLogger;
-
     private BufferedInputStream in;
     private boolean isEndOfStream = false;
     private long currentChunkSize = 0;
@@ -20,8 +18,7 @@ public class HttpChunkedInputStream extends InputStream {
     private int bufferWritePos = 0;
     private int bufferChunkSizePos = -1;
 
-    public HttpChunkedInputStream(FastLogger sessionLogger, BufferedInputStream in) {
-        this.sessionLogger = sessionLogger;
+    public HttpChunkedInputStream(BufferedInputStream in) {
         this.in = in;
     }
 
@@ -34,11 +31,15 @@ public class HttpChunkedInputStream extends InputStream {
     private synchronized void startChunkReadIfNeeded() throws IOException {
         if ((this.currentChunkSize > 0) || this.isEndOfStream) return;
 
+        // Reset.
+        this.bufferWritePos = 0;
+        this.bufferChunkSizePos = -1;
+
         while (true) {
             int readCharacter = this.in.read();
 
             if (readCharacter == -1) {
-                throw new IOException("Reached end of stream before request line was fully read.");
+                throw new IOException("Reached end of stream before chunked body was fully read.");
             }
 
             // Convert the \r character to \n, dealing with the consequences if necessary.
@@ -56,13 +57,15 @@ public class HttpChunkedInputStream extends InputStream {
             }
 
             // You can include "extensions" at the end of chunk sizes. We gotta ignore them
-            // somehow. Also ensure that we don't overwrite the chunkSizePos by accident if
-            // there's a ':' in the extension.
+            // somehow. We also need to ensure that we don't overwrite the chunkSizePos by
+            // accident if there's a ':' in the extension.
             if ((readCharacter == ';') && (this.bufferChunkSizePos == -1)) {
                 this.bufferChunkSizePos = this.bufferWritePos;
             }
 
             if (readCharacter == '\n') {
+                if (this.bufferWritePos == 0) continue; // We're not done, this is just a newline.
+
                 if (this.bufferChunkSizePos == -1) {
                     // See the above comment.
                     this.bufferChunkSizePos = this.bufferWritePos;
@@ -80,11 +83,10 @@ public class HttpChunkedInputStream extends InputStream {
         String chunkSizeInHex = new String(this.buffer, 0, this.bufferChunkSizePos, StandardCharsets.ISO_8859_1);
         this.currentChunkSize = Long.parseLong(chunkSizeInHex, 16);
 
-        this.sessionLogger.debug("Got chunk length of 0x%s (%d).", chunkSizeInHex, this.currentChunkSize);
-
         // End of stream.
         if (this.currentChunkSize == 0) {
             this.isEndOfStream = true;
+            RHSProtocol.readHeaders(this.in); // Read the footer/trailers.
         }
     }
 
@@ -117,7 +119,9 @@ public class HttpChunkedInputStream extends InputStream {
             len = (int) this.currentChunkSize;
         }
 
-        return this.in.read(b, off, len);
+        int read = this.in.read(b, off, len);
+        this.currentChunkSize -= read;
+        return read;
     }
 
     @Override
@@ -125,11 +129,14 @@ public class HttpChunkedInputStream extends InputStream {
         this.startChunkReadIfNeeded();
         if (this.isEndOfStream) return -1;
 
-        return this.in.skip(n);
+        long skipped = this.in.skip(n);
+        this.currentChunkSize -= skipped;
+        return skipped;
     }
 
     @Override
     public synchronized int available() throws IOException {
+        this.startChunkReadIfNeeded();
         if (this.isEndOfStream) return -1;
 
         int chunkSize = this.currentChunkSize > Integer.MAX_VALUE ? // Clamp.
