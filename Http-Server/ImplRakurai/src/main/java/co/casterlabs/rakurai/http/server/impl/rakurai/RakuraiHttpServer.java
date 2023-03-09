@@ -143,7 +143,7 @@ public class RakuraiHttpServer implements HttpServer {
             // Automatically handled by the finally {}.
             sessionLogger.debug("Dropping connection.");
         } catch (IOException e) {
-            sessionLogger.severe("An error occurred whilst handling a request:\n%s", e);
+            sessionLogger.trace("An error occurred whilst handling a request:\n%s", e);
         } finally {
             if (response != null) {
                 try {
