@@ -345,7 +345,8 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                     try {
                         listener.onClose(websocket);
                     } catch (Exception ignored) {}
-                    webSocketChannel.sendClose();
+
+                    IOUtil.safeClose(webSocketChannel);
                 }
 
                 @Override
