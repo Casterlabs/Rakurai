@@ -189,13 +189,13 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                 // Brotli looks to be difficult. Not going to be supported for a while.
 
                 // Order of our preference.
-                if (acceptedEncodings.contains("gzip")) {
-                    chosenEncoding = "gzip";
-                    session.getLogger().debug("Client supports GZip encoding, using that.");
-                } else if (acceptedEncodings.contains("deflate")) {
-                    chosenEncoding = "deflate";
-                    session.getLogger().debug("Client supports Deflate encoding, using that.");
-                }
+//                if (acceptedEncodings.contains("gzip")) {
+//                    chosenEncoding = "gzip";
+//                    session.getLogger().debug("Client supports GZip encoding, using that.");
+//                } else if (acceptedEncodings.contains("deflate")) {
+//                    chosenEncoding = "deflate";
+//                    session.getLogger().debug("Client supports Deflate encoding, using that.");
+//                }
             } else {
                 session.getLogger().debug("Format does not appear to be compressible, sending without encoding.");
             }
@@ -216,7 +216,7 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                 session.getLogger().debug("Using chunked response for encoded content.");
                 exchange.setResponseContentLength(-1);
 
-                exchange.getResponseHeaders().add(HttpString.tryFromString("Transfer-Encoding"), chosenEncoding);
+                exchange.getResponseHeaders().add(HttpString.tryFromString("Content-Encoding"), chosenEncoding);
                 exchange.getResponseHeaders().add(HttpString.tryFromString("Vary"), "Accept-Encoding");
 
                 switch (chosenEncoding) {
