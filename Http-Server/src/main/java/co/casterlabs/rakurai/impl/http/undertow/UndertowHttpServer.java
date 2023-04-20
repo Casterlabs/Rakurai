@@ -5,8 +5,6 @@ import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.zip.DeflaterOutputStream;
-import java.util.zip.GZIPOutputStream;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.TrustManager;
@@ -26,7 +24,6 @@ import co.casterlabs.rakurai.io.http.server.HttpListener;
 import co.casterlabs.rakurai.io.http.server.HttpServer;
 import co.casterlabs.rakurai.io.http.server.HttpServerBuilder;
 import co.casterlabs.rakurai.io.http.server.HttpServerImplementation;
-import co.casterlabs.rakurai.io.http.server.HttpServerUtil;
 import co.casterlabs.rakurai.io.http.websocket.BinaryWebsocketFrame;
 import co.casterlabs.rakurai.io.http.websocket.TextWebsocketFrame;
 import co.casterlabs.rakurai.io.http.websocket.Websocket;
@@ -181,60 +178,60 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
             ResponseContent content = response.getContent();
             OutputStream out = exchange.getOutputStream();
 
-            String chosenEncoding = null;
+//            String chosenEncoding = null;
 
-            if (HttpServerUtil.shouldCompress(response.getAllHeaders().get("Content-Type"))) {
-                List<String> acceptedEncodings = HttpServerUtil.getAcceptedEncodings(session);
+//            if (HttpServerUtil.shouldCompress(response.getAllHeaders().get("Content-Type"))) {
+//                List<String> acceptedEncodings = HttpServerUtil.getAcceptedEncodings(session);
+//
+//                // Brotli looks to be difficult. Not going to be supported for a while.
+//
+//                // Order of our preference.
+//                if (acceptedEncodings.contains("gzip")) {
+//                    chosenEncoding = "gzip";
+//                    session.getLogger().debug("Client supports GZip encoding, using that.");
+//                } else if (acceptedEncodings.contains("deflate")) {
+//                    chosenEncoding = "deflate";
+//                    session.getLogger().debug("Client supports Deflate encoding, using that.");
+//                }
+//            } else {
+//                session.getLogger().debug("Format does not appear to be compressible, sending without encoding.");
+//            }
 
-                // Brotli looks to be difficult. Not going to be supported for a while.
-
-                // Order of our preference.
-                if (acceptedEncodings.contains("gzip")) {
-                    chosenEncoding = "gzip";
-                    session.getLogger().debug("Client supports GZip encoding, using that.");
-                } else if (acceptedEncodings.contains("deflate")) {
-                    chosenEncoding = "deflate";
-                    session.getLogger().debug("Client supports Deflate encoding, using that.");
-                }
+//            if (chosenEncoding == null) {
+            // If it's a fixed-length response we want to add that info.
+            long length = content.getLength();
+            if (length >= 0) {
+                session.getLogger().debug("Using fixed-length response. (len=%,d)", length);
+                exchange.setResponseContentLength(length);
             } else {
-                session.getLogger().debug("Format does not appear to be compressible, sending without encoding.");
-            }
-
-            if (chosenEncoding == null) {
-                // If it's a fixed-length response we want to add that info.
-                long length = content.getLength();
-                if (length >= 0) {
-                    session.getLogger().debug("Using fixed-length response. (len=%,d)", length);
-                    exchange.setResponseContentLength(length);
-                } else {
-                    session.getLogger().debug("Using chunked response.");
-                    exchange.setResponseContentLength(-1);
-                }
-
-                content.write(out);
-            } else {
-                session.getLogger().debug("Using chunked response for encoded content.");
+                session.getLogger().debug("Using chunked response.");
                 exchange.setResponseContentLength(-1);
-
-                exchange.getResponseHeaders().add(HttpString.tryFromString("Content-Encoding"), chosenEncoding);
-                exchange.getResponseHeaders().add(HttpString.tryFromString("Vary"), "Accept-Encoding");
-
-                switch (chosenEncoding) {
-                    case "gzip": {
-                        GZIPOutputStream enc = new GZIPOutputStream(out);
-                        content.write(enc);
-                        enc.finish(); // Do not close.
-                        break;
-                    }
-
-                    case "deflate": {
-                        DeflaterOutputStream enc = new DeflaterOutputStream(out);
-                        content.write(enc);
-                        enc.finish(); // Do not close.
-                        break;
-                    }
-                }
             }
+
+            content.write(out);
+//            } else {
+//                session.getLogger().debug("Using chunked response for encoded content.");
+//                exchange.setResponseContentLength(-1);
+//
+//                exchange.getResponseHeaders().add(HttpString.tryFromString("Content-Encoding"), chosenEncoding);
+//                exchange.getResponseHeaders().add(HttpString.tryFromString("Vary"), "Accept-Encoding");
+//
+//                switch (chosenEncoding) {
+//                    case "gzip": {
+//                        GZIPOutputStream enc = new GZIPOutputStream(out);
+//                        content.write(enc);
+//                        enc.finish(); // Do not close.
+//                        break;
+//                    }
+//
+//                    case "deflate": {
+//                        DeflaterOutputStream enc = new DeflaterOutputStream(out);
+//                        content.write(enc);
+//                        enc.finish(); // Do not close.
+//                        break;
+//                    }
+//                }
+//            }
 
             long time = System.currentTimeMillis() - start;
             this.logger.debug("Successfully served request in %,dms.", time);
