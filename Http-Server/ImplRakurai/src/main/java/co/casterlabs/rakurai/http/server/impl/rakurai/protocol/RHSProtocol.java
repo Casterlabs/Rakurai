@@ -66,20 +66,21 @@ public abstract class RHSProtocol {
             version == HttpVersion.HTTP_0_9 ? //
                 new HeaderMap.Builder().build() : readHeaders(in);
 
-        // HTTP/1.1 handshaking.
-        if (version == HttpVersion.HTTP_1_1) {
-            if (!headers.containsKey("Host")) {
-                throw new RHSHttpException(HttpStatus.adapt(400, "Missing Host header"));
-            }
-            client.getOutputStream().write(HTTP_CONTINUE_LINE); // Immediately write a CONTINUE so that the client knows we're a 1.1 server.
-            sessionLogger.trace("Response status line: HTTP/1.1 100 Continue");
-        }
-
         // Retrieve the body, if any.
         InputStream bodyInput = null;
         switch (version) {
             case HTTP_1_1:
-                // Look for a chunked body.
+                // HTTP/1.1 handshaking header check.
+                if (!headers.containsKey("Host")) {
+                    throw new RHSHttpException(HttpStatus.adapt(400, "Missing Host header"));
+                }
+
+                // Immediately write a CONTINUE so that the client knows we're a 1.1 server.
+                client.getOutputStream().write(HTTP_CONTINUE_LINE);
+                sessionLogger.trace("Response status line: HTTP/1.1 100 Continue");
+
+                // Look for a chunked body, otherwise fall through to normal fixed-length
+                // behavior (1.0).
                 if ("chunked".equalsIgnoreCase(headers.getSingle("Transfer-Encoding"))) {
                     bodyInput = new HttpChunkedInputStream(in);
                     sessionLogger.debug("Detected chunked body.");
