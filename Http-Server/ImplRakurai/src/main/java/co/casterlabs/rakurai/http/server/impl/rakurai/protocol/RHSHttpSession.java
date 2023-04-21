@@ -1,4 +1,4 @@
-package co.casterlabs.rakurai.http.server.impl.rakurai;
+package co.casterlabs.rakurai.http.server.impl.rakurai.protocol;
 
 import java.io.IOException;
 import java.io.InputStream;

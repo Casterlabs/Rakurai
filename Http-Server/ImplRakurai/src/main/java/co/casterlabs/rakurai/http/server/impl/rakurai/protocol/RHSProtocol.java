@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import co.casterlabs.rakurai.collections.HeaderMap;
-import co.casterlabs.rakurai.http.server.impl.rakurai.RHSHttpSession;
 import co.casterlabs.rakurai.http.server.impl.rakurai.RakuraiHttpServer;
 import co.casterlabs.rakurai.http.server.impl.rakurai.io.HttpChunkedInputStream;
 import co.casterlabs.rakurai.http.server.impl.rakurai.io.HttpChunkedOutputStream;

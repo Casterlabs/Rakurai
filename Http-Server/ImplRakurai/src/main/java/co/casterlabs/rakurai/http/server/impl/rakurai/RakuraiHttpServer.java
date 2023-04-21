@@ -14,9 +14,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import co.casterlabs.rakurai.http.server.impl.rakurai.protocol.RHSHttpException;
+import co.casterlabs.rakurai.http.server.impl.rakurai.protocol.RHSHttpSession;
 import co.casterlabs.rakurai.http.server.impl.rakurai.protocol.RHSProtocol;
+import co.casterlabs.rakurai.http.server.impl.rakurai.protocol.websocket.RHSWebsocket;
 import co.casterlabs.rakurai.http.server.impl.rakurai.protocol.websocket.RHSWebsocketProtocol;
 import co.casterlabs.rakurai.io.IOUtil;
 import co.casterlabs.rakurai.io.http.HttpVersion;
@@ -26,7 +29,6 @@ import co.casterlabs.rakurai.io.http.server.HttpResponse;
 import co.casterlabs.rakurai.io.http.server.HttpServer;
 import co.casterlabs.rakurai.io.http.server.config.HttpServerBuilder;
 import co.casterlabs.rakurai.io.http.server.config.HttpServerImplementation;
-import co.casterlabs.rakurai.io.http.server.websocket.Websocket;
 import co.casterlabs.rakurai.io.http.server.websocket.WebsocketListener;
 import lombok.Getter;
 import xyz.e3ndr.fastloggingframework.logging.FastLogger;
@@ -83,7 +85,7 @@ public class RakuraiHttpServer implements HttpServer {
 
         HttpResponse httpResponse = null;
         WebsocketListener websocketListener = null;
-        Websocket websocket = null;
+        RHSWebsocket websocket = null;
 
         try {
             BufferedInputStream in = new BufferedInputStream(clientSocket.getInputStream());
@@ -248,8 +250,26 @@ public class RakuraiHttpServer implements HttpServer {
                         // Write the separation line.
                         RHSProtocol.writeString("\r\n", out);
 
-                        sessionLogger.debug("WebSocket upgrade complete, handling request.");
-                        RHSWebsocketProtocol.handleWebsocketRequest(clientSocket, session, this.listener);
+                        sessionLogger.debug("WebSocket upgrade complete, handling frames.");
+
+                        websocket = new RHSWebsocket(session, out, clientSocket);
+                        websocketListener.onOpen(websocket);
+
+                        // Ping/pong mechanism.
+                        final RHSWebsocket $websocket_pointer = websocket;
+                        Thread kaThread = new Thread(() -> {
+                            while (!clientSocket.isClosed()) {
+                                RHSWebsocketProtocol.doPing($websocket_pointer);
+                                try {
+                                    TimeUnit.MINUTES.sleep(1);
+                                } catch (InterruptedException ignored) {}
+                            }
+                        });
+                        kaThread.setName("RHS Keep Alive Thread - " + session.getRequestId());
+                        kaThread.setDaemon(true);
+                        kaThread.start();
+
+                        RHSWebsocketProtocol.handleWebsocketRequest(clientSocket, session, websocket, websocketListener);
                         Thread.sleep(15000);
                         return; // Close the connection when we're done.
                     }
