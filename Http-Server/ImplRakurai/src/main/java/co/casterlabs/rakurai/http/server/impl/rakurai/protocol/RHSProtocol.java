@@ -48,7 +48,7 @@ public abstract class RHSProtocol {
     /* Request/Input    */
     /* ---------------- */
 
-    public static HttpSession accept(FastLogger sessionLogger, RakuraiHttpServer server, Socket client, BufferedInputStream in) throws IOException, RHSHttpException {
+    public static RHSHttpSession accept(FastLogger sessionLogger, RakuraiHttpServer server, Socket client, BufferedInputStream in) throws IOException, RHSHttpException {
         // Request line
         int[] $currentLinePosition = new int[1]; // int pointer :D
         int[] $endOfLinePosition = new int[1]; // int pointer :D
@@ -355,7 +355,7 @@ public abstract class RHSProtocol {
     /* Response/Output  */
     /* ---------------- */
 
-    public static void writeOutResponse(RakuraiHttpServer server, Socket client, HttpSession session, boolean keepConnectionAlive, HttpResponse response) throws IOException {
+    public static void writeOutResponse(Socket client, HttpSession session, boolean keepConnectionAlive, HttpResponse response) throws IOException {
         OutputStream out = client.getOutputStream();
 
         if (session.getVersion() == HttpVersion.HTTP_1_1) {

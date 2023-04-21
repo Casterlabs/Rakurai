@@ -10,28 +10,48 @@ import co.casterlabs.rakurai.io.http.server.HttpSession;
 
 public abstract class WebsocketSession extends HttpSession {
 
+    /**
+     * @deprecated Websockets do not support this.
+     */
+    @Deprecated
     @Override
-    public final boolean hasBody() {
+    public boolean hasBody() {
         return false;
     }
 
+    /**
+     * @deprecated Websockets do not support this.
+     */
+    @Deprecated
     @Override
-    public final @Nullable byte[] getRequestBodyBytes() throws IOException {
+    public @Nullable byte[] getRequestBodyBytes() throws IOException {
         throw new UnsupportedOperationException();
     }
 
+    /**
+     * @deprecated Websockets do not support this.
+     */
+    @Deprecated
     @Override
     public InputStream getRequestBodyStream() throws IOException {
         throw new UnsupportedOperationException();
     }
 
+    /**
+     * @deprecated Websockets do not support this.
+     */
+    @Deprecated
     @Override
-    public final Map<String, String> parseFormBody() throws IOException {
+    public Map<String, String> parseFormBody() throws IOException {
         throw new UnsupportedOperationException();
     }
 
+    /**
+     * @deprecated Websockets do not support this.
+     */
+    @Deprecated
     @Override
-    public final String getRawMethod() {
+    public String getRawMethod() {
         return "GET";
     }
 

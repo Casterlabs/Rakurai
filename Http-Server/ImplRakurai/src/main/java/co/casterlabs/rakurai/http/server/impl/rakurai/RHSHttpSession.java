@@ -9,14 +9,14 @@ import org.jetbrains.annotations.Nullable;
 
 import co.casterlabs.rakurai.collections.HeaderMap;
 import co.casterlabs.rakurai.io.http.HttpVersion;
-import co.casterlabs.rakurai.io.http.server.HttpSession;
 import co.casterlabs.rakurai.io.http.server.config.HttpServerBuilder;
+import co.casterlabs.rakurai.io.http.server.websocket.WebsocketSession;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
 @AllArgsConstructor
-public class RHSHttpSession extends HttpSession {
+public class RHSHttpSession extends WebsocketSession {
     private @NonNull HeaderMap headers;
 
     private @NonNull String uri;
@@ -99,7 +99,7 @@ public class RHSHttpSession extends HttpSession {
     }
 
     @Override
-    protected String getNetworkIpAddress() {
+    public String getNetworkIpAddress() {
         return this.remoteAddress;
     }
 

@@ -2,10 +2,14 @@ package co.casterlabs.rakurai.http.server.impl.rakurai;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -13,21 +17,25 @@ import java.util.concurrent.Executors;
 
 import co.casterlabs.rakurai.http.server.impl.rakurai.protocol.RHSHttpException;
 import co.casterlabs.rakurai.http.server.impl.rakurai.protocol.RHSProtocol;
+import co.casterlabs.rakurai.http.server.impl.rakurai.protocol.websocket.RHSWebsocketProtocol;
 import co.casterlabs.rakurai.io.IOUtil;
 import co.casterlabs.rakurai.io.http.HttpVersion;
 import co.casterlabs.rakurai.io.http.server.DropConnectionException;
 import co.casterlabs.rakurai.io.http.server.HttpListener;
 import co.casterlabs.rakurai.io.http.server.HttpResponse;
 import co.casterlabs.rakurai.io.http.server.HttpServer;
-import co.casterlabs.rakurai.io.http.server.HttpSession;
 import co.casterlabs.rakurai.io.http.server.config.HttpServerBuilder;
 import co.casterlabs.rakurai.io.http.server.config.HttpServerImplementation;
+import co.casterlabs.rakurai.io.http.server.websocket.Websocket;
+import co.casterlabs.rakurai.io.http.server.websocket.WebsocketListener;
 import lombok.Getter;
 import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
 @Getter
 public class RakuraiHttpServer implements HttpServer {
     public static final int READ_TIMEOUT = 10;
+
+    private static final byte[] HTTP_1_1_UPGRADE_REJECT = "HTTP/1.1 400 Bad Request\r\n\r\n".getBytes(RHSProtocol.HEADER_CHARSET);
 
     private final FastLogger logger = new FastLogger("Rakurai RakuraiHttpServer");
 
@@ -73,7 +81,9 @@ public class RakuraiHttpServer implements HttpServer {
         FastLogger sessionLogger = this.logger.createChild("<unknown session> " + clientSocket.getPort());
         sessionLogger.debug("Handling request...");
 
-        HttpResponse response = null;
+        HttpResponse httpResponse = null;
+        WebsocketListener websocketListener = null;
+        Websocket websocket = null;
 
         try {
             BufferedInputStream in = new BufferedInputStream(clientSocket.getInputStream());
@@ -83,7 +93,11 @@ public class RakuraiHttpServer implements HttpServer {
             clientSocket.setSoTimeout(READ_TIMEOUT * 1000); // This will automatically close persistent HTTP/1.1 requests.
 
             while (true) {
-                HttpSession session = null;
+                httpResponse = null;
+                websocketListener = null;
+                websocket = null;
+
+                RHSHttpSession session = null;
                 HttpVersion version = HttpVersion.HTTP_1_0; // Our default.
                 // Note that we don't support 2.0 or 3.0, confirm this in RHSProtocol.
 
@@ -96,7 +110,7 @@ public class RakuraiHttpServer implements HttpServer {
                     sessionLogger.debug("Request headers: %s", session.getHeaders());
                 } catch (RHSHttpException e) {
                     sessionLogger.severe("An error occurred whilst handling a request:\n%s", e);
-                    response = HttpResponse.newFixedLengthResponse(e.status);
+                    httpResponse = HttpResponse.newFixedLengthResponse(e.status);
                 }
 
                 sessionLogger.debug("Using version: %s", version);
@@ -110,9 +124,18 @@ public class RakuraiHttpServer implements HttpServer {
 
                         if ("upgrade".equalsIgnoreCase(connection)) {
                             String upgradeTo = session.getHeader("Upgrade");
+                            if (upgradeTo == null) upgradeTo = "";
 
-                            if ("websocket".equalsIgnoreCase(upgradeTo)) {
-                                protocol = "websocket";
+                            switch (upgradeTo.toLowerCase()) {
+                                case "websocket": {
+                                    protocol = "websocket";
+                                    break;
+                                }
+
+                                default: {
+                                    clientSocket.getOutputStream().write(HTTP_1_1_UPGRADE_REJECT);
+                                    return;
+                                }
                             }
                         } else if ("keep-alive".equalsIgnoreCase(connection)) {
                             keepConnectionAlive = true;
@@ -131,12 +154,12 @@ public class RakuraiHttpServer implements HttpServer {
                         // We have a valid session, try to serve it.
                         // Note that response will always be null at this location IF session isn't.
                         if (session != null) {
-                            response = this.listener.serveSession(session.getHost(), session, this.isSecure);
+                            httpResponse = this.listener.serveSession(session.getHost(), session, this.isSecure);
                         }
 
-                        if (response == null) throw new DropConnectionException();
+                        if (httpResponse == null) throw new DropConnectionException();
 
-                        RHSProtocol.writeOutResponse(this, clientSocket, session, keepConnectionAlive, response);
+                        RHSProtocol.writeOutResponse(clientSocket, session, keepConnectionAlive, httpResponse);
 
                         // Close the connection.
                         if (!keepConnectionAlive) {
@@ -151,12 +174,89 @@ public class RakuraiHttpServer implements HttpServer {
                     }
 
                     case "websocket": {
-                        throw new DropConnectionException(); // TODO
+                        sessionLogger.debug("Handling websocket request...");
+
+                        if (session != null) {
+                            websocketListener = this.listener.serveWebsocketSession(session.getHost(), session, this.isSecure);
+                        }
+
+                        if (websocketListener == null) throw new DropConnectionException();
+
+                        OutputStream out = clientSocket.getOutputStream();
+
+                        {
+                            String wsVersion = session.getHeader("Sec-WebSocket-Version");
+                            if (wsVersion == null) wsVersion = "";
+
+                            switch (wsVersion) {
+                                // Supported.
+                                case "13":
+                                    break;
+
+                                // Not supported.
+                                default: {
+                                    sessionLogger.debug("Rejected websocket version: %s", wsVersion);
+                                    RHSProtocol.writeString("HTTP/1.1 426 Upgrade Required\r\n", out);
+                                    RHSProtocol.writeString("Sec-WebSocket-Version: 13\r\n", out);
+                                    RHSProtocol.writeString("\r\n", out);
+                                    return;
+                                }
+                            }
+
+                            sessionLogger.debug("Accepted websocket version: %s", wsVersion);
+                        }
+
+                        // Upgrade the connection.
+                        RHSProtocol.writeString("HTTP/1.1 101 Switching Protocols\r\n", out);
+                        sessionLogger.trace("Response status line: HTTP/1.1 101 Switching Protocols");
+
+                        RHSProtocol.writeString("Connection: Upgrade\r\n", out);
+                        RHSProtocol.writeString("Upgrade: websocket\r\n", out);
+
+                        // Generate the key and send it out.
+                        {
+                            String clientKey = session.getHeader("Sec-WebSocket-Key");
+
+                            if (clientKey != null) {
+                                MessageDigest hash = MessageDigest.getInstance("SHA-1");
+                                hash.reset();
+                                hash.update(
+                                    clientKey
+                                        .concat("258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
+                                        .getBytes(StandardCharsets.UTF_8)
+                                );
+
+                                String acceptKey = Base64.getEncoder().encodeToString(hash.digest());
+                                RHSProtocol.writeString("Sec-WebSocket-Accept: ", out);
+                                RHSProtocol.writeString(acceptKey, out);
+                                RHSProtocol.writeString("\r\n", out);
+                            }
+                        }
+
+                        {
+                            // Select the first WS protocol, if any are requested.
+                            String wsProtocol = session.getHeader("Sec-WebSocket-Protocol");
+                            if (wsProtocol != null) {
+                                String first = wsProtocol.split(",")[0].trim();
+
+                                RHSProtocol.writeString("Sec-WebSocket-Protocol: ", out);
+                                RHSProtocol.writeString(first, out);
+                                RHSProtocol.writeString("\r\n", out);
+                            }
+                        }
+
+                        // Write the separation line.
+                        RHSProtocol.writeString("\r\n", out);
+
+                        sessionLogger.debug("WebSocket upgrade complete, handling request.");
+                        RHSWebsocketProtocol.handleWebsocketRequest(clientSocket, session, this.listener);
+                        Thread.sleep(15000);
+                        return; // Close the connection when we're done.
                     }
                 }
             }
+
         } catch (DropConnectionException ignored) {
-            // Automatically handled by the finally {}.
             sessionLogger.debug("Dropping connection.");
         } catch (IOException e) {
             String message = e.getMessage();
@@ -166,12 +266,22 @@ public class RakuraiHttpServer implements HttpServer {
             }
 
             sessionLogger.trace("An error occurred whilst handling a request:\n%s", e);
-        } catch (IllegalStateException e) {} finally {
-            if (response != null) {
+        } catch (Exception e) {
+            sessionLogger.fatal("A fatal error occurred whilst handling a request:\n%s", e);
+        } finally {
+            if (httpResponse != null) {
                 try {
-                    response.getContent().close();
-                } catch (IOException e) {
+                    httpResponse.getContent().close();
+                } catch (Exception e) {
                     sessionLogger.severe("An error occurred whilst response content:\n%s", e);
+                }
+            }
+
+            if (websocketListener != null) {
+                try {
+                    websocketListener.onClose(websocket);
+                } catch (Exception e) {
+                    sessionLogger.severe("An error occurred whilst response listener:\n%s", e);
                 }
             }
 
