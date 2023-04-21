@@ -14,7 +14,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 import co.casterlabs.rakurai.http.server.impl.rakurai.protocol.RHSHttpException;
 import co.casterlabs.rakurai.http.server.impl.rakurai.protocol.RHSHttpSession;
@@ -256,12 +255,14 @@ public class RakuraiHttpServer implements HttpServer {
                         websocketListener.onOpen(websocket);
 
                         // Ping/pong mechanism.
+                        clientSocket.setSoTimeout((int) (RHSWebsocketProtocol.READ_TIMEOUT * 4)); // Timeouts should work differently for WS.
+
                         final RHSWebsocket $websocket_pointer = websocket;
                         Thread kaThread = new Thread(() -> {
                             while (!clientSocket.isClosed()) {
                                 RHSWebsocketProtocol.doPing($websocket_pointer);
                                 try {
-                                    TimeUnit.MINUTES.sleep(1);
+                                    Thread.sleep(RHSWebsocketProtocol.READ_TIMEOUT);
                                 } catch (InterruptedException ignored) {}
                             }
                         });
