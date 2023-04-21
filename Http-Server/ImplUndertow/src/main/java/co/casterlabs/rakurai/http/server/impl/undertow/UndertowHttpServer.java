@@ -21,16 +21,13 @@ import co.casterlabs.rakurai.io.http.server.Debugging;
 import co.casterlabs.rakurai.io.http.server.DropConnectionException;
 import co.casterlabs.rakurai.io.http.server.HttpListener;
 import co.casterlabs.rakurai.io.http.server.HttpResponse;
+import co.casterlabs.rakurai.io.http.server.HttpResponse.ResponseContent;
 import co.casterlabs.rakurai.io.http.server.HttpServer;
 import co.casterlabs.rakurai.io.http.server.HttpServerUtil;
 import co.casterlabs.rakurai.io.http.server.HttpSession;
-import co.casterlabs.rakurai.io.http.server.HttpResponse.ResponseContent;
 import co.casterlabs.rakurai.io.http.server.config.HttpServerBuilder;
 import co.casterlabs.rakurai.io.http.server.config.HttpServerImplementation;
-import co.casterlabs.rakurai.io.http.server.websocket.BinaryWebsocketFrame;
-import co.casterlabs.rakurai.io.http.server.websocket.TextWebsocketFrame;
 import co.casterlabs.rakurai.io.http.server.websocket.Websocket;
-import co.casterlabs.rakurai.io.http.server.websocket.WebsocketFrame;
 import co.casterlabs.rakurai.io.http.server.websocket.WebsocketListener;
 import co.casterlabs.rakurai.io.http.server.websocket.WebsocketSession;
 import io.undertow.Undertow;
@@ -308,14 +305,7 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
             channel.getReceiveSetter().set(new AbstractReceiveListener() {
                 @Override
                 protected void onFullTextMessage(WebSocketChannel channel, BufferedTextMessage message) {
-                    WebsocketFrame frame = new TextWebsocketFrame(message.getData());
-
-                    if (logWebsocketFrames) {
-                        session.getLogger().trace("WebsocketFrame (%s):\n%s", websocket.getSession().getRemoteIpAddress(), frame);
-                    }
-
-                    listener.onFrame(websocket, frame);
-
+                    listener.onText(websocket, message.getData());
                 }
 
                 @Override
@@ -324,13 +314,8 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                         byte[] bytes = WebSockets
                             .mergeBuffers(message.getData().getResource())
                             .array();
-                        WebsocketFrame frame = new BinaryWebsocketFrame(bytes);
 
-                        if (logWebsocketFrames) {
-                            session.getLogger().trace("WebsocketFrame (%s):\n%s", websocket.getSession().getRemoteIpAddress(), frame);
-                        }
-
-                        listener.onFrame(websocket, frame);
+                        listener.onBinary(websocket, bytes);
                     } finally {
                         // Always free the buffer no matter what.
                         message.getData().close();

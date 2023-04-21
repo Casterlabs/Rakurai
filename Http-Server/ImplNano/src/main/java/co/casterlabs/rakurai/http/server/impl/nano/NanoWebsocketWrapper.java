@@ -3,10 +3,7 @@ package co.casterlabs.rakurai.http.server.impl.nano;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
-import co.casterlabs.rakurai.io.http.server.websocket.BinaryWebsocketFrame;
-import co.casterlabs.rakurai.io.http.server.websocket.TextWebsocketFrame;
 import co.casterlabs.rakurai.io.http.server.websocket.Websocket;
-import co.casterlabs.rakurai.io.http.server.websocket.WebsocketFrame;
 import co.casterlabs.rakurai.io.http.server.websocket.WebsocketListener;
 import co.casterlabs.rakurai.io.http.server.websocket.WebsocketSession;
 import fi.iki.elonen.NanoHTTPD.IHTTPSession;
@@ -54,15 +51,11 @@ public class NanoWebsocketWrapper extends WebSocket {
 
     @Override
     protected void onMessage(WebSocketFrame frame) {
-        WebsocketFrame rakFrame = null;
-
         if (frame.getOpCode() == OpCode.Binary) {
-            rakFrame = new BinaryWebsocketFrame(frame.getBinaryPayload());
+            this.listener.onBinary(rakWebsocket, frame.getBinaryPayload());
         } else if (frame.getOpCode() == OpCode.Text) {
-            rakFrame = new TextWebsocketFrame(frame.getTextPayload());
+            this.listener.onText(rakWebsocket, frame.getTextPayload());
         }
-
-        this.listener.onFrame(this.rakWebsocket, rakFrame);
     }
 
     @Override
