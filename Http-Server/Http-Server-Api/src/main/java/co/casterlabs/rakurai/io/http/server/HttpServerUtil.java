@@ -53,33 +53,35 @@ public class HttpServerUtil {
     }
 
     public static String pickEncoding(HttpSession session, HttpResponse response) {
-        if (session.getVersion().value <= 1.0) {
-            return null;
-        }
+        return null;
 
-        if (!shouldCompress(response.getAllHeaders().get("Content-Type"))) {
-            session.getLogger().debug("Format does not appear to be compressible, sending without encoding.");
-        }
-
-        List<String> acceptedEncodings = getAcceptedEncodings(session);
-        String chosenEncoding = null;
-
-        // Order of our preference.
-        if (acceptedEncodings.contains("gzip")) {
-            chosenEncoding = "gzip";
-            session.getLogger().debug("Client supports GZip encoding, using that.");
-        } else if (acceptedEncodings.contains("deflate")) {
-            chosenEncoding = "deflate";
-            session.getLogger().debug("Client supports Deflate encoding, using that.");
-        }
-        // Brotli looks to be difficult. Not going to be supported for a while.
-
-        if (chosenEncoding != null) {
-            response.putHeader("Content-Encoding", chosenEncoding);
-            response.putHeader("Vary", "Accept-Encoding");
-        }
-
-        return chosenEncoding;
+//        if (session.getVersion().value <= 1.0) {
+//            return null;
+//        }
+//
+//        if (!shouldCompress(response.getAllHeaders().get("Content-Type"))) {
+//            session.getLogger().debug("Format does not appear to be compressible, sending without encoding.");
+//        }
+//
+//        List<String> acceptedEncodings = getAcceptedEncodings(session);
+//        String chosenEncoding = null;
+//
+//        // Order of our preference.
+//        if (acceptedEncodings.contains("gzip")) {
+//            chosenEncoding = "gzip";
+//            session.getLogger().debug("Client supports GZip encoding, using that.");
+//        } else if (acceptedEncodings.contains("deflate")) {
+//            chosenEncoding = "deflate";
+//            session.getLogger().debug("Client supports Deflate encoding, using that.");
+//        }
+//        // Brotli looks to be difficult. Not going to be supported for a while.
+//
+//        if (chosenEncoding != null) {
+//            response.putHeader("Content-Encoding", chosenEncoding);
+//            response.putHeader("Vary", "Accept-Encoding");
+//        }
+//
+//        return chosenEncoding;
     }
 
     public static void writeWithEncoding(@Nullable String encoding, OutputStream out, ResponseContent content) throws IOException {
