@@ -5,7 +5,6 @@ import java.nio.ByteBuffer;
 
 import co.casterlabs.rakurai.StringUtil;
 import co.casterlabs.rakurai.io.http.server.websocket.Websocket;
-import co.casterlabs.rakurai.io.http.server.websocket.WebsocketCloseCode;
 import co.casterlabs.rakurai.io.http.server.websocket.WebsocketSession;
 import io.undertow.websockets.core.WebSocketChannel;
 import io.undertow.websockets.core.WebSockets;
@@ -38,7 +37,7 @@ public class UndertowWebsocketChannelWrapper extends Websocket {
     }
 
     @Override
-    public void close(@NonNull WebsocketCloseCode code) throws IOException {
+    public void close() throws IOException {
         try {
             this.channel.sendClose();
         } catch (IOException e) {}

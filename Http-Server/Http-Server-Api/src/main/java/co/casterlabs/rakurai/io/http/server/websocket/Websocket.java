@@ -38,6 +38,6 @@ public abstract class Websocket {
     /**
      * Closes the connection.
      */
-    public abstract void close(@NonNull WebsocketCloseCode code) throws IOException;
+    public abstract void close() throws IOException;
 
 }

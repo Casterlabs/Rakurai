@@ -2,9 +2,6 @@ package co.casterlabs.rakurai.http.server.impl.rakurai.protocol.websocket.versio
 
 import java.io.IOException;
 
-import co.casterlabs.rakurai.io.http.server.websocket.WebsocketCloseCode;
-import lombok.NonNull;
-
 public interface WebsocketProtocol {
 
     /**
@@ -17,6 +14,6 @@ public interface WebsocketProtocol {
      */
     public void sendFrame(boolean fin, int opcode, long payloadLen, byte[] data) throws IOException;
 
-    public void close(@NonNull WebsocketCloseCode code) throws IOException;
+    public void close() throws IOException;
 
 }

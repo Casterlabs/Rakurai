@@ -5,9 +5,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 import co.casterlabs.rakurai.io.IOUtil;
-import co.casterlabs.rakurai.io.http.server.websocket.WebsocketCloseCode;
 import lombok.AllArgsConstructor;
-import lombok.NonNull;
 
 @AllArgsConstructor
 public class WebsocketProtocol13 implements WebsocketProtocol {
@@ -26,7 +24,7 @@ public class WebsocketProtocol13 implements WebsocketProtocol {
     }
 
     @Override
-    public void close(@NonNull WebsocketCloseCode code) throws IOException {
+    public void close() throws IOException {
         this.sendFrame(true, 8, 0, new byte[0]);
         IOUtil.safeClose(this.in, this.out);
     }

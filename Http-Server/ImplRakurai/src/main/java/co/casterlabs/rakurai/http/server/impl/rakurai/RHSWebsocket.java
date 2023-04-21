@@ -6,7 +6,6 @@ import java.nio.charset.StandardCharsets;
 import co.casterlabs.rakurai.http.server.impl.rakurai.protocol.websocket.RHSWebsocketProtocol;
 import co.casterlabs.rakurai.http.server.impl.rakurai.protocol.websocket.version.WebsocketProtocol;
 import co.casterlabs.rakurai.io.http.server.websocket.Websocket;
-import co.casterlabs.rakurai.io.http.server.websocket.WebsocketCloseCode;
 import co.casterlabs.rakurai.io.http.server.websocket.WebsocketSession;
 import lombok.NonNull;
 
@@ -57,8 +56,8 @@ public class RHSWebsocket extends Websocket {
     }
 
     @Override
-    public void close(@NonNull WebsocketCloseCode code) throws IOException {
-        this.protocol.close(code);
+    public void close() throws IOException {
+        this.protocol.close();
     }
 
 }

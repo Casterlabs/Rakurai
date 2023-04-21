@@ -6,7 +6,6 @@ import java.util.concurrent.TimeUnit;
 import co.casterlabs.rakurai.io.http.server.websocket.BinaryWebsocketFrame;
 import co.casterlabs.rakurai.io.http.server.websocket.TextWebsocketFrame;
 import co.casterlabs.rakurai.io.http.server.websocket.Websocket;
-import co.casterlabs.rakurai.io.http.server.websocket.WebsocketCloseCode;
 import co.casterlabs.rakurai.io.http.server.websocket.WebsocketFrame;
 import co.casterlabs.rakurai.io.http.server.websocket.WebsocketListener;
 import co.casterlabs.rakurai.io.http.server.websocket.WebsocketSession;
@@ -89,9 +88,9 @@ public class NanoWebsocketWrapper extends WebSocket {
         }
 
         @Override
-        public void close(@NonNull WebsocketCloseCode code) throws IOException {
+        public void close() throws IOException {
             try {
-                instance.close(CloseCode.find(code.getCode()), "", false);
+                instance.close(CloseCode.NormalClosure, "", false);
             } catch (Exception ignored) {}
         }
 
