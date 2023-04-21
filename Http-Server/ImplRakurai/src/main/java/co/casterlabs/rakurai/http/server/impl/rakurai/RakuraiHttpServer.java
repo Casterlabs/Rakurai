@@ -89,9 +89,8 @@ public class RakuraiHttpServer implements HttpServer {
         try {
             BufferedInputStream in = new BufferedInputStream(clientSocket.getInputStream());
 
-            // Set some SO flags.
             clientSocket.setTcpNoDelay(true);
-            clientSocket.setSoTimeout(READ_TIMEOUT * 1000); // This will automatically close persistent HTTP/1.1 requests.
+            clientSocket.setSoTimeout(60 * 1000); // 1m timeout for initial request.
 
             while (true) {
                 httpResponse = null;
@@ -150,6 +149,8 @@ public class RakuraiHttpServer implements HttpServer {
                         break;
                 }
 
+                clientSocket.setSoTimeout(0); // Disable the timeout while we handle the request.
+
                 switch (protocol) {
                     case "http": {
                         // We have a valid session, try to serve it.
@@ -171,6 +172,7 @@ public class RakuraiHttpServer implements HttpServer {
                         // handle subsequent requests.
                         sessionLogger = this.logger.createChild("<unknown (persistent) session> " + clientSocket.getPort());
                         sessionLogger.debug("Keeping connection alive for subsequent requests.");
+                        clientSocket.setSoTimeout(READ_TIMEOUT * 1000); // This will automatically close persistent HTTP/1.1 requests.
                         break;
                     }
 
