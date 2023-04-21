@@ -23,9 +23,12 @@ import co.casterlabs.rakurai.collections.HeaderMap;
 import co.casterlabs.rakurai.http.server.impl.rakurai.RHSHttpSession;
 import co.casterlabs.rakurai.http.server.impl.rakurai.RakuraiHttpServer;
 import co.casterlabs.rakurai.http.server.impl.rakurai.io.HttpChunkedInputStream;
+import co.casterlabs.rakurai.http.server.impl.rakurai.io.HttpChunkedOutputStream;
 import co.casterlabs.rakurai.http.server.impl.rakurai.io.LimitedInputStream;
 import co.casterlabs.rakurai.io.http.HttpStatus;
 import co.casterlabs.rakurai.io.http.HttpVersion;
+import co.casterlabs.rakurai.io.http.server.HttpResponse;
+import co.casterlabs.rakurai.io.http.server.HttpServerUtil;
 import co.casterlabs.rakurai.io.http.server.HttpSession;
 import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
@@ -41,13 +44,9 @@ public abstract class RHSProtocol {
     private static final int MAX_HEADER_LENGTH =  16 /*kb*/ * 1024;
     // @formatter:on
 
-    public static void writeString(String str, OutputStream out) throws IOException {
-        out.write(str.getBytes(RHSProtocol.HEADER_CHARSET));
-    }
-
-    public static String getHttpTime() {
-        return TIME_FORMATTER.format(ZonedDateTime.now(ZoneOffset.UTC));
-    }
+    /* ---------------- */
+    /* Request/Input    */
+    /* ---------------- */
 
     public static HttpSession accept(FastLogger sessionLogger, RakuraiHttpServer server, Socket client, BufferedInputStream in) throws IOException, RHSHttpException {
         // Request line
@@ -74,10 +73,6 @@ public abstract class RHSProtocol {
                 if (!headers.containsKey("Host")) {
                     throw new RHSHttpException(HttpStatus.adapt(400, "Missing Host header"));
                 }
-
-                // Immediately write a CONTINUE so that the client knows we're a 1.1 server.
-                client.getOutputStream().write(HTTP_CONTINUE_LINE);
-                sessionLogger.trace("Response status line: HTTP/1.1 100 Continue");
 
                 // Look for a chunked body, otherwise fall through to normal fixed-length
                 // behavior (1.0).
@@ -354,6 +349,105 @@ public abstract class RHSProtocol {
         }
 
         return headers.build();
+    }
+
+    /* ---------------- */
+    /* Response/Output  */
+    /* ---------------- */
+
+    public static void writeOutResponse(RakuraiHttpServer server, Socket client, HttpSession session, boolean keepConnectionAlive, HttpResponse response) throws IOException {
+        OutputStream out = client.getOutputStream();
+
+        if (session.getVersion() == HttpVersion.HTTP_1_1) {
+            // Immediately write a CONTINUE so that the client knows we're a 1.1 server.
+            client.getOutputStream().write(HTTP_CONTINUE_LINE);
+            session.getLogger().trace("Response status line: HTTP/1.1 100 Continue");
+        }
+
+        // Write out status and headers.
+        String contentEncoding = null;
+        boolean useChunkedResponse = false;
+
+        // 0.9 doesn't have a status line or anything, so we don't write it out.
+        if (session.getVersion().value >= 1.0) {
+            session.getLogger().trace("Response status line: %s %s", session.getVersion(), response.getStatus().getStatusString());
+
+            // Write status.
+            RHSProtocol.writeString(session.getVersion().toString(), out);
+            RHSProtocol.writeString(" ", out);
+            RHSProtocol.writeString(response.getStatus().getStatusString(), out);
+            RHSProtocol.writeString("\r\n", out);
+
+            if (keepConnectionAlive) {
+                // Add the keepalive headers.
+                response.putHeader("Connection", "keep-alive");
+                response.putHeader("Keep-Alive", "timeout=" + RakuraiHttpServer.READ_TIMEOUT);
+            } else {
+                // Let the client know that we will be closing the socket.
+                response.putHeader("Connection", "close");
+            }
+
+            // Write out a Date header for HTTP/1.1 requests with a non-100 status code.
+            if ((session.getVersion().value >= 1.1) && (response.getStatus().getStatusCode() >= 200)) {
+                response.putHeader("Date", RHSProtocol.getHttpTime());
+            }
+
+            if (!response.hasHeader("Content-Type")) {
+                response.putHeader("Content-Type", "application/octet-stream");
+            }
+
+            // Response content stuff.
+            contentEncoding = HttpServerUtil.pickEncoding(session, response);
+            long length = response.getContent().getLength();
+            if ((length == -1) || (contentEncoding != null)) {
+                if (session.getVersion() == HttpVersion.HTTP_1_0) {
+                    throw new IOException("Chunked responses are not acceptable for HTTP/1.0 requests, dropping.");
+                }
+
+                response.putHeader("Transfer-Encoding", "chunked");
+                useChunkedResponse = true;
+            } else {
+                response.putHeader("Content-Length", String.valueOf(length));
+            }
+
+            session.getLogger().debug("Response headers: %s", response.getAllHeaders());
+
+            // Write headers.
+            for (Map.Entry<String, String> entry : response.getAllHeaders().entrySet()) {
+                RHSProtocol.writeString(entry.getKey(), out);
+                RHSProtocol.writeString(": ", out);
+                RHSProtocol.writeString(entry.getValue(), out);
+                RHSProtocol.writeString("\r\n", out);
+            }
+
+            // Write the separation line.
+            RHSProtocol.writeString("\r\n", out);
+        }
+
+        if (useChunkedResponse) {
+            out = new HttpChunkedOutputStream(out);
+        }
+
+        // Write out the response, defaulting to non-encoded responses.
+        HttpServerUtil.writeWithEncoding(contentEncoding, out, response.getContent());
+
+        if (useChunkedResponse) {
+            // Chunked output streams have special close implementations that don't close
+            // the underlying connection.
+            out.close();
+        }
+    }
+
+    /* ---------------- */
+    /* Helpers          */
+    /* ---------------- */
+
+    public static void writeString(String str, OutputStream out) throws IOException {
+        out.write(str.getBytes(RHSProtocol.HEADER_CHARSET));
+    }
+
+    public static String getHttpTime() {
+        return TIME_FORMATTER.format(ZonedDateTime.now(ZoneOffset.UTC));
     }
 
     private static String convertBufferToTrimmedString(byte[] buffer, int bufferLength) {
