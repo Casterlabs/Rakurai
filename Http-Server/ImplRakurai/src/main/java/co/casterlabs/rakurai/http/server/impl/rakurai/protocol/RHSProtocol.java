@@ -380,7 +380,7 @@ public abstract class RHSProtocol {
             if (keepConnectionAlive) {
                 // Add the keepalive headers.
                 response.putHeader("Connection", "keep-alive");
-                response.putHeader("Keep-Alive", "timeout=" + RakuraiHttpServer.READ_TIMEOUT);
+                response.putHeader("Keep-Alive", "timeout=" + RakuraiHttpServer.HTTP_PERSISTENT_TIMEOUT);
             } else {
                 // Let the client know that we will be closing the socket.
                 response.putHeader("Connection", "close");
