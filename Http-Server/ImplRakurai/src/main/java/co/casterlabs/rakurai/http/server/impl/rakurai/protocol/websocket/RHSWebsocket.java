@@ -35,7 +35,7 @@ public class RHSWebsocket extends Websocket {
 
             boolean fin = toWrite == 0;
             int op = written == 0 ? 1 : 0; // Note the op code of 1.
-            this.sendFrame(fin, op, bytes);
+            this.sendFrame(fin, op, chunk);
 
             written += chunk.length;
         }
@@ -53,7 +53,7 @@ public class RHSWebsocket extends Websocket {
 
             boolean fin = toWrite == 0;
             int op = written == 0 ? 2 : 0; // Note the op code of 2.
-            this.sendFrame(fin, op, bytes);
+            this.sendFrame(fin, op, chunk);
 
             written += chunk.length;
         }
