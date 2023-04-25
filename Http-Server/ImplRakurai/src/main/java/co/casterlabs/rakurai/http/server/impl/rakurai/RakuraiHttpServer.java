@@ -3,6 +3,8 @@ package co.casterlabs.rakurai.http.server.impl.rakurai;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.Inet6Address;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -60,7 +62,7 @@ public class RakuraiHttpServer implements HttpServer {
             Socket clientSocket = this.serverSocket.accept();
             this.connectedClients.add(clientSocket);
 
-            String remoteAddress = formatAddress(clientSocket.getInetAddress().getHostAddress(), clientSocket.getPort());
+            String remoteAddress = formatAddress(clientSocket);
             this.logger.debug("New connection from %s", remoteAddress);
 
             this.executor.execute(() -> {
@@ -308,14 +310,19 @@ public class RakuraiHttpServer implements HttpServer {
         }
     }
 
-    private static String formatAddress(String remoteAddress, int port) {
-        if (remoteAddress.indexOf(':') != -1) {
+    private static String formatAddress(Socket clientSocket) {
+        InetAddress remoteAddress = ((InetSocketAddress) clientSocket.getRemoteSocketAddress()).getAddress();
+        String address = remoteAddress.getHostAddress();
+
+        if (remoteAddress instanceof Inet6Address) {
             // Better Format for v6 addresses :^)
-            remoteAddress = '[' + remoteAddress + ']';
+            address = '[' + address + ']';
         }
-        remoteAddress += ':';
-        remoteAddress += port;
-        return remoteAddress;
+
+        address += ':';
+        address += clientSocket.getPort();
+
+        return address;
     }
 
     private static boolean shouldIgnoreException(Exception e) {
