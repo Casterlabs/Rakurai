@@ -65,7 +65,7 @@ public class RHSWebsocket extends Websocket {
         }
 
         int header1 = 0;
-        header1 |= (fin ? 1 : 0) << 15;
+        header1 |= (fin ? 1 : 0) << 7;
         header1 |= op.code;
         this.out.write(header1);
 
