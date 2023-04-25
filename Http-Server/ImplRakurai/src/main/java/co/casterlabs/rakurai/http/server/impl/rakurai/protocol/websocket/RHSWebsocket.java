@@ -65,12 +65,12 @@ public class RHSWebsocket extends Websocket {
         }
 
         {
-            int headerByte = 0; // We leave RSV123 and MASK set to 0.
-            headerByte |= len7;
-            headerByte |= op.code << 8;
-            headerByte |= (fin ? 1 : 0) << 15;
+            int header = 0; // We leave RSV123 and MASK set to 0.
+            header |= len7;
+            header |= op.code << 8;
+            header |= (fin ? 1 : 0) << 15;
 
-            byte[] headerBytes = BigEndianIOUtil.intToBytes(headerByte);
+            byte[] headerBytes = BigEndianIOUtil.intToBytes(header);
             this.out.write(headerBytes[2]);
             this.out.write(headerBytes[3]); // We only need the first 16 bits.
         }
@@ -81,7 +81,7 @@ public class RHSWebsocket extends Websocket {
             this.out.write(lenBytes[3]); // We only need the first 16 bits.
         } else if (len7 == 127) {
             byte[] lenBytes = BigEndianIOUtil.longToBytes(bytes.length);
-            this.out.write(lenBytes); // We only need the first 16 bits.
+            this.out.write(lenBytes);
         }
 
         this.out.write(bytes);
