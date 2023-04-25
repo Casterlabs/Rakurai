@@ -316,6 +316,8 @@ public class RakuraiHttpServer implements HttpServer {
         if (message == null) return false;
 
         if (message.contains("Socket closed") ||
+            message.contains("Socket is closed") ||
+            message.contains("fully read") ||
             message.contains("Read timed out") ||
             message.contains("socket write error")) return true;
 
