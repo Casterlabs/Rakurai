@@ -33,44 +33,48 @@ public class RHSWebsocketProtocol {
         byte[] fragmentedPacket = new byte[0];
 
         while (!client.isClosed()) {
-            int header = BigEndianIOUtil.bytesToInt(new byte[] {
-                    0,
-                    0,
-                    (byte) in.read(),
-                    (byte) in.read()
-            });
+            // @formatter:off
+            int header1 = in.read();
+            boolean isFinished = (header1 & 0b10000000) != 0;
+            boolean rsv1       = (header1 & 0b01000000) != 0;
+            boolean rsv2       = (header1 & 0b00100000) != 0;
+            boolean rsv3       = (header1 & 0b00010000) != 0;
+            int op             =  header1 & 0b00001111;
+            
+            int header2 = in.read();
+            boolean isMasked   = (header2 & 0b10000000) != 0;
+            int len7           =  header2 & 0b01111111;
+            // @formatter:on
 
-            boolean isFinished = (header & 1 << 15) != 0;
-            int op = (header & 0xf00) >> 8;
-            boolean isMasked = (header & 1 << 7) != 0;
-            int len7 = header & 0b1111111;
+            if (rsv1 || rsv2 || rsv3) {
+                session.getLogger().fatal("Reserved bits are set, these are not supported! rsv1=%b rsv2=%b rsv3=%b", rsv1, rsv2, rsv3);
+                return;
+            }
 
             sessionLogger.trace("fin=%b op=%d mask=%b len7=%d", isFinished, op, isMasked, len7);
 
             long length;
 
-            if (len7 > 125) {
-                if (len7 == 126) {
-                    // 16bit.
-                    length = BigEndianIOUtil.bytesToInt(new byte[] {
-                            0,
-                            0,
-                            (byte) in.read(),
-                            (byte) in.read(),
-                    });
-                } else {
-                    // 64bit.
-                    length = BigEndianIOUtil.bytesToLong(new byte[] {
-                            (byte) in.read(),
-                            (byte) in.read(),
-                            (byte) in.read(),
-                            (byte) in.read(),
-                            (byte) in.read(),
-                            (byte) in.read(),
-                            (byte) in.read(),
-                            (byte) in.read(),
-                    });
-                }
+            if (len7 == 126) {
+                // 16bit.
+                length = BigEndianIOUtil.bytesToInt(new byte[] {
+                        0,
+                        0,
+                        (byte) in.read(),
+                        (byte) in.read(),
+                });
+            } else if (len7 == 127) {
+                // 64bit.
+                length = BigEndianIOUtil.bytesToLong(new byte[] {
+                        (byte) in.read(),
+                        (byte) in.read(),
+                        (byte) in.read(),
+                        (byte) in.read(),
+                        (byte) in.read(),
+                        (byte) in.read(),
+                        (byte) in.read(),
+                        (byte) in.read(),
+                });
 
                 if (Long.compareUnsigned(length, MAX_PAYLOAD_LENGTH) > 0) {
                     sessionLogger.fatal(

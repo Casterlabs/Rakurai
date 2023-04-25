@@ -57,23 +57,22 @@ public class RHSWebsocket extends Websocket {
     synchronized void sendFrame(boolean fin, WebsocketOpCode op, byte[] bytes) throws IOException {
         int len7 = bytes.length;
         if (len7 > 125) {
-            if (bytes.length > Math.pow(2, 16)) {
+            if (bytes.length > Short.MAX_VALUE) {
                 len7 = 127; // Use 64bit length.
             } else {
                 len7 = 126; // Use 16bit length.
             }
         }
 
-        {
-            int header = 0; // We leave RSV123 and MASK set to 0.
-            header |= len7;
-            header |= op.code << 8;
-            header |= (fin ? 1 : 0) << 15;
+        int header1 = 0;
+        header1 |= (fin ? 1 : 0) << 15;
+        header1 |= op.code;
+        this.out.write(header1);
 
-            byte[] headerBytes = BigEndianIOUtil.intToBytes(header);
-            this.out.write(headerBytes[2]);
-            this.out.write(headerBytes[3]); // We only need the first 16 bits.
-        }
+        int header2 = 0;
+        header2 |= len7;
+//        header2 |= 0b00000000; // Mask.
+        this.out.write(header2);
 
         if (len7 == 126) {
             byte[] lenBytes = BigEndianIOUtil.intToBytes(bytes.length);
