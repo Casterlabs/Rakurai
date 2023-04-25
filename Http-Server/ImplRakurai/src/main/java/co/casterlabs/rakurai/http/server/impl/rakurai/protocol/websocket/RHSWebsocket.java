@@ -54,7 +54,7 @@ public class RHSWebsocket extends Websocket {
         }
     }
 
-    void sendFrame(boolean fin, WebsocketOpCode op, byte[] bytes) throws IOException {
+    synchronized void sendFrame(boolean fin, WebsocketOpCode op, byte[] bytes) throws IOException {
         int len7 = bytes.length;
         if (len7 > 125) {
             if (bytes.length > Math.pow(2, 16)) {
