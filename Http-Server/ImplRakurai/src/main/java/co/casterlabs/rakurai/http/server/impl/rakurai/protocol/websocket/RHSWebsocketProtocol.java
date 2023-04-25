@@ -74,7 +74,7 @@ public class RHSWebsocketProtocol {
 
                 if (Long.compareUnsigned(length, MAX_PAYLOAD_LENGTH) > 0) {
                     sessionLogger.fatal(
-                        "Fragmented payload length too big, max 16mb got %smb.",
+                        "Payload length too big, max 16mb got %smb.",
                         DataSize.MEGABYTE.format(DataSize.MEGABYTE.fromBytes(length))
                     );
                     return;

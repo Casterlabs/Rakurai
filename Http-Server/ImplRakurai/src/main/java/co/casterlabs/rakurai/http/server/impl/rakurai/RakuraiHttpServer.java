@@ -35,7 +35,7 @@ import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
 @Getter
 public class RakuraiHttpServer implements HttpServer {
-    public static final int HTTP_PERSISTENT_TIMEOUT = 60;
+    public static final int HTTP_PERSISTENT_TIMEOUT = 30;
 
     private static final byte[] HTTP_1_1_UPGRADE_REJECT = "HTTP/1.1 400 Bad Request\r\n\r\n".getBytes(RHSProtocol.HEADER_CHARSET);
 
@@ -60,30 +60,27 @@ public class RakuraiHttpServer implements HttpServer {
             Socket clientSocket = this.serverSocket.accept();
             this.connectedClients.add(clientSocket);
 
-            // Better logging format for v6 addresses :^)
-            String addr = clientSocket.getInetAddress().getHostAddress();
-            if (addr.indexOf(':') != -1) {
-                this.logger.debug("New connection from [%s]:%d", addr, clientSocket.getPort());
-            } else {
-                this.logger.debug("New connection from %s:%d", addr, clientSocket.getPort());
-            }
+            String remoteAddress = formatAddress(clientSocket.getInetAddress().getHostAddress(), clientSocket.getPort());
+            this.logger.debug("New connection from %s", remoteAddress);
 
             this.executor.execute(() -> {
-                FastLogger sessionLogger = this.logger.createChild("<unknown session> " + clientSocket.getPort());
+                FastLogger sessionLogger = this.logger.createChild("Connection: " + remoteAddress);
                 sessionLogger.debug("Handling request...");
 
                 try {
                     clientSocket.setTcpNoDelay(true);
-                    clientSocket.setSoTimeout(HTTP_PERSISTENT_TIMEOUT * 1000); // 1m timeout for regular requests.
 
                     while (true) {
-                        boolean acceptAnotherRequest = this.handle(clientSocket, sessionLogger);
-                        if (!acceptAnotherRequest) break;
+                        clientSocket.setSoTimeout(HTTP_PERSISTENT_TIMEOUT * 1000); // 1m timeout for regular requests.
 
-                        // We're keeping the connection, reset the logger and let the while{} block
-                        // handle subsequent requests.
-                        sessionLogger = this.logger.createChild("<unknown (persistent) session> " + clientSocket.getPort());
-                        sessionLogger.debug("Keeping connection alive for subsequent requests.");
+                        boolean acceptAnotherRequest = this.handle(clientSocket, sessionLogger);
+                        if (acceptAnotherRequest) {
+                            // We're keeping the connection, let the while{} block do it's thing.
+                            sessionLogger.debug("Keeping connection alive for subsequent requests.");
+                        } else {
+                            // Break out of this torment.
+                            break;
+                        }
                     }
                 } catch (DropConnectionException ignored) {
                     sessionLogger.debug("Dropping connection.");
@@ -102,6 +99,8 @@ public class RakuraiHttpServer implements HttpServer {
 
                     this.connectedClients.remove(clientSocket);
                 }
+
+                this.logger.debug("Closed connection from %s", remoteAddress);
             });
         } catch (IOException e) {
             this.logger.severe("An error occurred whilst accepting a new connection:\n%s", e);
@@ -309,7 +308,17 @@ public class RakuraiHttpServer implements HttpServer {
         }
     }
 
-    private boolean shouldIgnoreException(Exception e) {
+    private static String formatAddress(String remoteAddress, int port) {
+        if (remoteAddress.indexOf(':') != -1) {
+            // Better Format for v6 addresses :^)
+            remoteAddress = '[' + remoteAddress + ']';
+        }
+        remoteAddress += ':';
+        remoteAddress += port;
+        return remoteAddress;
+    }
+
+    private static boolean shouldIgnoreException(Exception e) {
         if (e instanceof InterruptedException) return true;
 
         String message = e.getMessage();
