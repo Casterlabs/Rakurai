@@ -20,7 +20,7 @@ public class RHSWebsocketProtocol {
     public static void doPing(RHSWebsocket websocket) {
         byte[] someBytes = BigEndianIOUtil.longToBytes(System.currentTimeMillis());
         try {
-            websocket.sendFrame(true, 9, someBytes);
+            websocket.sendFrame(true, WebsocketOpCode.PING, someBytes);
         } catch (IOException ignored) {}
     }
 
@@ -166,7 +166,7 @@ public class RHSWebsocketProtocol {
                 }
 
                 case 0x9: { // Ping
-                    websocket.sendFrame(true, 0xa, payload); // Send pong reply.
+                    websocket.sendFrame(true, WebsocketOpCode.PONG, payload); // Send pong reply.
                     continue;
                 }
 
