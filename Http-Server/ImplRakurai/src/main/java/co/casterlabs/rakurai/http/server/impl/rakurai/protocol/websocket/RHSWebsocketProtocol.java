@@ -43,7 +43,7 @@ public class RHSWebsocketProtocol {
             boolean isFinished = (header & 1 << 15) != 0;
             int op = (header & 0xf00) >> 8;
             boolean isMasked = (header & 1 << 7) != 0;
-            int len7 = header & 0x7f;
+            int len7 = header & 0b1111111;
 
             sessionLogger.trace("fin=%b op=%d mask=%b len7=%d", isFinished, op, isMasked, len7);
 
@@ -73,7 +73,10 @@ public class RHSWebsocketProtocol {
                 }
 
                 if (Long.compareUnsigned(length, MAX_PAYLOAD_LENGTH) > 0) {
-                    sessionLogger.severe("Payload length too big, max 16mb got %sb.", Long.toUnsignedString(length));
+                    sessionLogger.fatal(
+                        "Fragmented payload length too big, max 16mb got %smb.",
+                        DataSize.MEGABYTE.format(DataSize.MEGABYTE.fromBytes(length))
+                    );
                     return;
                 }
             } else {
@@ -114,7 +117,10 @@ public class RHSWebsocketProtocol {
             if (op == 0) {
                 int totalLength = fragmentedPacket.length + payload.length;
                 if (totalLength > MAX_PAYLOAD_LENGTH) {
-                    sessionLogger.severe("Fragmented payload length too big, max 16mb got %sb.", Long.toUnsignedString(length));
+                    sessionLogger.fatal(
+                        "Fragmented payload length too big, max 16mb got %smb.",
+                        DataSize.MEGABYTE.format(DataSize.MEGABYTE.fromBytes(length))
+                    );
                     return;
                 }
 
