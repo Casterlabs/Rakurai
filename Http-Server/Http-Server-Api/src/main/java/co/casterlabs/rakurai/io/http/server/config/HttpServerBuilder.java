@@ -1,13 +1,10 @@
 package co.casterlabs.rakurai.io.http.server.config;
 
-import java.io.File;
 import java.io.IOException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
-
-import org.jetbrains.annotations.Nullable;
 
 import co.casterlabs.rakurai.io.http.TLSVersion;
 import co.casterlabs.rakurai.io.http.server.HttpListener;
@@ -34,8 +31,6 @@ public abstract class HttpServerBuilder {
 
     protected boolean http2Enabled = true;
 
-    protected @Nullable File logsDir = null;
-
     /* Abstract things */
     public abstract HttpServer build(@NonNull HttpListener listener) throws IOException;
 
@@ -54,7 +49,6 @@ public abstract class HttpServerBuilder {
         nu.behindProxy = this.behindProxy;
         nu.SPDYEnabled = this.SPDYEnabled;
         nu.http2Enabled = this.http2Enabled;
-        nu.logsDir = this.logsDir;
         return nu;
     }
 

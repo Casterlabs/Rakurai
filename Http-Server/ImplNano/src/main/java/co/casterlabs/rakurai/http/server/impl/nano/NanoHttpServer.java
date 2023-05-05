@@ -11,14 +11,13 @@ import co.casterlabs.rakurai.StringUtil;
 import co.casterlabs.rakurai.io.IOUtil;
 import co.casterlabs.rakurai.io.http.HttpStatus;
 import co.casterlabs.rakurai.io.http.StandardHttpStatus;
-import co.casterlabs.rakurai.io.http.server.Debugging;
 import co.casterlabs.rakurai.io.http.server.DropConnectionException;
 import co.casterlabs.rakurai.io.http.server.HttpListener;
 import co.casterlabs.rakurai.io.http.server.HttpResponse;
-import co.casterlabs.rakurai.io.http.server.HttpServer;
 import co.casterlabs.rakurai.io.http.server.HttpResponse.ByteResponse;
 import co.casterlabs.rakurai.io.http.server.HttpResponse.ResponseContent;
 import co.casterlabs.rakurai.io.http.server.HttpResponse.StreamResponse;
+import co.casterlabs.rakurai.io.http.server.HttpServer;
 import co.casterlabs.rakurai.io.http.server.config.HttpServerBuilder;
 import co.casterlabs.rakurai.io.http.server.config.HttpServerImplementation;
 import co.casterlabs.rakurai.io.http.server.websocket.WebsocketListener;
@@ -150,8 +149,6 @@ public class NanoHttpServer extends NanoWSD implements HttpServer {
             session.getLogger().severe("An exception occurred whilst handling request:\n%s", e);
             return NanoHTTPD.newFixedLengthResponse(Status.INTERNAL_ERROR, "text/plaintext", "");
         } finally {
-            Debugging.finalizeResult(response, session, this.config, this.logger);
-
             if (response != null) {
                 IOUtil.safeClose(response.getContent());
             }

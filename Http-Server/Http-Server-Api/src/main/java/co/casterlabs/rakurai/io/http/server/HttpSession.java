@@ -1,9 +1,7 @@
 package co.casterlabs.rakurai.io.http.server;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,15 +22,12 @@ import co.casterlabs.rakurai.json.element.JsonObject;
 import co.casterlabs.rakurai.json.serialization.JsonParseException;
 import lombok.Getter;
 import lombok.NonNull;
-import xyz.e3ndr.fastloggingframework.LogUtil;
 import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 import xyz.e3ndr.fastloggingframework.logging.LogLevel;
 
 public abstract class HttpSession {
     private final @Getter String requestId = UUID.randomUUID().toString();
 
-    ByteArrayOutputStream printResult;
-    PrintStream printOutput;
     boolean hasSessionErrored = false;
 
     private @Getter FastLogger logger;
@@ -47,13 +42,6 @@ public abstract class HttpSession {
 
         FastLogger realLogger = parentLogger.createChild("Session: " + this.requestId);
 
-        if (config.getLogsDir() != null) {
-            this.printResult = new ByteArrayOutputStream();
-            this.printOutput = new PrintStream(this.printResult);
-
-            this.printOutput.println("---- Start of log ----");
-        }
-
         this.remoteIp = this.getRequestHops().get(0);
 
         this.logger = new FastLogger(this.requestId) {
@@ -64,11 +52,6 @@ public abstract class HttpSession {
                 }
 
                 realLogger.log(level, object, args);
-
-                if (printOutput != null) {
-                    String line = LogUtil.parseFormat(object, args);
-                    printOutput.println(line);
-                }
 
                 return this;
             }

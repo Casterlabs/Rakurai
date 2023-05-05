@@ -15,7 +15,6 @@ import org.xnio.Sequence;
 import co.casterlabs.rakurai.StringUtil;
 import co.casterlabs.rakurai.io.IOUtil;
 import co.casterlabs.rakurai.io.http.StandardHttpStatus;
-import co.casterlabs.rakurai.io.http.server.Debugging;
 import co.casterlabs.rakurai.io.http.server.DropConnectionException;
 import co.casterlabs.rakurai.io.http.server.HttpListener;
 import co.casterlabs.rakurai.io.http.server.HttpResponse;
@@ -226,8 +225,6 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                 exchange.setResponseContentLength(0);
             }
         } finally {
-            Debugging.finalizeResult(response, session, this.config, this.logger);
-
             // We might've already forcibly closed the connection.
             if (exchange.getConnection().isOpen()) {
                 exchange.endExchange();
@@ -289,7 +286,6 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
                 @Override
                 protected void onClose(WebSocketChannel webSocketChannel, StreamSourceFrameChannel channel) throws IOException {
                     session.getLogger().debug("Closed WebSocket session.");
-                    Debugging.finalizeResult(null, session, config, logger);
 
                     try {
                         listener.onClose(websocket);
@@ -327,7 +323,6 @@ public class UndertowHttpServer implements HttpServer, HttpHandler, WebSocketCon
             channel.resumeReceives();
         } catch (Exception e) {
             session.getLogger().severe("An exception occurred whilst handling request:\n%s", e);
-            Debugging.finalizeResult(null, session, this.config, this.logger);
         }
     }
 
