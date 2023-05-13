@@ -86,8 +86,8 @@ public class RakuraiHttpServer implements HttpServer {
                     }
                 } catch (DropConnectionException ignored) {
                     sessionLogger.debug("Dropping connection.");
-                } catch (Exception e) {
-                    if (!shouldIgnoreException(e)) {
+                } catch (Throwable e) {
+                    if (!shouldIgnoreThrowable(e)) {
                         sessionLogger.fatal("An error occurred whilst handling request:\n%s", e);
                     }
                 } finally {
@@ -325,17 +325,16 @@ public class RakuraiHttpServer implements HttpServer {
         return address;
     }
 
-    private static boolean shouldIgnoreException(Exception e) {
-        if (e instanceof InterruptedException) return true;
+    private static boolean shouldIgnoreThrowable(Throwable t) {
+        if (t instanceof InterruptedException) return true;
 
-        String message = e.getMessage();
+        String message = t.getMessage();
         if (message == null) return false;
+        message = message.toLowerCase();
 
-        if (message.contains("Socket closed") ||
-            message.contains("Socket Closed") ||
-            message.contains("Socket is closed") ||
-            message.contains("fully read") ||
-            message.contains("Read timed out") ||
+        if (message.contains("socket closed") ||
+            message.contains("socket is closed") ||
+            message.contains("read timed out") ||
             message.contains("socket write error")) return true;
 
         return false;
