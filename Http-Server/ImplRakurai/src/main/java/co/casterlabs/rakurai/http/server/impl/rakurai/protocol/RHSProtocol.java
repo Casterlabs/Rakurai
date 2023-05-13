@@ -377,14 +377,14 @@ public abstract class RHSProtocol {
             RHSProtocol.writeString(response.getStatus().getStatusString(), out);
             RHSProtocol.writeString("\r\n", out);
 
-            if (keepConnectionAlive) {
-                // Add the keepalive headers.
-                response.putHeader("Connection", "keep-alive");
-                response.putHeader("Keep-Alive", "timeout=" + RakuraiHttpServer.HTTP_PERSISTENT_TIMEOUT);
-            } else {
-                // Let the client know that we will be closing the socket.
-                response.putHeader("Connection", "close");
-            }
+//            if (keepConnectionAlive) {
+//                // Add the keepalive headers.
+//                response.putHeader("Connection", "keep-alive");
+//                response.putHeader("Keep-Alive", "timeout=" + RakuraiHttpServer.HTTP_PERSISTENT_TIMEOUT);
+//            } else {
+            // Let the client know that we will be closing the socket.
+            response.putHeader("Connection", "close");
+//            }
 
             // Write out a Date header for HTTP/1.1 requests with a non-100 status code.
             if ((session.getVersion().value >= 1.1) && (response.getStatus().getStatusCode() >= 200)) {

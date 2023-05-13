@@ -37,7 +37,7 @@ import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
 @Getter
 public class RakuraiHttpServer implements HttpServer {
-    public static final int HTTP_PERSISTENT_TIMEOUT = 30;
+//    public static final int HTTP_PERSISTENT_TIMEOUT = 30;
 
     private static final byte[] HTTP_1_1_UPGRADE_REJECT = "HTTP/1.1 400 Bad Request\r\n\r\n".getBytes(RHSProtocol.HEADER_CHARSET);
 
@@ -73,16 +73,16 @@ public class RakuraiHttpServer implements HttpServer {
                     clientSocket.setTcpNoDelay(true);
 
                     while (true) {
-                        clientSocket.setSoTimeout(HTTP_PERSISTENT_TIMEOUT * 1000); // 1m timeout for regular requests.
+//                        clientSocket.setSoTimeout(HTTP_PERSISTENT_TIMEOUT * 1000); // 1m timeout for regular requests.
 
                         boolean acceptAnotherRequest = this.handle(clientSocket, sessionLogger);
-                        if (acceptAnotherRequest) {
-                            // We're keeping the connection, let the while{} block do it's thing.
-                            sessionLogger.debug("Keeping connection alive for subsequent requests.");
-                        } else {
-                            // Break out of this torment.
-                            break;
-                        }
+//                        if (acceptAnotherRequest) {
+//                            // We're keeping the connection, let the while{} block do it's thing.
+//                            sessionLogger.debug("Keeping connection alive for subsequent requests.");
+//                        } else {
+                        // Break out of this torment.
+                        break;
+//                        }
                     }
                 } catch (DropConnectionException ignored) {
                     sessionLogger.debug("Dropping connection.");
