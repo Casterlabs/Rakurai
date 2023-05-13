@@ -142,7 +142,11 @@ public abstract class RHSProtocol {
             int readCharacter = in.read();
 
             if (readCharacter == -1) {
-                throw new IOException("Reached end of stream before request line was fully read.");
+                if (bufferWritePos == 0) {
+                    throw new IOException("Socket closed.");
+                } else {
+                    throw new IOException("Reached end of stream before request line was fully read.");
+                }
             }
 
             // Convert the \r character to \n, dealing with the consequences if necessary.
