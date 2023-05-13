@@ -24,6 +24,7 @@ import co.casterlabs.rakurai.http.server.impl.rakurai.RakuraiHttpServer;
 import co.casterlabs.rakurai.http.server.impl.rakurai.io.HttpChunkedInputStream;
 import co.casterlabs.rakurai.http.server.impl.rakurai.io.HttpChunkedOutputStream;
 import co.casterlabs.rakurai.http.server.impl.rakurai.io.LimitedInputStream;
+import co.casterlabs.rakurai.http.server.impl.rakurai.io.NonCloseableOutputStream;
 import co.casterlabs.rakurai.io.http.HttpStatus;
 import co.casterlabs.rakurai.io.http.HttpVersion;
 import co.casterlabs.rakurai.io.http.server.HttpResponse;
@@ -425,14 +426,17 @@ public abstract class RHSProtocol {
 
         if (useChunkedResponse) {
             out = new HttpChunkedOutputStream(out);
+        } else {
+            out = new NonCloseableOutputStream(out); // Don't allow anything to close the connection by accident.
         }
 
         // Write out the response, defaulting to non-encoded responses.
         HttpServerUtil.writeWithEncoding(contentEncoding, out, response.getContent());
 
         if (useChunkedResponse) {
-            // Chunked output streams have special close implementations that don't close
-            // the underlying connection.
+            // Chunked output streams have special close implementations that don't actually
+            // close the underlying connection, they just signal that this is the end of the
+            // request.
             out.close();
         }
     }
