@@ -26,7 +26,7 @@ public class UndertowHttpServerBuilder extends HttpServerBuilder {
 
     @Override
     public HttpServer buildSecure(@NonNull HttpListener listener) throws IOException, KeyStoreException, NoSuchAlgorithmException, CertificateException, UnrecoverableKeyException {
-        this.applyDHSize();
+        this.ssl.applyDHSize();
 
         KeyStore keystore = KeyStore.getInstance("jks");
         keystore.load(new FileInputStream(this.ssl.getKeystoreLocation()), this.ssl.getKeystorePassword());
@@ -43,7 +43,7 @@ public class UndertowHttpServerBuilder extends HttpServerBuilder {
             this.port,
             managerFactory.getKeyManagers(),
             trustManagerFactory.getTrustManagers(),
-            this.convertTLS(),
+            this.ssl.convertTLS(),
             this.ssl.getEnabledCipherSuites(),
             this
         );

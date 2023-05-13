@@ -1,6 +1,7 @@
 package co.casterlabs.rakurai.http.server.impl.rakurai;
 
 import java.io.BufferedInputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Inet6Address;
@@ -9,6 +10,7 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyStore;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -17,6 +19,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLServerSocket;
+import javax.net.ssl.SSLServerSocketFactory;
+import javax.net.ssl.TrustManagerFactory;
 
 import co.casterlabs.rakurai.http.server.impl.rakurai.protocol.RHSHttpException;
 import co.casterlabs.rakurai.http.server.impl.rakurai.protocol.RHSHttpSession;
@@ -34,6 +43,7 @@ import co.casterlabs.rakurai.io.http.server.config.HttpServerImplementation;
 import co.casterlabs.rakurai.io.http.server.websocket.WebsocketListener;
 import lombok.Getter;
 import xyz.e3ndr.fastloggingframework.logging.FastLogger;
+import xyz.e3ndr.fastloggingframework.logging.LogLevel;
 
 @Getter
 public class RakuraiHttpServer implements HttpServer {
@@ -326,6 +336,7 @@ public class RakuraiHttpServer implements HttpServer {
 
     private static boolean shouldIgnoreThrowable(Throwable t) {
         if (t instanceof InterruptedException) return true;
+        if (t instanceof SSLHandshakeException) return true;
 
         String message = t.getMessage();
         if (message == null) return false;
@@ -345,12 +356,58 @@ public class RakuraiHttpServer implements HttpServer {
         if (this.isAlive()) return;
 
         try {
-            this.serverSocket = new ServerSocket();
+            if (this.config.getSsl() == null) {
+                this.serverSocket = new ServerSocket();
+            } else {
+                SSLContext sslContext = SSLContext.getInstance("TLS");
+
+                KeyStore keyStore = KeyStore.getInstance("JKS");
+                try (FileInputStream fis = new FileInputStream(this.config.getSsl().getKeystoreLocation())) {
+                    keyStore.load(fis, this.config.getSsl().getKeystorePassword());
+                }
+
+                KeyManagerFactory keyManager = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+                keyManager.init(keyStore, this.config.getSsl().getKeystorePassword());
+
+                TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                tmf.init(keyStore);
+
+                sslContext.init(keyManager.getKeyManagers(), tmf.getTrustManagers(), null);
+
+                SSLServerSocketFactory factory = sslContext.getServerSocketFactory();
+                SSLServerSocket socket = (SSLServerSocket) factory.createServerSocket();
+
+                List<String> enabledCipherSuites = this.config.getSsl().getEnabledCipherSuites();
+                if (enabledCipherSuites != null && !enabledCipherSuites.isEmpty()) {
+                    // Go through the list and make sure that the JVM supports the suite.
+                    List<String> supported = new LinkedList<>();
+                    for (String def : factory.getSupportedCipherSuites()) {
+                        if (enabledCipherSuites.contains(def)) {
+                            supported.add(def);
+                        } else {
+                            FastLogger.logStatic(LogLevel.DEBUG, "Disabled Cipher Suite: %s.", def);
+                        }
+                    }
+
+                    FastLogger.logStatic(LogLevel.DEBUG, "Using the following Cipher Suites: %s.", supported);
+                    socket.setEnabledCipherSuites(supported.toArray(new String[0]));
+                } else {
+                    socket.setEnabledCipherSuites(factory.getSupportedCipherSuites());
+                }
+
+                socket.setEnabledProtocols(this.config.getSsl().convertTLS());
+                socket.setUseClientMode(false);
+                socket.setWantClientAuth(false);
+                socket.setNeedClientAuth(false);
+
+                this.serverSocket = socket;
+            }
+
             this.serverSocket.setReuseAddress(true);
             this.serverSocket.bind(new InetSocketAddress(this.config.getHostname(), this.config.getPort()));
-        } catch (IOException e) {
+        } catch (Exception e) {
             this.serverSocket = null;
-            throw e;
+            throw new IOException("Unable to start server", e);
         }
 
         Thread acceptThread = new Thread(() -> {

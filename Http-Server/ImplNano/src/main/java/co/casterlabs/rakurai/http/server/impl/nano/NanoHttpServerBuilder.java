@@ -27,7 +27,7 @@ public class NanoHttpServerBuilder extends HttpServerBuilder {
 
     @Override
     public HttpServer buildSecure(@NonNull HttpListener listener) throws IOException, KeyStoreException, NoSuchAlgorithmException, CertificateException, UnrecoverableKeyException {
-        this.applyDHSize();
+        this.ssl.applyDHSize();
 
         KeyStore keystore = KeyStore.getInstance("jks");
         keystore.load(new FileInputStream(this.ssl.getKeystoreLocation()), this.ssl.getKeystorePassword());
@@ -37,7 +37,7 @@ public class NanoHttpServerBuilder extends HttpServerBuilder {
 
         SSLServerSocketFactory factory = NanoHTTPD.makeSSLSocketFactory(keystore, managerFactory);
 
-        return new NanoHttpServer(listener, this.hostname, this.port, this, new WrappedSSLSocketFactory(factory, this.ssl), this.convertTLS());
+        return new NanoHttpServer(listener, this.hostname, this.port, this, new WrappedSSLSocketFactory(factory, this.ssl), this.ssl.convertTLS());
     }
 
     @Override

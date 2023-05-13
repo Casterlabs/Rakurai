@@ -46,4 +46,40 @@ public class SSLConfiguration {
         return nu;
     }
 
+    public String[] convertTLS() {
+        TLSVersion[] tls = this.enabledTlsVersions;
+        String[] versions = new String[tls.length];
+
+        for (int i = 0; i != tls.length; i++) {
+            versions[i] = tls[i].getRuntimeName();
+        }
+
+        return versions;
+    }
+
+    public void applyDHSize() {
+        // https://www.java.com/en/configure_crypto.html
+        // https://docs.oracle.com/javase/8/docs/technotes/guides/security/jsse/JSSERefGuide.html#customizing_dh_keys
+        System.setProperty("jdk.tls.ephemeralDHKeySize", String.valueOf(this.DHSize));
+        String disabledAlgorithmsProperty = System.getProperty("jdk.tls.disabledAlgorithms", "DH keySize");
+        String[] disabledAlgorithms = disabledAlgorithmsProperty.split(",");
+        boolean replacedParameter = false;
+
+        for (int i = 0; i != disabledAlgorithms.length; i++) {
+            if (disabledAlgorithms[i].startsWith("DH keySize")) {
+                replacedParameter = true;
+
+                disabledAlgorithms[i] = "DH keySize < " + this.DHSize;
+
+                break;
+            }
+        }
+
+        if (replacedParameter) {
+            System.setProperty("jdk.tls.disabledAlgorithms", String.join(", ", disabledAlgorithms));
+        } else {
+            System.setProperty("jdk.tls.disabledAlgorithms", disabledAlgorithmsProperty + ", DH keySize < " + this.DHSize);
+        }
+    }
+
 }

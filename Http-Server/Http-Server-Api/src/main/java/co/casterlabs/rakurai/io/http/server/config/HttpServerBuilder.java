@@ -6,7 +6,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 
-import co.casterlabs.rakurai.io.http.TLSVersion;
 import co.casterlabs.rakurai.io.http.server.HttpListener;
 import co.casterlabs.rakurai.io.http.server.HttpServer;
 import lombok.Data;
@@ -50,42 +49,6 @@ public abstract class HttpServerBuilder {
         nu.SPDYEnabled = this.SPDYEnabled;
         nu.http2Enabled = this.http2Enabled;
         return nu;
-    }
-
-    protected String[] convertTLS() {
-        TLSVersion[] tls = this.ssl.getEnabledTlsVersions();
-        String[] versions = new String[tls.length];
-
-        for (int i = 0; i != tls.length; i++) {
-            versions[i] = tls[i].getRuntimeName();
-        }
-
-        return versions;
-    }
-
-    protected void applyDHSize() {
-        // https://www.java.com/en/configure_crypto.html
-        // https://docs.oracle.com/javase/8/docs/technotes/guides/security/jsse/JSSERefGuide.html#customizing_dh_keys
-        System.setProperty("jdk.tls.ephemeralDHKeySize", String.valueOf(this.ssl.getDHSize()));
-        String disabledAlgorithmsProperty = System.getProperty("jdk.tls.disabledAlgorithms", "DH keySize");
-        String[] disabledAlgorithms = disabledAlgorithmsProperty.split(",");
-        boolean replacedParameter = false;
-
-        for (int i = 0; i != disabledAlgorithms.length; i++) {
-            if (disabledAlgorithms[i].startsWith("DH keySize")) {
-                replacedParameter = true;
-
-                disabledAlgorithms[i] = "DH keySize < " + this.ssl.getDHSize();
-
-                break;
-            }
-        }
-
-        if (replacedParameter) {
-            System.setProperty("jdk.tls.disabledAlgorithms", String.join(", ", disabledAlgorithms));
-        } else {
-            System.setProperty("jdk.tls.disabledAlgorithms", disabledAlgorithmsProperty + ", DH keySize < " + this.ssl.getDHSize());
-        }
     }
 
     /* Builders */

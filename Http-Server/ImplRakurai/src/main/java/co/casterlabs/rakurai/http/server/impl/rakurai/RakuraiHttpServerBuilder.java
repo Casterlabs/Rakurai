@@ -21,7 +21,7 @@ public class RakuraiHttpServerBuilder extends HttpServerBuilder {
 
     @Override
     public HttpServer buildSecure(@NonNull HttpListener listener) throws IOException, KeyStoreException, NoSuchAlgorithmException, CertificateException, UnrecoverableKeyException {
-        return null; // TODO
+        return new RakuraiHttpServer(listener, this.clone());
     }
 
     @Override
