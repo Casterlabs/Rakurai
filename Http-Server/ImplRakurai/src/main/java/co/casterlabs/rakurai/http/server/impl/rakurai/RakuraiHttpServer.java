@@ -43,7 +43,6 @@ import co.casterlabs.rakurai.io.http.server.config.HttpServerImplementation;
 import co.casterlabs.rakurai.io.http.server.websocket.WebsocketListener;
 import lombok.Getter;
 import xyz.e3ndr.fastloggingframework.logging.FastLogger;
-import xyz.e3ndr.fastloggingframework.logging.LogLevel;
 
 @Getter
 public class RakuraiHttpServer implements HttpServer {
@@ -377,22 +376,29 @@ public class RakuraiHttpServer implements HttpServer {
                 SSLServerSocketFactory factory = sslContext.getServerSocketFactory();
                 SSLServerSocket socket = (SSLServerSocket) factory.createServerSocket();
 
-                List<String> enabledCipherSuites = this.config.getSsl().getEnabledCipherSuites();
-                if (enabledCipherSuites != null && !enabledCipherSuites.isEmpty()) {
+                if (this.config.getSsl().getEnabledCipherSuites() == null) {
+                    socket.setEnabledCipherSuites(factory.getSupportedCipherSuites());
+                } else {
+                    List<String> enabledCipherSuites = this.config.getSsl().getEnabledCipherSuites();
+
                     // Go through the list and make sure that the JVM supports the suite.
                     List<String> supported = new LinkedList<>();
-                    for (String def : factory.getSupportedCipherSuites()) {
-                        if (enabledCipherSuites.contains(def)) {
-                            supported.add(def);
+                    for (String suite : factory.getSupportedCipherSuites()) {
+                        if (enabledCipherSuites.contains(suite)) {
+                            supported.add(suite);
                         } else {
-                            FastLogger.logStatic(LogLevel.DEBUG, "Disabled Cipher Suite: %s.", def);
+                            this.logger.debug("Disabled Cipher Suite: %s.", suite);
                         }
                     }
 
-                    FastLogger.logStatic(LogLevel.DEBUG, "Using the following Cipher Suites: %s.", supported);
+                    for (String suite : enabledCipherSuites) {
+                        if (!supported.contains(suite)) {
+                            this.logger.warn("Unsupported Cipher Suite: %s.", suite);
+                        }
+                    }
+
+                    this.logger.debug("Using the following Cipher Suites: %s.", supported);
                     socket.setEnabledCipherSuites(supported.toArray(new String[0]));
-                } else {
-                    socket.setEnabledCipherSuites(factory.getSupportedCipherSuites());
                 }
 
                 socket.setEnabledProtocols(this.config.getSsl().convertTLS());
