@@ -14,6 +14,7 @@ import java.security.KeyStore;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.LinkedList;
 import java.util.List;
@@ -377,6 +378,7 @@ public class RakuraiHttpServer implements HttpServer {
                 SSLServerSocket socket = (SSLServerSocket) factory.createServerSocket();
 
                 if (this.config.getSsl().getEnabledCipherSuites() == null) {
+                    this.logger.debug("Using the following Cipher Suites: %s.", Arrays.asList(factory.getSupportedCipherSuites()));
                     socket.setEnabledCipherSuites(factory.getSupportedCipherSuites());
                 } else {
                     List<String> enabledCipherSuites = this.config.getSsl().getEnabledCipherSuites();
