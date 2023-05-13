@@ -424,19 +424,20 @@ public abstract class RHSProtocol {
             RHSProtocol.writeString("\r\n", out);
         }
 
-        if (useChunkedResponse) {
-            out = new HttpChunkedOutputStream(out);
-        } else {
-            out = new NonCloseableOutputStream(out); // Don't allow anything to close the connection by accident.
-        }
+        try {
+            if (useChunkedResponse) {
+                out = new HttpChunkedOutputStream(out, session.getLogger());
+            } else {
+                out = new NonCloseableOutputStream(out, session.getLogger());
+            }
 
-        // Write out the response, defaulting to non-encoded responses.
-        HttpServerUtil.writeWithEncoding(contentEncoding, out, response.getContent());
-
-        if (useChunkedResponse) {
+            // Write out the response, defaulting to non-encoded responses.
+            HttpServerUtil.writeWithEncoding(contentEncoding, out, response.getContent());
+        } finally {
             // Chunked output streams have special close implementations that don't actually
             // close the underlying connection, they just signal that this is the end of the
-            // request.
+            // request. Regardless, we log the exact amount of bytes written for both
+            // fixed-length and chunked requets for debugging purposes.
             out.close();
         }
     }

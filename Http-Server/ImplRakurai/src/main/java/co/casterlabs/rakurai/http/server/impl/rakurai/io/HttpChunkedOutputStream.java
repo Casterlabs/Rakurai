@@ -5,10 +5,14 @@ import java.io.OutputStream;
 
 import co.casterlabs.rakurai.http.server.impl.rakurai.protocol.RHSProtocol;
 import lombok.RequiredArgsConstructor;
+import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
 @RequiredArgsConstructor
 public class HttpChunkedOutputStream extends OutputStream {
     private final OutputStream out;
+    private final FastLogger sessionLogger;
+
+    private long bytesWritten = 0;
     private boolean alreadyClosed = false;
 
     @Override
@@ -17,6 +21,8 @@ public class HttpChunkedOutputStream extends OutputStream {
 
         RHSProtocol.writeString("0\r\n\r\n", this.out);
         this.alreadyClosed = true;
+
+        this.sessionLogger.trace("Wrote approximately: %d bytes", this.bytesWritten);
         // Don't actually close the outputstream.
     }
 
@@ -26,6 +32,8 @@ public class HttpChunkedOutputStream extends OutputStream {
         RHSProtocol.writeString("\r\n", this.out);
         this.out.write(b);
         RHSProtocol.writeString("\r\n", this.out);
+
+        this.bytesWritten += 1;
     }
 
     @Override
@@ -36,6 +44,8 @@ public class HttpChunkedOutputStream extends OutputStream {
         RHSProtocol.writeString("\r\n", this.out);
         this.out.write(b);
         RHSProtocol.writeString("\r\n", this.out);
+
+        this.bytesWritten += b.length;
     }
 
     @Override
@@ -46,6 +56,8 @@ public class HttpChunkedOutputStream extends OutputStream {
         RHSProtocol.writeString("\r\n", this.out);
         this.out.write(b, off, len);
         RHSProtocol.writeString("\r\n", this.out);
+
+        this.bytesWritten += len;
     }
 
 }
