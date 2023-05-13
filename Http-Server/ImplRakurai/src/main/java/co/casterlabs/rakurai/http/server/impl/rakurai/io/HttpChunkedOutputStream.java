@@ -4,15 +4,19 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import co.casterlabs.rakurai.http.server.impl.rakurai.protocol.RHSProtocol;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class HttpChunkedOutputStream extends OutputStream {
-    private OutputStream out;
+    private final OutputStream out;
+    private boolean alreadyClosed = false;
 
     @Override
     public void close() throws IOException {
+        if (this.alreadyClosed) return;
+
         RHSProtocol.writeString("0\r\n\r\n", this.out);
+        this.alreadyClosed = true;
         // Don't actually close the outputstream.
     }
 
