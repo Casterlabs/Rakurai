@@ -33,7 +33,11 @@ public class SSLConfiguration {
     }
 
     public SSLConfiguration setEnabledCipherSuites(@Nullable String... enabledCipherSuites) {
-        this.enabledCipherSuites = Arrays.asList(enabledCipherSuites);
+        if (enabledCipherSuites == null) {
+            this.enabledCipherSuites = null;
+        } else {
+            this.enabledCipherSuites = Arrays.asList(enabledCipherSuites);
+        }
         return this;
     }
 
