@@ -105,7 +105,11 @@ public class RHSWebsocketProtocol {
             byte[] payload = new byte[(int) length];
 
             int read = 0;
-            while ((read += in.read(payload)) < payload.length);
+            while (read < payload.length) {
+                int bytesRead = in.read(payload, read, payload.length - read);
+                if (bytesRead == -1) throw new IOException("Socket closed.");
+                read += bytesRead;
+            }
 
             // XOR decrypt.
             if (isMasked) {
