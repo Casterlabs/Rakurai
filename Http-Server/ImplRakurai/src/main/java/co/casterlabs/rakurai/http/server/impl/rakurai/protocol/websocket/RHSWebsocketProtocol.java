@@ -34,14 +34,16 @@ public class RHSWebsocketProtocol {
 
         while (!client.isClosed()) {
             // @formatter:off
-            int header1 = in.read();
+            int header1 = throwRead(in);
+            
             boolean isFinished = (header1 & 0b10000000) != 0;
             boolean rsv1       = (header1 & 0b01000000) != 0;
             boolean rsv2       = (header1 & 0b00100000) != 0;
             boolean rsv3       = (header1 & 0b00010000) != 0;
             int op             =  header1 & 0b00001111;
             
-            int header2 = in.read();
+            int header2 = throwRead(in);
+            
             boolean isMasked   = (header2 & 0b10000000) != 0;
             int len7           =  header2 & 0b01111111;
             // @formatter:on
@@ -60,20 +62,20 @@ public class RHSWebsocketProtocol {
                 length = BigEndianIOUtil.bytesToInt(new byte[] {
                         0,
                         0,
-                        (byte) in.read(),
-                        (byte) in.read(),
+                        (byte) throwRead(in),
+                        (byte) throwRead(in),
                 });
             } else if (len7 == 127) {
                 // 64bit.
                 length = BigEndianIOUtil.bytesToLong(new byte[] {
-                        (byte) in.read(),
-                        (byte) in.read(),
-                        (byte) in.read(),
-                        (byte) in.read(),
-                        (byte) in.read(),
-                        (byte) in.read(),
-                        (byte) in.read(),
-                        (byte) in.read(),
+                        (byte) throwRead(in),
+                        (byte) throwRead(in),
+                        (byte) throwRead(in),
+                        (byte) throwRead(in),
+                        (byte) throwRead(in),
+                        (byte) throwRead(in),
+                        (byte) throwRead(in),
+                        (byte) throwRead(in),
                 });
 
                 if (Long.compareUnsigned(length, MAX_PAYLOAD_LENGTH) > 0) {
@@ -92,10 +94,10 @@ public class RHSWebsocketProtocol {
             byte[] maskingKey = null;
             if (isMasked) {
                 maskingKey = new byte[] {
-                        (byte) in.read(),
-                        (byte) in.read(),
-                        (byte) in.read(),
-                        (byte) in.read(),
+                        (byte) throwRead(in),
+                        (byte) throwRead(in),
+                        (byte) throwRead(in),
+                        (byte) throwRead(in),
                 };
             }
 
@@ -189,6 +191,12 @@ public class RHSWebsocketProtocol {
 
             }
         }
+    }
+
+    private static int throwRead(InputStream in) throws IOException {
+        int read = in.read();
+        if (read == -1) throw new IOException("Socket closed.");
+        return read;
     }
 
 }
