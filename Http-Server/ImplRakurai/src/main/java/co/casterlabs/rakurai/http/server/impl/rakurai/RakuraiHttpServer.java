@@ -4,7 +4,6 @@ import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.Inet6Address;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -319,10 +318,14 @@ public class RakuraiHttpServer implements HttpServer {
     }
 
     private static String formatAddress(Socket clientSocket) {
-        String address = ((InetSocketAddress) clientSocket.getRemoteSocketAddress()).getHostString();
+        String address = //
+            ((InetSocketAddress) clientSocket.getRemoteSocketAddress())
+                .getAddress()
+                .toString()
+                .replace("/", "");
 
-        if (((InetSocketAddress) clientSocket.getRemoteSocketAddress()).getAddress() instanceof Inet6Address) {
-            // Better Format for v6 addresses :^)
+        if (address.indexOf(':') != -1) {
+            // Better Format for ipv6 addresses :^)
             address = '[' + address + ']';
         }
 
