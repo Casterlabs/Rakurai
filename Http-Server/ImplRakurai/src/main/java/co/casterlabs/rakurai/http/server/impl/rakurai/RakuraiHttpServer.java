@@ -5,7 +5,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Inet6Address;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -320,10 +319,9 @@ public class RakuraiHttpServer implements HttpServer {
     }
 
     private static String formatAddress(Socket clientSocket) {
-        InetAddress remoteAddress = ((InetSocketAddress) clientSocket.getRemoteSocketAddress()).getAddress();
-        String address = remoteAddress.getHostAddress();
+        String address = ((InetSocketAddress) clientSocket.getRemoteSocketAddress()).getHostString();
 
-        if (remoteAddress instanceof Inet6Address) {
+        if (((InetSocketAddress) clientSocket.getRemoteSocketAddress()).getAddress() instanceof Inet6Address) {
             // Better Format for v6 addresses :^)
             address = '[' + address + ']';
         }
