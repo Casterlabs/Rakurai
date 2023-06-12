@@ -352,7 +352,6 @@ public class RakuraiHttpServer implements HttpServer {
             message.contains("read timed out") ||
             message.contains("connection or inbound has closed") ||
             message.contains("connection reset") ||
-            message.contains("received fatal alert: internal_error") ||
             message.contains("socket write error")) return true;
 
         return false;
