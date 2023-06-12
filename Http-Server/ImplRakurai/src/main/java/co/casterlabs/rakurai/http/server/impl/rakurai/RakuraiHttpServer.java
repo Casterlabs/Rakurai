@@ -11,9 +11,13 @@ import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -348,6 +352,7 @@ public class RakuraiHttpServer implements HttpServer {
             message.contains("read timed out") ||
             message.contains("connection or inbound has closed") ||
             message.contains("connection reset") ||
+            message.contains("received fatal alert: internal_error") ||
             message.contains("socket write error")) return true;
 
         return false;
@@ -379,9 +384,10 @@ public class RakuraiHttpServer implements HttpServer {
                 SSLServerSocketFactory factory = sslContext.getServerSocketFactory();
                 SSLServerSocket socket = (SSLServerSocket) factory.createServerSocket();
 
+                List<String> cipherSuitesToUse;
+
                 if (this.config.getSsl().getEnabledCipherSuites() == null) {
-                    this.logger.debug("Using the following Cipher Suites: %s.", Arrays.asList(factory.getSupportedCipherSuites()));
-                    socket.setEnabledCipherSuites(factory.getSupportedCipherSuites());
+                    cipherSuitesToUse = Arrays.asList(factory.getSupportedCipherSuites());
                 } else {
                     List<String> enabledCipherSuites = this.config.getSsl().getEnabledCipherSuites();
 
@@ -401,9 +407,45 @@ public class RakuraiHttpServer implements HttpServer {
                         }
                     }
 
-                    this.logger.debug("Using the following Cipher Suites: %s.", supported);
-                    socket.setEnabledCipherSuites(supported.toArray(new String[0]));
+                    cipherSuitesToUse = supported;
                 }
+
+                // If the certificate doesn't support EC algs, then we disable them.
+                {
+                    boolean ECsupported = false;
+
+                    for (String alias : Collections.list(keyStore.aliases())) {
+                        Certificate certificate = keyStore.getCertificate(alias);
+                        if (certificate instanceof X509Certificate) {
+                            X509Certificate x509Certificate = (X509Certificate) certificate;
+                            String publicKeyAlgorithm = x509Certificate.getPublicKey().getAlgorithm();
+                            if (publicKeyAlgorithm.equals("EC")) {
+                                ECsupported = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!ECsupported) {
+                        Iterator<String> it = cipherSuitesToUse.iterator();
+                        boolean warnedECunsupported = false;
+
+                        while (it.hasNext()) {
+                            String cipherSuite = it.next();
+                            if (cipherSuite.contains("_ECDHE_") || cipherSuite.contains("_ECDH_")) {
+                                it.remove();
+
+                                if (!warnedECunsupported) {
+                                    warnedECunsupported = true;
+                                    this.logger.warn("Elliptic-Curve Cipher Suites are not supported as your certificate does not use the EC public key algorithm.");
+                                }
+                            }
+                        }
+                    }
+                }
+
+                this.logger.info("Using the following Cipher Suites: %s.", cipherSuitesToUse);
+                socket.setEnabledCipherSuites(cipherSuitesToUse.toArray(new String[0]));
 
                 socket.setEnabledProtocols(this.config.getSsl().convertTLS());
                 socket.setUseClientMode(false);
