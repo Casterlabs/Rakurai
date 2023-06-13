@@ -152,8 +152,9 @@ public class RakuraiHttpServer implements HttpServer {
             switch (version) {
                 case HTTP_1_1: {
                     String connection = session.getHeader("Connection");
+                    if (connection == null) break;
 
-                    if ("upgrade".equalsIgnoreCase(connection)) {
+                    if (connection.toLowerCase().contains("upgrade")) {
                         String upgradeTo = session.getHeader("Upgrade");
                         if (upgradeTo == null) upgradeTo = "";
 
@@ -168,7 +169,7 @@ public class RakuraiHttpServer implements HttpServer {
                                 return false;
                             }
                         }
-                    } else if ("keep-alive".equalsIgnoreCase(connection)) {
+                    } else if (connection.toLowerCase().contains("keep-alive")) {
                         keepConnectionAlive = true;
                     }
                     break;
