@@ -49,6 +49,8 @@ public class RHSWebsocket extends Websocket {
     public void close() throws IOException {
         try {
             this.sendFrame(true, WebsocketOpCode.CLOSE, new byte[0]);
+        } catch (IOException e) {
+            // Ignored.
         } finally {
             IOUtil.safeClose(this.toClose);
         }
