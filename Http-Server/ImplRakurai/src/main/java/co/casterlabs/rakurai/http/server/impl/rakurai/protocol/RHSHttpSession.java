@@ -8,29 +8,31 @@ import java.util.Map;
 import org.jetbrains.annotations.Nullable;
 
 import co.casterlabs.rakurai.collections.HeaderMap;
+import co.casterlabs.rakurai.io.IOUtil;
 import co.casterlabs.rakurai.io.http.HttpVersion;
 import co.casterlabs.rakurai.io.http.server.config.HttpServerBuilder;
 import co.casterlabs.rakurai.io.http.server.websocket.WebsocketSession;
-import lombok.AllArgsConstructor;
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class RHSHttpSession extends WebsocketSession {
-    private @NonNull HeaderMap headers;
+    private final @NonNull HeaderMap headers;
 
-    private @NonNull String uri;
-    private @NonNull String queryString;
-    private @NonNull Map<String, List<String>> allQueryParameters;
-    private @NonNull Map<String, String> queryParameters;
+    private final @NonNull String uri;
+    private final @NonNull String queryString;
+    private final @NonNull Map<String, List<String>> allQueryParameters;
+    private final @NonNull Map<String, String> queryParameters;
 
-    private int port;
+    private final int port;
 
-    private @NonNull HttpVersion version;
-    private @NonNull String method;
-    private @NonNull String remoteAddress;
+    private final @NonNull HttpVersion version;
+    private final @NonNull String method;
+    private final @NonNull String remoteAddress;
 
-    private @Nullable InputStream bodyIn;
+    private final @Nullable InputStream bodyIn;
+    private byte[] cachedBody;
 
     public RHSHttpSession rhsPostConstruct(HttpServerBuilder config, FastLogger parentLogger) {
         super.postConstruct(config, parentLogger);
@@ -77,8 +79,20 @@ public class RHSHttpSession extends WebsocketSession {
 
     @Override
     public Map<String, String> parseFormBody() throws IOException {
-        // TODO Auto-generated method stub
-        return null;
+        if (!this.hasBody()) return null;
+
+        return null; // TODO
+    }
+
+    @Override
+    public @Nullable byte[] getRequestBodyBytes() throws IOException {
+        if (!this.hasBody()) return null;
+
+        if (this.cachedBody == null) {
+            this.cachedBody = IOUtil.readInputStreamBytes(this.getRequestBodyStream());
+        }
+
+        return this.cachedBody;
     }
 
     // Server info
