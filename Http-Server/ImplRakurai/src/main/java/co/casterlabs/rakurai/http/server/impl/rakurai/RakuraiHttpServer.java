@@ -115,8 +115,8 @@ public class RakuraiHttpServer implements HttpServer {
                     this.logger.debug("Closed connection from %s", remoteAddress);
                 }
             });
-        } catch (IOException e) {
-            this.logger.severe("An error occurred whilst accepting a new connection:\n%s", e);
+        } catch (Throwable t) {
+            this.logger.severe("An error occurred whilst accepting a new connection:\n%s", t);
         }
     }
 
