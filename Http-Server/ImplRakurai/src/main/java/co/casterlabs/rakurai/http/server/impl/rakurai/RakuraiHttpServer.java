@@ -85,11 +85,14 @@ public class RakuraiHttpServer implements HttpServer {
                     clientSocket.setTcpNoDelay(true);
                     sessionLogger.trace("Set TCP_NODELAY.");
 
+                    BufferedInputStream in = new BufferedInputStream(clientSocket.getInputStream());
+
                     while (true) {
                         clientSocket.setSoTimeout(HTTP_PERSISTENT_TIMEOUT * 1000); // 1m timeout for regular requests.
                         sessionLogger.trace("Set SO_TIMEOUT to %dms.", HTTP_PERSISTENT_TIMEOUT * 1000);
 
                         boolean acceptAnotherRequest = this.handle(clientSocket, sessionLogger);
+                        boolean acceptAnotherRequest = this.handle(in, clientSocket, sessionLogger);
                         if (acceptAnotherRequest) {
                             // We're keeping the connection, let the while{} block do it's thing.
                             sessionLogger.debug("Keeping connection alive for subsequent requests.");
@@ -122,15 +125,13 @@ public class RakuraiHttpServer implements HttpServer {
         }
     }
 
-    private boolean handle(Socket clientSocket, FastLogger sessionLogger) throws IOException, NoSuchAlgorithmException {
+    private boolean handle(BufferedInputStream in, Socket clientSocket, FastLogger sessionLogger) throws IOException, NoSuchAlgorithmException {
         HttpResponse httpResponse = null;
         WebsocketListener websocketListener = null;
         RHSWebsocket websocket = null;
 
         try {
             sessionLogger.trace("Handling request...");
-
-            BufferedInputStream in = new BufferedInputStream(clientSocket.getInputStream());
 
             RHSHttpSession session = null;
             HttpVersion version = HttpVersion.HTTP_1_0; // Our default.
