@@ -83,9 +83,11 @@ public class RakuraiHttpServer implements HttpServer {
 
                 try {
                     clientSocket.setTcpNoDelay(true);
+                    sessionLogger.trace("Set TCP_NODELAY.");
 
                     while (true) {
                         clientSocket.setSoTimeout(HTTP_PERSISTENT_TIMEOUT * 1000); // 1m timeout for regular requests.
+                        sessionLogger.trace("Set SO_TIMEOUT to %dms.", HTTP_PERSISTENT_TIMEOUT * 1000);
 
                         boolean acceptAnotherRequest = this.handle(clientSocket, sessionLogger);
                         if (acceptAnotherRequest) {
@@ -126,6 +128,8 @@ public class RakuraiHttpServer implements HttpServer {
         RHSWebsocket websocket = null;
 
         try {
+            sessionLogger.trace("Handling request...");
+
             BufferedInputStream in = new BufferedInputStream(clientSocket.getInputStream());
 
             RHSHttpSession session = null;
@@ -137,14 +141,12 @@ public class RakuraiHttpServer implements HttpServer {
                 session = RHSProtocol.accept(sessionLogger, this, clientSocket, in);
                 version = session.getVersion();
                 sessionLogger = session.getLogger();
-
-                sessionLogger.debug("Request headers: %s", session.getHeaders());
             } catch (RHSHttpException e) {
                 sessionLogger.severe("An error occurred whilst handling a request:\n%s", e);
                 httpResponse = HttpResponse.newFixedLengthResponse(e.status);
             }
 
-            sessionLogger.debug("Using version: %s", version);
+            sessionLogger.debug("Version: %s, Request headers: %s", version, session.getHeaders());
 
             boolean keepConnectionAlive = false;
             String protocol = "http";
@@ -161,15 +163,18 @@ public class RakuraiHttpServer implements HttpServer {
                         switch (upgradeTo.toLowerCase()) {
                             case "websocket": {
                                 protocol = "websocket";
+                                sessionLogger.trace("Upgrading to: websocket.");
                                 break;
                             }
 
                             default: {
+                                sessionLogger.trace("Rejecting upgrade: %s.", upgradeTo.toLowerCase());
                                 clientSocket.getOutputStream().write(HTTP_1_1_UPGRADE_REJECT);
                                 return false;
                             }
                         }
                     } else if (connection.toLowerCase().contains("keep-alive")) {
+                        sessionLogger.trace("KA requested, obliging.");
                         keepConnectionAlive = true;
                     }
                     break;
@@ -186,18 +191,20 @@ public class RakuraiHttpServer implements HttpServer {
                     // We have a valid session, try to serve it.
                     // Note that response will always be null at this location IF session isn't.
                     if (session != null) {
+                        sessionLogger.trace("Serving session...");
                         httpResponse = this.listener.serveSession(session.getHost(), session, this.isSecure);
                     }
 
-                    if (httpResponse == null) throw new DropConnectionException();
+                    sessionLogger.trace("Served.");
 
+                    if (httpResponse == null) throw new DropConnectionException();
                     RHSProtocol.writeOutResponse(clientSocket, session, keepConnectionAlive, httpResponse);
 
                     return keepConnectionAlive;
                 }
 
                 case "websocket": {
-                    sessionLogger.debug("Handling websocket request...");
+                    sessionLogger.trace("Handling websocket request...");
 
                     if (session != null) {
                         websocketListener = this.listener.serveWebsocketSession(session.getHost(), session, this.isSecure);
@@ -226,7 +233,7 @@ public class RakuraiHttpServer implements HttpServer {
                             }
                         }
 
-                        sessionLogger.debug("Accepted websocket version: %s", wsVersion);
+                        sessionLogger.trace("Accepted websocket version: %s", wsVersion);
                     }
 
                     // Upgrade the connection.
@@ -270,13 +277,14 @@ public class RakuraiHttpServer implements HttpServer {
 
                     // Write the separation line.
                     RHSProtocol.writeString("\r\n", out);
-                    sessionLogger.debug("WebSocket upgrade complete, handling frames.");
+                    sessionLogger.trace("WebSocket upgrade complete, handling frames.");
 
                     websocket = new RHSWebsocket(session, out, clientSocket);
                     websocketListener.onOpen(websocket);
 
                     // Ping/pong mechanism.
                     clientSocket.setSoTimeout((int) (RHSWebsocketProtocol.READ_TIMEOUT * 4)); // Timeouts should work differently for WS.
+                    sessionLogger.trace("Set SO_TIMEOUT to %dms.", RHSWebsocketProtocol.READ_TIMEOUT * 4);
 
                     final Thread readThread = Thread.currentThread();
                     final RHSWebsocket $websocket_pointer = websocket;
@@ -295,6 +303,7 @@ public class RakuraiHttpServer implements HttpServer {
                     kaThread.setDaemon(true);
                     kaThread.start();
 
+                    sessionLogger.trace("Handling WS request...");
                     RHSWebsocketProtocol.handleWebsocketRequest(clientSocket, session, websocket, websocketListener);
 
                     return false; // Close.

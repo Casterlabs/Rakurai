@@ -45,7 +45,7 @@ public class RHSWebsocketProtocol {
             int header2 = throwRead(in);
             
             boolean isMasked   = (header2 & 0b10000000) != 0;
-            int len7           =  header2 & 0b01111111;
+            int    len7        =  header2 & 0b01111111;
             // @formatter:on
 
             if (rsv1 || rsv2 || rsv3) {
@@ -156,6 +156,7 @@ public class RHSWebsocketProtocol {
             switch (op) {
 
                 case 0x1: { // Text
+                    sessionLogger.trace("Got frame: TEXT.");
                     try {
                         String text = new String(payload, StandardCharsets.UTF_8);
                         sessionLogger.debug("Text frame: %s", text);
@@ -168,6 +169,7 @@ public class RHSWebsocketProtocol {
 
                 case 0x2: { // Binary
                     try {
+                        sessionLogger.trace("Got frame: BINARY.");
                         sessionLogger.debug("Binary frame: len=%d", payload.length);
                         listener.onBinary(websocket, payload);
                     } catch (Throwable t) {
@@ -177,16 +179,19 @@ public class RHSWebsocketProtocol {
                 }
 
                 case 0x8: { // Close
+                    sessionLogger.trace("Got frame: CLOSE.");
                     websocket.close(); // Send close reply.
                     return;
                 }
 
                 case 0x9: { // Ping
+                    sessionLogger.trace("Got frame: PING.");
                     websocket.sendFrame(true, WebsocketOpCode.PONG, payload); // Send pong reply.
                     continue;
                 }
 
                 case 0xa: { // Pong
+                    sessionLogger.trace("Got frame: PONG.");
                     continue;
                 }
 
