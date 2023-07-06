@@ -91,7 +91,6 @@ public class RakuraiHttpServer implements HttpServer {
                         clientSocket.setSoTimeout(HTTP_PERSISTENT_TIMEOUT * 1000); // 1m timeout for regular requests.
                         sessionLogger.trace("Set SO_TIMEOUT to %dms.", HTTP_PERSISTENT_TIMEOUT * 1000);
 
-                        boolean acceptAnotherRequest = this.handle(clientSocket, sessionLogger);
                         boolean acceptAnotherRequest = this.handle(in, clientSocket, sessionLogger);
                         if (acceptAnotherRequest) {
                             // We're keeping the connection, let the while{} block do it's thing.
@@ -290,19 +289,16 @@ public class RakuraiHttpServer implements HttpServer {
                     final Thread readThread = Thread.currentThread();
                     final RHSWebsocket $websocket_pointer = websocket;
 
-                    Thread kaThread = new Thread(() -> {
+                    this.executor.submit(() -> {
                         try {
                             while (!clientSocket.isClosed()) {
                                 RHSWebsocketProtocol.doPing($websocket_pointer);
-                                Thread.sleep(RHSWebsocketProtocol.READ_TIMEOUT);
+                                Thread.sleep(RHSWebsocketProtocol.READ_TIMEOUT / 2);
                             }
                         } catch (Exception ignored) {
                             readThread.interrupt(); // Try to tell the read thread that the connection is ded.
                         }
                     });
-                    kaThread.setName("RHS Keep Alive Thread - " + session.getRequestId());
-                    kaThread.setDaemon(true);
-                    kaThread.start();
 
                     sessionLogger.trace("Handling WS request...");
                     RHSWebsocketProtocol.handleWebsocketRequest(clientSocket, session, websocket, websocketListener);
