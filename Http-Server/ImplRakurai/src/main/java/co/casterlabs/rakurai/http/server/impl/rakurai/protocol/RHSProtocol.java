@@ -34,6 +34,7 @@ import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
 public abstract class RHSProtocol {
     public static final Charset HEADER_CHARSET = Charset.forName(System.getProperty("rakurai.http.headercharset", "ISO-8859-1"));
+    public static final int HTTP_PERSISTENT_TIMEOUT = 30;
 
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss O");
     private static final byte[] HTTP_CONTINUE_LINE = "HTTP/1.1 100 Continue\r\n\r\n".getBytes(HEADER_CHARSET);
@@ -385,7 +386,7 @@ public abstract class RHSProtocol {
             if (keepConnectionAlive) {
                 // Add the keepalive headers.
                 response.putHeader("Connection", "keep-alive");
-                response.putHeader("Keep-Alive", "timeout=" + RakuraiHttpServer.HTTP_PERSISTENT_TIMEOUT);
+                response.putHeader("Keep-Alive", "timeout=" + HTTP_PERSISTENT_TIMEOUT);
             } else {
                 // Let the client know that we will be closing the socket.
                 response.putHeader("Connection", "close");

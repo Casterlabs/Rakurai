@@ -49,8 +49,6 @@ import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
 @Getter
 public class RakuraiHttpServer implements HttpServer {
-    public static final int HTTP_PERSISTENT_TIMEOUT = 30;
-
     private static final byte[] HTTP_1_1_UPGRADE_REJECT = "HTTP/1.1 400 Bad Request\r\n\r\n".getBytes(RHSProtocol.HEADER_CHARSET);
 
     private final FastLogger logger = new FastLogger("Rakurai RakuraiHttpServer");
@@ -88,8 +86,8 @@ public class RakuraiHttpServer implements HttpServer {
                     BufferedInputStream in = new BufferedInputStream(clientSocket.getInputStream());
 
                     while (true) {
-                        clientSocket.setSoTimeout(HTTP_PERSISTENT_TIMEOUT * 1000); // 1m timeout for regular requests.
-                        sessionLogger.trace("Set SO_TIMEOUT to %dms.", HTTP_PERSISTENT_TIMEOUT * 1000);
+                        clientSocket.setSoTimeout(RHSProtocol.HTTP_PERSISTENT_TIMEOUT * 1000); // 1m timeout for regular requests.
+                        sessionLogger.trace("Set SO_TIMEOUT to %dms.", RHSProtocol.HTTP_PERSISTENT_TIMEOUT * 1000);
 
                         boolean acceptAnotherRequest = this.handle(in, clientSocket, sessionLogger);
                         if (acceptAnotherRequest) {
