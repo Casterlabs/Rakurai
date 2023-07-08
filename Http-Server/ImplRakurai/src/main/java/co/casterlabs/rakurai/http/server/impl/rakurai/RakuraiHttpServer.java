@@ -284,7 +284,6 @@ public class RakuraiHttpServer implements HttpServer {
                     clientSocket.setSoTimeout((int) (RHSWebsocketProtocol.READ_TIMEOUT * 4)); // Timeouts should work differently for WS.
                     sessionLogger.trace("Set SO_TIMEOUT to %dms.", RHSWebsocketProtocol.READ_TIMEOUT * 4);
 
-                    final Thread readThread = Thread.currentThread();
                     final RHSWebsocket $websocket_pointer = websocket;
 
                     this.executor.submit(() -> {
@@ -294,7 +293,7 @@ public class RakuraiHttpServer implements HttpServer {
                                 Thread.sleep(RHSWebsocketProtocol.READ_TIMEOUT / 2);
                             }
                         } catch (Exception ignored) {
-                            readThread.interrupt(); // Try to tell the read thread that the connection is ded.
+                            IOUtil.safeClose(clientSocket); // Try to tell the read thread that the connection is ded.
                         }
                     });
 
