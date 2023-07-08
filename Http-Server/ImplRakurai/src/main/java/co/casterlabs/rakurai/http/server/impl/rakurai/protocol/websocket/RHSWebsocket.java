@@ -24,7 +24,13 @@ public class RHSWebsocket extends Websocket {
     @Override
     public void send(@NonNull String message) throws IOException {
         byte[] bytes = message.getBytes(StandardCharsets.UTF_8);
-        this.sendFrame(true, WebsocketOpCode.TEXT, bytes);
+        try {
+            this.sendFrame(true, WebsocketOpCode.TEXT, bytes);
+        } catch (IOException e) {
+            IOUtil.safeClose(this.toClose);
+            throw e;
+        }
+
     }
 
     @Override
@@ -39,7 +45,13 @@ public class RHSWebsocket extends Websocket {
 
             boolean fin = toWrite == 0;
             WebsocketOpCode op = written == 0 ? WebsocketOpCode.BINARY : WebsocketOpCode.CONTINUATION;
-            this.sendFrame(fin, op, chunk);
+
+            try {
+                this.sendFrame(fin, op, chunk);
+            } catch (IOException e) {
+                IOUtil.safeClose(this.toClose);
+                throw e;
+            }
 
             written += chunk.length;
         }

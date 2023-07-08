@@ -355,6 +355,7 @@ public class RakuraiHttpServer implements HttpServer {
         if (message.contains("socket closed") ||
             message.contains("socket is closed") ||
             message.contains("read timed out") ||
+            message.contains("connection abort") ||
             message.contains("connection or inbound has closed") ||
             message.contains("connection reset") ||
             message.contains("received fatal alert: internal_error") ||
@@ -468,8 +469,14 @@ public class RakuraiHttpServer implements HttpServer {
         }
 
         Thread acceptThread = new Thread(() -> {
-            while (this.serverSocket.isBound()) {
+            while (!this.serverSocket.isClosed()) {
                 this.doRead();
+            }
+
+            try {
+                this.stop();
+            } catch (IOException e) {
+                this.logger.severe("An error occurred whilst tearing down server:\n%s", e);
             }
         });
         acceptThread.setName("RakuraiHttpServer - " + this.getPort());

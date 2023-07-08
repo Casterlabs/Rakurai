@@ -33,6 +33,8 @@ public class RHSWebsocketProtocol {
         byte[] fragmentedPacket = new byte[0];
 
         while (!client.isClosed()) {
+            if (Thread.interrupted()) return;
+
             // @formatter:off
             int header1 = throwRead(in);
             
