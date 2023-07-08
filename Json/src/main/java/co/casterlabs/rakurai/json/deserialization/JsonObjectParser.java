@@ -90,6 +90,11 @@ public class JsonObjectParser extends JsonParser {
                     throw e;
                 }
 
+                // Eat remaining whitespace.
+                while (strfindex(JsonParser.JSON_WHITESPACE, objectContents[read]) != -1) {
+                    read++;
+                }
+
                 int colonLocation = strfindex(objectContents, ':', read);
                 if (colonLocation == -1) throw e;
 
@@ -115,6 +120,15 @@ public class JsonObjectParser extends JsonParser {
                 read += elementPair.getRead();
 
                 object.put(key, elementPair.getElement());
+            }
+
+            // Eat remaining whitespace.
+            while (strfindex(JsonParser.JSON_WHITESPACE, objectContents[read]) != -1) {
+                read++;
+            }
+
+            if (objectContents[read] == ',') {
+                read++; // Eat a remaining comma.
             }
         }
 
