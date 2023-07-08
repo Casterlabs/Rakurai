@@ -24,37 +24,13 @@ public class RHSWebsocket extends Websocket {
     @Override
     public void send(@NonNull String message) throws IOException {
         byte[] bytes = message.getBytes(StandardCharsets.UTF_8);
-        try {
-            this.sendFrame(true, WebsocketOpCode.TEXT, bytes);
-        } catch (IOException e) {
-            IOUtil.safeClose(this.toClose);
-            throw e;
-        }
+        this.sendOrFragment(WebsocketOpCode.TEXT, bytes);
 
     }
 
     @Override
     public void send(@NonNull byte[] bytes) throws IOException {
-        int toWrite = bytes.length;
-        int written = 0;
-
-        while (toWrite > 0) {
-            byte[] chunk = new byte[Math.min(toWrite, RHSWebsocketProtocol.MAX_CHUNK_LENGTH)];
-            System.arraycopy(bytes, written, chunk, 0, chunk.length);
-            toWrite -= chunk.length;
-
-            boolean fin = toWrite == 0;
-            WebsocketOpCode op = written == 0 ? WebsocketOpCode.BINARY : WebsocketOpCode.CONTINUATION;
-
-            try {
-                this.sendFrame(fin, op, chunk);
-            } catch (IOException e) {
-                IOUtil.safeClose(this.toClose);
-                throw e;
-            }
-
-            written += chunk.length;
-        }
+        this.sendOrFragment(WebsocketOpCode.BINARY, bytes);
     }
 
     @Override
@@ -68,36 +44,69 @@ public class RHSWebsocket extends Websocket {
         }
     }
 
-    synchronized void sendFrame(boolean fin, WebsocketOpCode op, byte[] bytes) throws IOException {
-        int len7 = bytes.length;
-        if (len7 > 125) {
-            if (bytes.length > 65535) {
-                len7 = 127; // Use 64bit length.
-            } else {
-                len7 = 126; // Use 16bit length.
+    private void sendOrFragment(WebsocketOpCode op, byte[] bytes) throws IOException {
+        synchronized (this.out) {
+            try {
+                if (bytes.length <= RHSWebsocketProtocol.MAX_PAYLOAD_LENGTH) {
+                    // Don't fragment.
+                    this.sendFrame(true, op, bytes);
+                    return;
+                }
+
+                int toWrite = bytes.length;
+                int written = 0;
+
+                while (toWrite > 0) {
+                    byte[] chunk = new byte[Math.min(toWrite, RHSWebsocketProtocol.MAX_PAYLOAD_LENGTH)];
+                    System.arraycopy(bytes, written, chunk, 0, chunk.length);
+                    toWrite -= chunk.length;
+
+                    boolean fin = toWrite == 0;
+                    WebsocketOpCode chunkOp = written == 0 ? op : WebsocketOpCode.CONTINUATION;
+
+                    this.sendFrame(fin, chunkOp, chunk);
+
+                    written += chunk.length;
+                }
+            } catch (IOException e) {
+                IOUtil.safeClose(this.toClose);
+                throw e;
             }
         }
+    }
 
-        int header1 = 0;
-        header1 |= (fin ? 1 : 0) << 7;
-        header1 |= op.code;
-        this.out.write(header1);
+    void sendFrame(boolean fin, WebsocketOpCode op, byte[] bytes) throws IOException {
+        synchronized (this.out) {
+            int len7 = bytes.length;
+            if (len7 > 125) {
+                if (bytes.length > 65535) {
+                    len7 = 127; // Use 64bit length.
+                } else {
+                    len7 = 126; // Use 16bit length.
+                }
+            }
 
-        int header2 = 0;
-        header2 |= len7;
+            int header1 = 0;
+            header1 |= (fin ? 1 : 0) << 7;
+            header1 |= op.code;
+            this.out.write(header1);
+
+            int header2 = 0;
+            header2 |= len7;
 //        header2 |= 0b00000000; // Mask.
-        this.out.write(header2);
+            this.out.write(header2);
 
-        if (len7 == 126) {
-            byte[] lenBytes = BigEndianIOUtil.intToBytes(bytes.length);
-            this.out.write(lenBytes[2]);
-            this.out.write(lenBytes[3]); // We only need the first 16 bits.
-        } else if (len7 == 127) {
-            byte[] lenBytes = BigEndianIOUtil.longToBytes(bytes.length);
-            this.out.write(lenBytes);
+            if (len7 == 126) {
+                byte[] lenBytes = BigEndianIOUtil.intToBytes(bytes.length);
+                this.out.write(lenBytes[2]);
+                this.out.write(lenBytes[3]); // We only need the first 16 bits.
+            } else if (len7 == 127) {
+                byte[] lenBytes = BigEndianIOUtil.longToBytes(bytes.length);
+                this.out.write(lenBytes);
+            }
+
+            this.out.write(bytes);
         }
-
-        this.out.write(bytes);
     }
 
 }
