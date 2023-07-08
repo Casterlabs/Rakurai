@@ -13,8 +13,8 @@ import co.casterlabs.rakurai.io.http.server.websocket.WebsocketListener;
 import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
 public class RHSWebsocketProtocol {
-    public static final int MAX_CHUNK_LENGTH = (int) DataSize.KILOBYTE.toBytes(16);
-    public static final int MAX_PAYLOAD_LENGTH = (int) DataSize.MEGABYTE.toBytes(16);
+    public static final int MAX_CHUNK_LENGTH = Integer.parseInt(System.getProperty("rakurai.rhs.ws.maxchunklength", "65535"));
+    public static final int MAX_PAYLOAD_LENGTH = 16 /* 16mb */ * 1024 * 1024;
     public static final long READ_TIMEOUT = TimeUnit.SECONDS.toMillis(15);
 
     public static void doPing(RHSWebsocket websocket) {
