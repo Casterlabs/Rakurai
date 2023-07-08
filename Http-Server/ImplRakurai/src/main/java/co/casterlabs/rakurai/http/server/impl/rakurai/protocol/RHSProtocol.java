@@ -41,7 +41,7 @@ public abstract class RHSProtocol {
 
     // @formatter:off
     private static final int MAX_METHOD_LENGTH = 512 /*b*/; // Also used for the http version.
-    private static final int MAX_URI_LENGTH    =  64 /*kb*/ * 1024;
+    private static final int MAX_URI_LENGTH    = 256 /*kb*/ * 1024;
     private static final int MAX_HEADER_LENGTH =  16 /*kb*/ * 1024;
     // @formatter:on
 
