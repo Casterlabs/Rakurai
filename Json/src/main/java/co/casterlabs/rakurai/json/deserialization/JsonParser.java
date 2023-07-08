@@ -36,8 +36,8 @@ public abstract class JsonParser {
         }
 
         int errorLocation = skip;
-        int lowSide = Math.max(errorLocation - 15, 0);
-        int highSide = Math.min(errorLocation + 15, in.length);
+        int lowSide = Math.max(errorLocation - 64, 0);
+        int highSide = Math.min(errorLocation + 64, in.length);
 
         String erroredLine = new String(in).substring(lowSide, errorLocation);
         String restOfLine = new String(in).substring(errorLocation, highSide);
