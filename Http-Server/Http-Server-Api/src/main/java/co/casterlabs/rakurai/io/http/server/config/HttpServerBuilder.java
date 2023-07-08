@@ -81,7 +81,7 @@ public abstract class HttpServerBuilder {
             Class<?> clazz = Class.forName("co.casterlabs.rakurai.http.server.impl.undertow.UndertowHttpServerBuilder");
             return (HttpServerBuilder) clazz.newInstance();
         } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
-            throw new IllegalStateException("Unable to instantiate nanohttpd impl.", e);
+            throw new IllegalStateException("Unable to instantiate undertow impl.", e);
         }
     }
 
@@ -90,7 +90,7 @@ public abstract class HttpServerBuilder {
             Class<?> clazz = Class.forName("co.casterlabs.rakurai.http.server.impl.rakurai.RakuraiHttpServerBuilder");
             return (HttpServerBuilder) clazz.newInstance();
         } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
-            throw new IllegalStateException("Unable to instantiate nanohttpd impl.", e);
+            throw new IllegalStateException("Unable to instantiate rakurai impl.", e);
         }
     }
 
