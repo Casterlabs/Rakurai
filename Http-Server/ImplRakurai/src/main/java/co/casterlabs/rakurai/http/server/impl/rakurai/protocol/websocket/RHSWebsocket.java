@@ -71,7 +71,7 @@ public class RHSWebsocket extends Websocket {
     synchronized void sendFrame(boolean fin, WebsocketOpCode op, byte[] bytes) throws IOException {
         int len7 = bytes.length;
         if (len7 > 125) {
-            if (bytes.length > Short.MAX_VALUE) {
+            if (bytes.length > 65535) {
                 len7 = 127; // Use 64bit length.
             } else {
                 len7 = 126; // Use 16bit length.
