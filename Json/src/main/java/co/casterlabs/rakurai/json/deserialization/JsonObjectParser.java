@@ -1,6 +1,7 @@
 package co.casterlabs.rakurai.json.deserialization;
 
 import static co.casterlabs.rakurai.CharStrings.*;
+import static co.casterlabs.rakurai.CharStrings.strlindex;
 
 import co.casterlabs.rakurai.json.Rson.RsonConfig;
 import co.casterlabs.rakurai.json.element.JsonObject;
@@ -8,6 +9,7 @@ import co.casterlabs.rakurai.json.serialization.JsonParseException;
 import lombok.NonNull;
 
 public class JsonObjectParser extends JsonParser {
+    private final JsonStringParser STRING_PARSER = new JsonStringParser();
 
     @Override
     public ParsedTokenPair readToken(char[] in, int skip, @NonNull RsonConfig settings) throws JsonParseException, JsonLexException {
@@ -75,45 +77,44 @@ public class JsonObjectParser extends JsonParser {
 
         int read = 0;
         while (read < objectContentsLen - 1) {
-            int colonLocation = strfindex(objectContents, ':', read);
+            String key;
 
-            if (colonLocation == -1) {
-                break;
-            } else {
-                int keyLen = colonLocation - read;
-
-                if (keyLen < -1) {
-                    break;
+            try {
+                ParsedTokenPair keyPair = STRING_PARSER.readToken(objectContents, read, settings);
+                read += keyPair.getRead();
+                read++; // Consume the colon.
+                key = keyPair.getElement().getAsString();
+            } catch (JsonLexException e) {
+                // Try to parse json5 keys.
+                if (!settings.areJson5FeaturesEnabled()) {
+                    throw e;
                 }
+
+                int colonLocation = strfindex(objectContents, ':', read);
+                if (colonLocation == -1) throw e;
+
+                int keyLen = colonLocation - read;
+                if (keyLen < -1) throw e;
 
                 char[] keyContents = new char[keyLen];
                 strcpy(objectContents, keyContents, read);
 
-                read += keyLen + 1; // Include the colon.
-
-                String key;
-
-                try {
-                    key = JsonStringParser.readObjectKey(keyContents, settings);
-                } catch (JsonLexException e) {
-                    if (settings.areJson5FeaturesEnabled()) {
-                        if (!strcontainsany(keyContents, JsonStringParser.NEEDS_ESCAPE)) {
-                            key = new String(keyContents);
-                        }
-                    }
-
+                if (strcontainsany(keyContents, JsonStringParser.NEEDS_ESCAPE)) {
                     throw new JsonParseException("Cannot make heads or tails of object key: " + new String(keyContents));
                 }
 
-                ParsedTokenPair pair = JsonParser.parseElement(objectContents, read, settings);
+                key = new String(keyContents);
+                read = colonLocation + 1; // Skip.
+            }
 
-                if (pair == null) {
-                    read++; // Was a dud.
-                } else {
-                    read += pair.getRead();
+            ParsedTokenPair elementPair = JsonParser.parseElement(objectContents, read, settings);
 
-                    object.put(key, pair.getElement());
-                }
+            if (elementPair == null) {
+                read++; // Was a dud.
+            } else {
+                read += elementPair.getRead();
+
+                object.put(key, elementPair.getElement());
             }
         }
 
