@@ -1,7 +1,6 @@
 package co.casterlabs.rakurai.json.deserialization;
 
 import static co.casterlabs.rakurai.CharStrings.*;
-import static co.casterlabs.rakurai.CharStrings.strlindex;
 
 import co.casterlabs.rakurai.json.Rson.RsonConfig;
 import co.casterlabs.rakurai.json.element.JsonObject;
@@ -82,7 +81,13 @@ public class JsonObjectParser extends JsonParser {
             try {
                 ParsedTokenPair keyPair = STRING_PARSER.readToken(objectContents, read, settings);
                 read += keyPair.getRead();
+
+                // Eat remaining whitespace up to the colon.
+                while (strfindex(JsonParser.JSON_WHITESPACE, objectContents[read]) != -1) {
+                    read++;
+                }
                 read++; // Consume the colon.
+
                 key = keyPair.getElement().getAsString();
             } catch (JsonLexException e) {
                 // Try to parse json5 keys.
