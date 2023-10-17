@@ -5,3 +5,6 @@ This repository has been split up and archived. You may find the continuation of
 [Http-Server -> Rakurai-Http-Server](https://github.com/Casterlabs/Rakurai-Http-Server)  
 [Util -> Commons/IO](https://github.com/Casterlabs/Commons/tree/main/IO)  
 [Json -> Rson](https://github.com/Casterlabs/Rson)  
+  
+
+You may view an archive of the code on the [main branch](https://github.com/Casterlabs/Rakurai/tree/main).
