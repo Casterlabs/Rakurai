@@ -5,7 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
-import co.casterlabs.rakurai.http.server.impl.rakurai.protocol.RHSProtocol;
+import co.casterlabs.rakurai.http.server.impl.rakurai.protocol.RHSHttpProtocol;
 
 public class HttpChunkedInputStream extends InputStream {
     private BufferedInputStream in;
@@ -86,7 +86,7 @@ public class HttpChunkedInputStream extends InputStream {
         // End of stream.
         if (this.currentChunkSize == 0) {
             this.isEndOfStream = true;
-            RHSProtocol.readHeaders(this.in); // Read the footer/trailers.
+            RHSHttpProtocol.readHeaders(this.in); // Read the footer/trailers.
         }
     }
 

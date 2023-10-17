@@ -32,7 +32,7 @@ import co.casterlabs.rakurai.io.http.server.HttpServerUtil;
 import co.casterlabs.rakurai.io.http.server.HttpSession;
 import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
-public abstract class RHSProtocol {
+public abstract class RHSHttpProtocol {
     public static final Charset HEADER_CHARSET = Charset.forName(System.getProperty("rakurai.http.headercharset", "ISO-8859-1"));
     public static final int HTTP_PERSISTENT_TIMEOUT = 30;
 
@@ -378,10 +378,10 @@ public abstract class RHSProtocol {
             session.getLogger().trace("Response status line: %s %s", session.getVersion(), response.getStatus().getStatusString());
 
             // Write status.
-            RHSProtocol.writeString(session.getVersion().toString(), out);
-            RHSProtocol.writeString(" ", out);
-            RHSProtocol.writeString(response.getStatus().getStatusString(), out);
-            RHSProtocol.writeString("\r\n", out);
+            RHSHttpProtocol.writeString(session.getVersion().toString(), out);
+            RHSHttpProtocol.writeString(" ", out);
+            RHSHttpProtocol.writeString(response.getStatus().getStatusString(), out);
+            RHSHttpProtocol.writeString("\r\n", out);
 
             if (keepConnectionAlive) {
                 // Add the keepalive headers.
@@ -394,7 +394,7 @@ public abstract class RHSProtocol {
 
             // Write out a Date header for HTTP/1.1 requests with a non-100 status code.
             if ((session.getVersion().value >= 1.1) && (response.getStatus().getStatusCode() >= 200)) {
-                response.putHeader("Date", RHSProtocol.getHttpTime());
+                response.putHeader("Date", RHSHttpProtocol.getHttpTime());
             }
 
             if (!response.hasHeader("Content-Type")) {
@@ -419,14 +419,14 @@ public abstract class RHSProtocol {
 
             // Write headers.
             for (Map.Entry<String, String> entry : response.getAllHeaders().entrySet()) {
-                RHSProtocol.writeString(entry.getKey(), out);
-                RHSProtocol.writeString(": ", out);
-                RHSProtocol.writeString(entry.getValue(), out);
-                RHSProtocol.writeString("\r\n", out);
+                RHSHttpProtocol.writeString(entry.getKey(), out);
+                RHSHttpProtocol.writeString(": ", out);
+                RHSHttpProtocol.writeString(entry.getValue(), out);
+                RHSHttpProtocol.writeString("\r\n", out);
             }
 
             // Write the separation line.
-            RHSProtocol.writeString("\r\n", out);
+            RHSHttpProtocol.writeString("\r\n", out);
         }
 
         try {
@@ -452,7 +452,7 @@ public abstract class RHSProtocol {
     /* ---------------- */
 
     public static void writeString(String str, OutputStream out) throws IOException {
-        out.write(str.getBytes(RHSProtocol.HEADER_CHARSET));
+        out.write(str.getBytes(RHSHttpProtocol.HEADER_CHARSET));
     }
 
     public static String getHttpTime() {

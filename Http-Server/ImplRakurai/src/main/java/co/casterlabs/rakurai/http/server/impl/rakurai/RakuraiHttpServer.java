@@ -31,10 +31,10 @@ import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
 
 import co.casterlabs.rakurai.http.server.impl.rakurai.protocol.RHSHttpException;
+import co.casterlabs.rakurai.http.server.impl.rakurai.protocol.RHSHttpProtocol;
 import co.casterlabs.rakurai.http.server.impl.rakurai.protocol.RHSHttpSession;
-import co.casterlabs.rakurai.http.server.impl.rakurai.protocol.RHSProtocol;
-import co.casterlabs.rakurai.http.server.impl.rakurai.protocol.websocket.RHSWebsocket;
-import co.casterlabs.rakurai.http.server.impl.rakurai.protocol.websocket.RHSWebsocketProtocol;
+import co.casterlabs.rakurai.http.server.impl.rakurai.protocol.RHSWebsocket;
+import co.casterlabs.rakurai.http.server.impl.rakurai.protocol.RHSWebsocketProtocol;
 import co.casterlabs.rakurai.io.IOUtil;
 import co.casterlabs.rakurai.io.http.HttpVersion;
 import co.casterlabs.rakurai.io.http.server.DropConnectionException;
@@ -49,7 +49,7 @@ import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 
 @Getter
 public class RakuraiHttpServer implements HttpServer {
-    private static final byte[] HTTP_1_1_UPGRADE_REJECT = "HTTP/1.1 400 Bad Request\r\n\r\n".getBytes(RHSProtocol.HEADER_CHARSET);
+    private static final byte[] HTTP_1_1_UPGRADE_REJECT = "HTTP/1.1 400 Bad Request\r\n\r\n".getBytes(RHSHttpProtocol.HEADER_CHARSET);
 
     private final FastLogger logger = new FastLogger("Rakurai RakuraiHttpServer");
 
@@ -86,8 +86,8 @@ public class RakuraiHttpServer implements HttpServer {
                     BufferedInputStream in = new BufferedInputStream(clientSocket.getInputStream());
 
                     while (true) {
-                        clientSocket.setSoTimeout(RHSProtocol.HTTP_PERSISTENT_TIMEOUT * 1000); // 1m timeout for regular requests.
-                        sessionLogger.trace("Set SO_TIMEOUT to %dms.", RHSProtocol.HTTP_PERSISTENT_TIMEOUT * 1000);
+                        clientSocket.setSoTimeout(RHSHttpProtocol.HTTP_PERSISTENT_TIMEOUT * 1000); // 1m timeout for regular requests.
+                        sessionLogger.trace("Set SO_TIMEOUT to %dms.", RHSHttpProtocol.HTTP_PERSISTENT_TIMEOUT * 1000);
 
                         boolean acceptAnotherRequest = this.handle(in, clientSocket, sessionLogger);
                         if (acceptAnotherRequest) {
@@ -136,7 +136,7 @@ public class RakuraiHttpServer implements HttpServer {
 
             // Catch any RHSHttpExceptions and convert them into responses.
             try {
-                session = RHSProtocol.accept(sessionLogger, this, clientSocket, in);
+                session = RHSHttpProtocol.accept(sessionLogger, this, clientSocket, in);
                 version = session.getVersion();
                 sessionLogger = session.getLogger();
             } catch (RHSHttpException e) {
@@ -196,7 +196,7 @@ public class RakuraiHttpServer implements HttpServer {
                     sessionLogger.trace("Served.");
 
                     if (httpResponse == null) throw new DropConnectionException();
-                    RHSProtocol.writeOutResponse(clientSocket, session, keepConnectionAlive, httpResponse);
+                    RHSHttpProtocol.writeOutResponse(clientSocket, session, keepConnectionAlive, httpResponse);
 
                     return keepConnectionAlive;
                 }
@@ -224,9 +224,9 @@ public class RakuraiHttpServer implements HttpServer {
                             // Not supported.
                             default: {
                                 sessionLogger.debug("Rejected websocket version: %s", wsVersion);
-                                RHSProtocol.writeString("HTTP/1.1 426 Upgrade Required\r\n", out);
-                                RHSProtocol.writeString("Sec-WebSocket-Version: 13\r\n", out);
-                                RHSProtocol.writeString("\r\n", out);
+                                RHSHttpProtocol.writeString("HTTP/1.1 426 Upgrade Required\r\n", out);
+                                RHSHttpProtocol.writeString("Sec-WebSocket-Version: 13\r\n", out);
+                                RHSHttpProtocol.writeString("\r\n", out);
                                 return false;
                             }
                         }
@@ -235,11 +235,11 @@ public class RakuraiHttpServer implements HttpServer {
                     }
 
                     // Upgrade the connection.
-                    RHSProtocol.writeString("HTTP/1.1 101 Switching Protocols\r\n", out);
+                    RHSHttpProtocol.writeString("HTTP/1.1 101 Switching Protocols\r\n", out);
                     sessionLogger.trace("Response status line: HTTP/1.1 101 Switching Protocols");
 
-                    RHSProtocol.writeString("Connection: Upgrade\r\n", out);
-                    RHSProtocol.writeString("Upgrade: websocket\r\n", out);
+                    RHSHttpProtocol.writeString("Connection: Upgrade\r\n", out);
+                    RHSHttpProtocol.writeString("Upgrade: websocket\r\n", out);
 
                     // Generate the key and send it out.
                     {
@@ -255,9 +255,9 @@ public class RakuraiHttpServer implements HttpServer {
                             );
 
                             String acceptKey = Base64.getEncoder().encodeToString(hash.digest());
-                            RHSProtocol.writeString("Sec-WebSocket-Accept: ", out);
-                            RHSProtocol.writeString(acceptKey, out);
-                            RHSProtocol.writeString("\r\n", out);
+                            RHSHttpProtocol.writeString("Sec-WebSocket-Accept: ", out);
+                            RHSHttpProtocol.writeString(acceptKey, out);
+                            RHSHttpProtocol.writeString("\r\n", out);
                         }
                     }
 
@@ -267,14 +267,14 @@ public class RakuraiHttpServer implements HttpServer {
                         if (wsProtocol != null) {
                             String first = wsProtocol.split(",")[0].trim();
 
-                            RHSProtocol.writeString("Sec-WebSocket-Protocol: ", out);
-                            RHSProtocol.writeString(first, out);
-                            RHSProtocol.writeString("\r\n", out);
+                            RHSHttpProtocol.writeString("Sec-WebSocket-Protocol: ", out);
+                            RHSHttpProtocol.writeString(first, out);
+                            RHSHttpProtocol.writeString("\r\n", out);
                         }
                     }
 
                     // Write the separation line.
-                    RHSProtocol.writeString("\r\n", out);
+                    RHSHttpProtocol.writeString("\r\n", out);
                     sessionLogger.trace("WebSocket upgrade complete, handling frames.");
 
                     websocket = new RHSWebsocket(session, out, clientSocket);

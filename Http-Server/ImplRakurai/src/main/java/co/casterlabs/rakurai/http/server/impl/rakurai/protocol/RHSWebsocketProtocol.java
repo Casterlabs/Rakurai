@@ -1,4 +1,4 @@
-package co.casterlabs.rakurai.http.server.impl.rakurai.protocol.websocket;
+package co.casterlabs.rakurai.http.server.impl.rakurai.protocol;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -7,7 +7,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 
 import co.casterlabs.rakurai.DataSize;
-import co.casterlabs.rakurai.http.server.impl.rakurai.protocol.RHSHttpSession;
 import co.casterlabs.rakurai.io.BigEndianIOUtil;
 import co.casterlabs.rakurai.io.http.server.websocket.WebsocketListener;
 import xyz.e3ndr.fastloggingframework.logging.FastLogger;
