@@ -50,6 +50,7 @@ import xyz.e3ndr.fastloggingframework.logging.FastLogger;
 @Getter
 public class RakuraiHttpServer implements HttpServer {
     private static final byte[] HTTP_1_1_UPGRADE_REJECT = "HTTP/1.1 400 Bad Request\r\n\r\n".getBytes(RHSHttpProtocol.HEADER_CHARSET);
+    private static final byte[] HTTP_CONTINUE_LINE = "HTTP/1.1 100 Continue\r\n\r\n".getBytes(RHSHttpProtocol.HEADER_CHARSET);
 
     private final FastLogger logger = new FastLogger("Rakurai RakuraiHttpServer");
 
@@ -152,29 +153,39 @@ public class RakuraiHttpServer implements HttpServer {
             switch (version) {
                 case HTTP_1_1: {
                     String connection = session.getHeader("Connection");
-                    if (connection == null) break;
+                    if (connection != null) {
+                        if (connection.toLowerCase().contains("upgrade")) {
+                            String upgradeTo = session.getHeader("Upgrade");
+                            if (upgradeTo == null) upgradeTo = "";
 
-                    if (connection.toLowerCase().contains("upgrade")) {
-                        String upgradeTo = session.getHeader("Upgrade");
-                        if (upgradeTo == null) upgradeTo = "";
+                            switch (upgradeTo.toLowerCase()) {
+                                case "websocket": {
+                                    protocol = "websocket";
+                                    sessionLogger.trace("Upgrading to: websocket.");
+                                    break;
+                                }
 
-                        switch (upgradeTo.toLowerCase()) {
-                            case "websocket": {
-                                protocol = "websocket";
-                                sessionLogger.trace("Upgrading to: websocket.");
-                                break;
+                                default: {
+                                    sessionLogger.trace("Rejecting upgrade: %s.", upgradeTo.toLowerCase());
+                                    clientSocket.getOutputStream().write(HTTP_1_1_UPGRADE_REJECT);
+                                    return false;
+                                }
                             }
-
-                            default: {
-                                sessionLogger.trace("Rejecting upgrade: %s.", upgradeTo.toLowerCase());
-                                clientSocket.getOutputStream().write(HTTP_1_1_UPGRADE_REJECT);
-                                return false;
-                            }
+                        } else if (connection.toLowerCase().contains("keep-alive")) {
+                            sessionLogger.trace("KA requested, obliging.");
+                            keepConnectionAlive = true;
                         }
-                    } else if (connection.toLowerCase().contains("keep-alive")) {
-                        sessionLogger.trace("KA requested, obliging.");
-                        keepConnectionAlive = true;
                     }
+
+                    String expect = session.getHeader("Expect");
+                    if (expect != null) {
+                        if (expect.contains("100-continue")) {
+                            // Immediately write a CONTINUE so that the client will send the body.
+                            clientSocket.getOutputStream().write(HTTP_CONTINUE_LINE);
+                            session.getLogger().trace("Response status line: HTTP/1.1 100 Continue");
+                        }
+                    }
+
                     break;
                 }
 

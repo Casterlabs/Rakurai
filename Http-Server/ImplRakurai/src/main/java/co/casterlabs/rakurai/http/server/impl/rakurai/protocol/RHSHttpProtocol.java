@@ -37,7 +37,6 @@ public abstract class RHSHttpProtocol {
     public static final int HTTP_PERSISTENT_TIMEOUT = 30;
 
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss O");
-    private static final byte[] HTTP_CONTINUE_LINE = "HTTP/1.1 100 Continue\r\n\r\n".getBytes(HEADER_CHARSET);
 
     // @formatter:off
     private static final int MAX_METHOD_LENGTH = 512 /*b*/; // Also used for the http version.
@@ -362,12 +361,6 @@ public abstract class RHSHttpProtocol {
 
     public static void writeOutResponse(Socket client, HttpSession session, boolean keepConnectionAlive, HttpResponse response) throws IOException {
         OutputStream out = client.getOutputStream();
-
-        if (session.getVersion() == HttpVersion.HTTP_1_1) {
-            // Immediately write a CONTINUE so that the client knows we're a 1.1 server.
-            client.getOutputStream().write(HTTP_CONTINUE_LINE);
-            session.getLogger().trace("Response status line: HTTP/1.1 100 Continue");
-        }
 
         // Write out status and headers.
         String contentEncoding = null;
